@@ -33,12 +33,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-export default function TaskList() {
-  const today = new Date().toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  });
+// export default function TaskList({ date }: { date: string }) {
+//   const formattedDate = new Date(date).toLocaleDateString(undefined, {
+//     year: "numeric",
+//     month: "numeric",
+//     day: "numeric",
+//   });
+interface TaskListProps {
+  date: string;
+}
+
+export default function TaskList({ date }: TaskListProps) {
 
   const tagOptions = ["Work", "Personal", "Study", "Event Planning", "Will"];
 
@@ -48,16 +53,16 @@ export default function TaskList() {
 
   useEffect(() => {
     loadTasks();
-  }, []);
+  }, [date]);
 
   async function loadTasks() {
-    const res = await getTodayTasks(today);
+    const res = await getTodayTasks(date);
     setTasks(res);
   }
 
   async function handleAddTask() {
     if (!newTask.trim()) return;
-    await addDailyTask(newTask, today, newTag);
+    await addDailyTask(newTask, date, newTag);
     setNewTask(tagOptions[0]);
     await loadTasks();
   }
@@ -87,7 +92,7 @@ export default function TaskList() {
   return (
     <Card className="border-0 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-2xl">Today — {today}</CardTitle>
+        <CardTitle className="text-2xl">Tasks - {date}</CardTitle>
 
         <div className="mt-3 flex gap-2">
           <Input

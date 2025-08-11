@@ -6,7 +6,7 @@ import {
   weeklyPriorities,
   type DailyTask,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export async function getTodayTasks(date: string): Promise<DailyTask[]> {
   let tasks = await db
@@ -45,6 +45,15 @@ export async function getTodayTasks(date: string): Promise<DailyTask[]> {
   }
 
   return tasks;
+}
+
+export async function getTaskDates(): Promise<string[]> {
+  const dates = await db
+    .selectDistinct({ date: dailyTasks.date })
+    .from(dailyTasks)
+    .orderBy(desc(dailyTasks.date));
+
+  return dates.map((d) => d.date);
 }
 
 export async function addDailyTask(
