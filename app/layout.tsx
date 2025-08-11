@@ -28,10 +28,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <div className="container">
-          <header className="py-4">
-            <h1 className="text-2xl font-bold">Weekly Tracker</h1>
-          </header>
-          <main>{children}</main>
+          {children}
         </div>
       </body>
     </html>
