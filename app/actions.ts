@@ -1,9 +1,14 @@
 "use server";
 import { db } from "@/db";
-import { dailyTasks, rhythmTasks, weeklyPriorities } from "@/db/schema";
+import {
+  dailyTasks,
+  rhythmTasks,
+  weeklyPriorities,
+  type DailyTask,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function getTodayTasks(date: string) {
+export async function getTodayTasks(date: string): Promise<DailyTask[]> {
   let tasks = await db
     .select()
     .from(dailyTasks)
@@ -26,6 +31,7 @@ export async function getTodayTasks(date: string) {
           template.map((t) => ({
             title: t.title,
             date,
+            tag: t.tag,
             done: false,
           }))
         )
@@ -41,8 +47,12 @@ export async function getTodayTasks(date: string) {
   return tasks;
 }
 
-export async function addDailyTask(title: string, date: string) {
-  return db.insert(dailyTasks).values({ title, date, done: false }).run();
+export async function addDailyTask(
+  title: string,
+  date: string,
+  tag: string = "work"
+) {
+  return db.insert(dailyTasks).values({ title, date, tag, done: false }).run();
 }
 
 export async function toggleDailyTask(id: number, done: boolean) {

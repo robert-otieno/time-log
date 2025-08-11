@@ -17,6 +17,7 @@ if (!exists) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       date TEXT NOT NULL,
+      tag TEXT NOT NULL DEFAULT 'work',
       done INTEGER DEFAULT 0
     );
 
@@ -35,4 +36,14 @@ if (!exists) {
   // Seed rhythm tasks
   sqlite.prepare("INSERT INTO rhythm_tasks (name) VALUES (?)").run("Sleep 8 hrs");
   sqlite.prepare("INSERT INTO rhythm_tasks (name) VALUES (?)").run("Exercise 30 mins");
+} else {
+  const columns = sqlite
+    .prepare("PRAGMA table_info(daily_tasks);")
+    .all() as { name: string }[];
+  const hasTag = columns.some((c) => c.name === "tag");
+  if (!hasTag) {
+    sqlite.exec(
+      "ALTER TABLE daily_tasks ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';"
+    );
+  }
 }

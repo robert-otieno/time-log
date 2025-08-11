@@ -21,5 +21,8 @@ export const dailyTasks = sqliteTable("daily_tasks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   date: text("date").notNull(),
-  done: integer("done", { mode: "boolean" }).default(false)
+  tag: text("tag").notNull().default("work"),
+  done: integer("done", { mode: "boolean" }).notNull().default(false)
 });
+
+export type DailyTask = typeof dailyTasks.$inferSelect;
