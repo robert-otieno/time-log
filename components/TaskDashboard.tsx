@@ -1,21 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import { AppSidebar } from "@/components/app-sidebar"
+import { SiteHeader } from "@/components/site-header"
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar"
 import TaskList from "./TaskList";
-import PastDaysSidebar from "./PastDaysSidebar";
+
+export const iframeHeight = "800px"
+
+export const description = "A sidebar with a header and a search form."
 
 export default function TaskDashboard() {
   const format = (date: Date) =>
     date.toLocaleDateString(undefined, { year: "numeric", month: "numeric", day: "numeric" });
 
   const [selectedDate, setSelectedDate] = useState(format(new Date()));
-
   return (
-    <div className="flex gap-6">
-      <PastDaysSidebar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-      <div className="flex-1">
-        <TaskList date={selectedDate} />
-      </div>
+    <div className="[--header-height:calc(--spacing(14))]">
+      <SidebarProvider className="flex flex-col">
+        <SiteHeader />
+        <div className="flex flex-1">
+          <AppSidebar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+          <SidebarInset>
+            <div className="p-4">
+              <TaskList date={selectedDate} />
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
     </div>
-  );
+  )
 }
