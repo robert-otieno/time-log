@@ -1,15 +1,10 @@
 "use client";
 
+import { getPastWeekDates } from "@/lib/date-utils";
 import { SidebarDateProps } from "../lib/sidebar-date-props";
 
-
-
 export default function PastDaysSidebar({ selectedDate, onSelectDate }: SidebarDateProps) {
-	const days = Array.from({ length: 7 }, (_, i) => {
-		const d = new Date();
-		d.setDate(d.getDate() - i);
-		return d.toLocaleDateString(undefined, { year: "numeric", month: "numeric", day: "numeric" });
-	});
+	const days = getPastWeekDates();
 
 	return (
 		<aside className="w-48 border-r pr-2">

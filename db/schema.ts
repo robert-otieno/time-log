@@ -26,4 +26,13 @@ export const dailyTasks = sqliteTable("daily_tasks", {
   done: integer("done", { mode: "boolean" }).notNull().default(false)
 });
 
+export const dailySubtasks = sqliteTable("daily_subtasks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  taskId: integer("task_id").notNull(),
+  title: text("title").notNull(),
+  done: integer("done", { mode: "boolean" }).notNull().default(false),
+});
+
 export type DailyTask = typeof dailyTasks.$inferSelect;
+export type DailySubtask = typeof dailySubtasks.$inferSelect;
+export type TaskWithSubtasks = DailyTask & { subtasks: DailySubtask[] };

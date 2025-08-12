@@ -6,11 +6,14 @@ import {
   toggleDailyTask,
   deleteDailyTask,
   getTodayTasks,
+  addDailySubtask,
+  toggleDailySubtask,
+  deleteDailySubtask,
 } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarDays, ExternalLink, Flame, GripVertical, MoreVertical, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, ExternalLink, ChevronRight, Flame, GripVertical, MoreVertical, Plus, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +27,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import type { DailyTask } from "@/db/schema";
+import type { TaskWithSubtasks } from "@/db/schema";
 import {
   Select,
   SelectContent,
@@ -32,13 +35,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
-// export default function TaskList({ date }: { date: string }) {
-//   const formattedDate = new Date(date).toLocaleDateString(undefined, {
-//     year: "numeric",
-//     month: "numeric",
-//     day: "numeric",
-//   });
 interface TaskListProps {
   date: string;
 }
@@ -47,9 +45,11 @@ export default function TaskList({ date }: TaskListProps) {
 
   const tagOptions = ["Work", "Personal", "Study", "Event Planning", "Will", "GBDCEI"];
 
-  const [tasks, setTasks] = useState<DailyTask[]>([]);
+  const [tasks, setTasks] = useState<TaskWithSubtasks[]>([]);
   const [newTask, setNewTask] = useState("");
-  const [newTag, setNewTag] = useState(tagOptions[0])
+  const [newTag, setNewTag] = useState(tagOptions[0]);
+  const [newSubtasks, setNewSubtasks] = useState<Record<number, string>>({});
+  const [openTasks, setOpenTasks] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     loadTasks();
@@ -64,7 +64,7 @@ export default function TaskList({ date }: TaskListProps) {
     if (!newTask.trim()) return;
     await addDailyTask(newTask, date, newTag);
     setNewTask("");
-    setNewTask(tagOptions[0]);
+    setNewTag(tagOptions[0]);
     await loadTasks();
   }
 
@@ -75,6 +75,24 @@ export default function TaskList({ date }: TaskListProps) {
 
   async function handleDeleteTask(id: number) {
     await deleteDailyTask(id);
+    await loadTasks();
+  }
+
+  async function handleAddSubtask(taskId: number) {
+    const title = newSubtasks[taskId];
+    if (!title?.trim()) return;
+    await addDailySubtask(taskId, title);
+    setNewSubtasks((prev) => ({ ...prev, [taskId]: "" }));
+    await loadTasks();
+  }
+
+  async function handleToggleSubtask(id: number, done: boolean) {
+    await toggleDailySubtask(id, !done);
+    await loadTasks();
+  }
+
+  async function handleDeleteSubtask(id: number) {
+    await deleteDailySubtask(id);
     await loadTasks();
   }
 
@@ -142,105 +160,167 @@ export default function TaskList({ date }: TaskListProps) {
               <h3 className="mb-2 font-semibold capitalize">{tag}</h3>
               <ul className="divide-y">
                 {tagTasks.map((task) => (
-                  <li
-                    key={task.id}
-                    className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3"
-                  >
-                    {/* checkbox */}
-                    <div className="h-8 w-8 grid place-items-center">
-                      <Checkbox
-                        checked={task.done}
-                        onCheckedChange={() => handleToggleTask(task.id, task.done)}
-                        aria-label="Toggle task"
-                      />
-                    </div>
-
-                    {/* title + pills */}
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`truncate ${task.done ? "line-through text-muted-foreground" : "font-medium"}`}
-                        >
-                          {task.title}
-                        </span>
-
-                        {task.link && (
+                  <li key={task.id} className="py-3">
+                    <Collapsible
+                      open={openTasks[task.id]}
+                      onOpenChange={(o) =>
+                        setOpenTasks((prev) => ({ ...prev, [task.id]: o }))
+                      }
+                    >
+                      <div className="grid grid-cols-[auto_auto_1fr_auto] items-start gap-3">
+                        <CollapsibleTrigger asChild>
                           <Button
-                            asChild
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7"
-                            title="Open link"
+                            className="h-8 w-8 p-0 data-[state=open]:rotate-90"
+                            aria-label="Toggle subtasks"
                           >
-                            <a href={task.link} target="_blank" rel="noreferrer">
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
+                            <ChevronRight className="h-4 w-4" />
                           </Button>
-                        )}
+                        </CollapsibleTrigger>
 
-                        {task.hot && (
-                          <Badge className="gap-1">
-                            <Flame className="h-3.5 w-3.5" />
-                            Hot
-                          </Badge>
-                        )}
+                        {/* checkbox */}
+                        <div className="h-8 w-8 grid place-items-center">
+                          <Checkbox
+                            checked={task.done}
+                            onCheckedChange={() => handleToggleTask(task.id, task.done)}
+                            aria-label="Toggle task"
+                          />
+                        </div>
 
-                        {task.dueLabel && (
-                          <Badge variant="secondary" className="gap-1">
-                            <CalendarDays className="h-3.5 w-3.5" />
-                            {task.dueLabel}
-                          </Badge>
-                        )}
+                        {/* title + pills */}
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`}
+                            >
+                              {task.title}
+                            </span>
 
-                        {task.tag && <Badge variant="outline" className="capitalize">{task.tag}</Badge>}
+                            {task.link && (
+                              <Button
+                                asChild
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                title="Open link"
+                              >
+                                <a href={task.link} target="_blank" rel="noreferrer">
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            )}
 
-                        {typeof task.count === "number" && (
-                          <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">
-                            {task.count}
-                          </span>
-                        )}
+                            {task.hot && (
+                              <Badge className="gap-1">
+                                <Flame className="h-3.5 w-3.5" />
+                                Hot
+                              </Badge>
+                            )}
+
+                            {task.dueLabel && (
+                              <Badge variant="secondary" className="gap-1">
+                                <CalendarDays className="h-3.5 w-3.5" />
+                                {task.dueLabel}
+                              </Badge>
+                            )}
+
+                            {task.tag && <Badge variant="outline" className="capitalize">{task.tag}</Badge>}
+
+                            {typeof task.count === "number" && (
+                              <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">
+                                {task.count}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* actions */}
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-grab"
+                            title="Drag to sort"
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </Button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label="Task actions"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem disabled>
+                                Edit (coming soon)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem disabled>
+                                Duplicate (coming soon)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteTask(task.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* actions */}
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 cursor-grab"
-                        title="Drag to sort"
-                      >
-                        <GripVertical className="h-4 w-4" />
-                      </Button>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            aria-label="Task actions"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem disabled>
-                            Edit (coming soon)
-                          </DropdownMenuItem>
-                          <DropdownMenuItem disabled>
-                            Duplicate (coming soon)
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteTask(task.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                      <CollapsibleContent>
+                        <ul className="mt-2 ml-12 space-y-2">
+                          {task.subtasks.map((sub) => (
+                            <li key={sub.id} className="flex items-center gap-2">
+                              <Checkbox
+                                checked={sub.done}
+                                onCheckedChange={() => handleToggleSubtask(sub.id, sub.done)}
+                                aria-label="Toggle subtask"
+                              />
+                              <span className={`flex-1 truncate ${sub.done ? "line-through text-muted-foreground" : ""}`}>
+                                {sub.title}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Delete subtask"
+                                onClick={() => handleDeleteSubtask(sub.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </li>
+                          ))}
+                          <li className="flex items-center gap-2">
+                            <Input
+                              placeholder="Add subtask"
+                              value={newSubtasks[task.id] || ""}
+                              onChange={(e) =>
+                                setNewSubtasks((prev) => ({ ...prev, [task.id]: e.target.value }))
+                              }
+                              onKeyDown={(e) =>
+                                e.key === "Enter" && handleAddSubtask(task.id)
+                              }
+                              className="flex-1"
+                            />
+                            <Button
+                              size="icon"
+                              onClick={() => handleAddSubtask(task.id)}
+                              aria-label="Add subtask"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </li>
+                        </ul>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </li>
                 ))}
               </ul>
