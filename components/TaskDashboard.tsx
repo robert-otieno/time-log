@@ -1,17 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import TaskList from "./TaskList";
+import WeeklyPriorityList from "./WeeklyPriorityList";
 
 export default function TaskDashboard() {
-  const format = (date: Date) =>
-    date.toLocaleDateString(undefined, { year: "numeric", month: "numeric", day: "numeric" });
+  const format = (date: Date) => date.toLocaleDateString(undefined, { year: "numeric", month: "numeric", day: "numeric" });
 
   const [selectedDate, setSelectedDate] = useState(format(new Date()));
   return (
@@ -20,6 +17,7 @@ export default function TaskDashboard() {
         <SiteHeader />
         <div className="flex flex-1">
           <AppSidebar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+          {/* <WeeklyPriorityList /> */}
           <SidebarInset>
             <div className="p-4">
               <TaskList date={selectedDate} />
@@ -28,5 +26,5 @@ export default function TaskDashboard() {
         </div>
       </SidebarProvider>
     </div>
-  )
+  );
 }

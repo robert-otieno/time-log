@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Weekly Tracker',
-  description: 'Weekly priorities and rhythm tasks tracker',
-}
+  title: "Weekly Tracker",
+  description: "Weekly priorities and rhythm tasks tracker",
+};
 
 export default function RootLayout({
   children,
@@ -24,11 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}
-      >
-        {children}
-      </body>
+      <body className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}>{children}</body>
     </html>
   );
 }

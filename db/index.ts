@@ -18,6 +18,8 @@ if (!exists) {
       title TEXT NOT NULL,
       date TEXT NOT NULL,
       tag TEXT NOT NULL DEFAULT 'work',
+      deadline TEXT,
+      reminder_time TEXT,
       done INTEGER DEFAULT 0
     );
 
@@ -44,24 +46,26 @@ if (!exists) {
   sqlite.prepare("INSERT INTO rhythm_tasks (name) VALUES (?)").run("Sleep 8 hrs");
   sqlite.prepare("INSERT INTO rhythm_tasks (name) VALUES (?)").run("Exercise 30 mins");
 } else {
-  const dailyColumns = sqlite
-    .prepare("PRAGMA table_info(daily_tasks);")
-    .all() as { name: string }[];
+  const dailyColumns = sqlite.prepare("PRAGMA table_info(daily_tasks);").all() as { name: string }[];
   const hasDailyTag = dailyColumns.some((c) => c.name === "tag");
   if (!hasDailyTag) {
-    sqlite.exec(
-      "ALTER TABLE daily_tasks ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';"
-    );
+    sqlite.exec("ALTER TABLE daily_tasks ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';");
   }
 
-  const weeklyColumns = sqlite
-    .prepare("PRAGMA table_info(weekly_priorities);")
-    .all() as { name: string }[];
+  const hasDeadline = dailyColumns.some((c) => c.name === "deadline");
+  if (!hasDeadline) {
+    sqlite.exec("ALTER TABLE daily_tasks ADD COLUMN deadline TEXT;");
+  }
+
+  const hasReminder = dailyColumns.some((c) => c.name === "reminder_time");
+  if (!hasReminder) {
+    sqlite.exec("ALTER TABLE daily_tasks ADD COLUMN reminder_time TEXT;");
+  }
+
+  const weeklyColumns = sqlite.prepare("PRAGMA table_info(weekly_priorities);").all() as { name: string }[];
   const hasWeeklyTag = weeklyColumns.some((c) => c.name === "tag");
   if (!hasWeeklyTag) {
-    sqlite.exec(
-      "ALTER TABLE weekly_priorities ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';"
-    );
+    sqlite.exec("ALTER TABLE weekly_priorities ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';");
   }
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS daily_subtasks (

@@ -1,30 +1,17 @@
 "use server";
 import { db } from "@/db";
-import {
-  dailyTasks,
-  dailySubtasks,
-  rhythmTasks,
-  weeklyPriorities,
-  type TaskWithSubtasks,
-  type DailySubtask,
-} from "@/db/schema";
+import { dailyTasks, dailySubtasks, rhythmTasks, weeklyPriorities, type TaskWithSubtasks, type DailySubtask } from "@/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 
 export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
-  let tasks = await db
-    .select()
-    .from(dailyTasks)
-    .where(eq(dailyTasks.date, date));
+  let tasks = await db.select().from(dailyTasks).where(eq(dailyTasks.date, date));
 
   if (tasks.length === 0) {
     const yesterday = new Date(date);
     yesterday.setDate(yesterday.getDate() - 1);
     const prevDate = yesterday.toISOString().split("T")[0];
 
-    const template = await db
-      .select()
-      .from(dailyTasks)
-      .where(eq(dailyTasks.date, prevDate));
+    const template = await db.select().from(dailyTasks).where(eq(dailyTasks.date, prevDate));
 
     if (template.length > 0) {
       await db
@@ -34,25 +21,21 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
             title: t.title,
             date,
             tag: t.tag,
+            deadline: t.deadline,
+            reminderTime: t.reminderTime,
             done: false,
           }))
         )
         .run();
 
-      tasks = await db
-        .select()
-        .from(dailyTasks)
-        .where(eq(dailyTasks.date, date));
+      tasks = await db.select().from(dailyTasks).where(eq(dailyTasks.date, date));
     }
   }
 
   const taskIds = tasks.map((t) => t.id);
   let subtasks: DailySubtask[] = [];
   if (taskIds.length > 0) {
-    subtasks = await db
-      .select()
-      .from(dailySubtasks)
-      .where(inArray(dailySubtasks.taskId, taskIds));
+    subtasks = await db.select().from(dailySubtasks).where(inArray(dailySubtasks.taskId, taskIds));
   }
 
   return tasks.map((t) => ({
@@ -62,20 +45,13 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
 }
 
 export async function getTaskDates(): Promise<string[]> {
-  const dates = await db
-    .selectDistinct({ date: dailyTasks.date })
-    .from(dailyTasks)
-    .orderBy(desc(dailyTasks.date));
+  const dates = await db.selectDistinct({ date: dailyTasks.date }).from(dailyTasks).orderBy(desc(dailyTasks.date));
 
   return dates.map((d) => d.date);
 }
 
-export async function addDailyTask(
-  title: string,
-  date: string,
-  tag: string = "Work"
-) {
-  return db.insert(dailyTasks).values({ title, date, tag, done: false }).run();
+export async function addDailyTask(title: string, date: string, tag: string = "work", deadline?: string | null, reminderTime?: string | null) {
+  return db.insert(dailyTasks).values({ title, date, tag, deadline, reminderTime, done: false }).run();
 }
 
 export async function toggleDailyTask(id: number, done: boolean) {
@@ -87,18 +63,11 @@ export async function deleteDailyTask(id: number) {
 }
 
 export async function addDailySubtask(taskId: number, title: string) {
-  return db
-    .insert(dailySubtasks)
-    .values({ taskId, title, done: false })
-    .run();
+  return db.insert(dailySubtasks).values({ taskId, title, done: false }).run();
 }
 
 export async function toggleDailySubtask(id: number, done: boolean) {
-  return db
-    .update(dailySubtasks)
-    .set({ done })
-    .where(eq(dailySubtasks.id, id))
-    .run();
+  return db.update(dailySubtasks).set({ done }).where(eq(dailySubtasks.id, id)).run();
 }
 
 export async function deleteDailySubtask(id: number) {
@@ -114,20 +83,14 @@ export async function addRhythmTask(name: string) {
 }
 
 export async function getWeeklyPriorities(weekStart: string) {
-  let priorities = await db
-    .select()
-    .from(weeklyPriorities)
-    .where(eq(weeklyPriorities.weekStart, weekStart));
+  let priorities = await db.select().from(weeklyPriorities).where(eq(weeklyPriorities.weekStart, weekStart));
 
   if (priorities.length === 0) {
     const prev = new Date(weekStart);
     prev.setDate(prev.getDate() - 7);
     const prevWeek = prev.toISOString().split("T")[0];
 
-    const template = await db
-      .select()
-      .from(weeklyPriorities)
-      .where(eq(weeklyPriorities.weekStart, prevWeek));
+    const template = await db.select().from(weeklyPriorities).where(eq(weeklyPriorities.weekStart, prevWeek));
 
     if (template.length > 0) {
       await db
@@ -141,10 +104,7 @@ export async function getWeeklyPriorities(weekStart: string) {
         )
         .run();
 
-      priorities = await db
-        .select()
-        .from(weeklyPriorities)
-        .where(eq(weeklyPriorities.weekStart, weekStart));
+      priorities = await db.select().from(weeklyPriorities).where(eq(weeklyPriorities.weekStart, weekStart));
     }
   }
 
