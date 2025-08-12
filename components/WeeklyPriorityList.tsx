@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { formatISODate } from "@/lib/date-utils";
 
 interface Priority {
   id: number;
@@ -23,7 +24,7 @@ export default function WeeklyPriorityList() {
   const dayOfWeek = now.getDay();
   const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
   const monday = new Date(now.setDate(diff));
-  const weekStart = monday.toISOString().slice(0, 10);
+  const weekStart = formatISODate(monday);
   const [priorities, setPriorities] = useState<Priority[]>([]);
   const [newPriority, setNewPriority] = useState("");
   const [filter, setFilter] = useState<"all" | "work" | "personal">("all");

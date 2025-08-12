@@ -25,6 +25,7 @@ export const dailyTasks = sqliteTable("daily_tasks", {
   tag: text("tag").notNull().default("work"),
   deadline: text("deadline"),
   reminderTime: text("reminder_time"),
+  weeklyPriorityId: integer("weekly_priority_id").references(() => weeklyPriorities.id),
   done: integer("done", { mode: "boolean" }).notNull().default(false),
 });
 
@@ -32,7 +33,6 @@ export const dailySubtasks = sqliteTable("daily_subtasks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   taskId: integer("task_id").notNull(),
   title: text("title").notNull(),
-  weeklyPriorityId: integer("weekly_priority_id").references(() => weeklyPriorities.id),
   done: integer("done", { mode: "boolean" }).notNull().default(false),
 });
 

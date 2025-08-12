@@ -6,11 +6,12 @@ import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import TaskList from "./TaskList";
 import WeeklyPriorityList from "./WeeklyPriorityList";
+import { formatISODate } from "@/lib/date-utils";
 
 export default function TaskDashboard() {
   const format = (date: Date) => date.toLocaleDateString(undefined, { year: "numeric", month: "numeric", day: "numeric" });
 
-  const [selectedDate, setSelectedDate] = useState(format(new Date()));
+  const [selectedDate, setSelectedDate] = useState(formatISODate(new Date()));
   return (
     <div className="[--header-height:calc(--spacing(14))]">
       <SidebarProvider className="flex flex-col">

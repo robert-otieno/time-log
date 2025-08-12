@@ -41,6 +41,14 @@ if (!exists) {
       task_id INTEGER NOT NULL,
       date TEXT NOT NULL
     );
+    
+    CREATE TABLE IF NOT EXISTS daily_subtasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      done INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY(task_id) REFERENCES daily_tasks(id)
+    );
   `);
 
   // Seed rhythm tasks
@@ -72,6 +80,11 @@ if (!exists) {
   const hasWeeklyTag = weeklyColumns.some((c) => c.name === "tag");
   if (!hasWeeklyTag) {
     sqlite.exec("ALTER TABLE weekly_priorities ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';");
+  }
+  const subtaskColumns = sqlite.prepare("PRAGMA table_info(daily_subtasks);").all() as { name: string }[];
+  const hasSubtaskPriority = subtaskColumns.some((c) => c.name === "weekly_priority_id");
+  if (hasSubtaskPriority) {
+    sqlite.exec("ALTER TABLE daily_subtasks DROP COLUMN weekly_priority_id;");
   }
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS daily_subtasks (

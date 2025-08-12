@@ -1,18 +1,11 @@
-"use client"
+"use client";
 
-import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar"
-import { getPastWeekDates } from "@/lib/date-utils";
+import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { formatISODate, getPastWeekDates } from "@/lib/date-utils";
 import { SidebarDateProps } from "@/lib/sidebar-date-props";
 
 export function NavProjects({ selectedDate, onSelectDate }: SidebarDateProps) {
-  const days = getPastWeekDates();
+  const days = getPastWeekDates().map(formatISODate);
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -21,10 +14,7 @@ export function NavProjects({ selectedDate, onSelectDate }: SidebarDateProps) {
         {days.map((day) => (
           <SidebarMenuItem key={day}>
             <SidebarMenuButton asChild>
-              <button
-                className={`block w-full text-left px-2 py-1 rounded ${selectedDate === day ? "bg-muted" : ""}`}
-                onClick={() => onSelectDate(day)}
-              >
+              <button className={`block w-full text-left px-2 py-1 rounded ${selectedDate === day ? "bg-muted" : ""}`} onClick={() => onSelectDate(day)}>
                 {day}
               </button>
             </SidebarMenuButton>
@@ -32,5 +22,5 @@ export function NavProjects({ selectedDate, onSelectDate }: SidebarDateProps) {
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }

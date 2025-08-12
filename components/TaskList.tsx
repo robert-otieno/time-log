@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import type { TaskWithSubtasks } from "@/db/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { formatISODate } from "@/lib/date-utils";
 
 type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; link?: any; count?: any; priority?: any };
 
@@ -46,12 +47,11 @@ export default function TaskList({ date }: TaskListProps) {
   }, [date]);
 
   async function loadTasks() {
-    // const res = await getTodayTasks(date);
     const d = new Date(date);
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(d.setDate(diff));
-    const weekStart = monday.toISOString().slice(0, 10);
+    const weekStart = formatISODate(monday);
 
     const [res, priorities] = await Promise.all([getTodayTasks(date), getWeeklyPriorities(weekStart)]);
     const now = Date.now();

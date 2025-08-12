@@ -1,6 +1,7 @@
 "use server";
 import { db } from "@/db";
 import { dailyTasks, dailySubtasks, rhythmTasks, weeklyPriorities, type TaskWithSubtasks, type DailySubtask } from "@/db/schema";
+import { formatISODate } from "@/lib/date-utils";
 import { eq, desc, inArray, and, gte, lte } from "drizzle-orm";
 
 export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
@@ -16,7 +17,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
   if (tasks.length === 0) {
     const yesterday = new Date(date);
     yesterday.setDate(yesterday.getDate() - 1);
-    const prevDate = yesterday.toISOString().split("T")[0];
+    const prevDate = formatISODate(yesterday);
 
     const template = await db.select().from(dailyTasks).where(eq(dailyTasks.date, prevDate));
 
@@ -111,7 +112,7 @@ export async function getWeeklyPriorities(weekStart: string) {
   if (priorities.length === 0) {
     const prev = new Date(weekStart);
     prev.setDate(prev.getDate() - 7);
-    const prevWeek = prev.toISOString().split("T")[0];
+    const prevWeek = formatISODate(prev);
 
     const template = await db.select().from(weeklyPriorities).where(eq(weeklyPriorities.weekStart, prevWeek));
 
@@ -133,7 +134,7 @@ export async function getWeeklyPriorities(weekStart: string) {
 
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
-  const weekEndStr = weekEnd.toISOString().split("T")[0];
+  const weekEndStr = formatISODate(weekEnd);
 
   const tasks = await db
     .select({
