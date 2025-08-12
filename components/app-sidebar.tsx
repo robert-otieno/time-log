@@ -13,13 +13,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { SidebarDateProps } from "@/lib/sidebar-date-props"
 
-interface PastDaysSidebarProps {
-  selectedDate: string;
-  onSelectDate: (date: string) => void;
-}
-
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>, { selectedDate, onSelectDate }: PastDaysSidebarProps) {
+export function AppSidebar(
+  { selectedDate, onSelectDate, ...props }: React.ComponentProps<typeof Sidebar> & SidebarDateProps
+) {
   return (
     <Sidebar
       className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"

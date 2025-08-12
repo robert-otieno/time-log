@@ -8,13 +8,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { SidebarDateProps } from "@/lib/sidebar-date-props";
 
-interface PastDaysSidebarProps {
-  selectedDate: string;
-  onSelectDate: (date: string) => void;
-}
-
-export function NavProjects({ selectedDate, onSelectDate }: PastDaysSidebarProps) {
+export function NavProjects({ selectedDate, onSelectDate }: SidebarDateProps) {
   const { isMobile } = useSidebar()
 
   const days = Array.from({ length: 7 }, (_, i) => {
