@@ -94,6 +94,19 @@ export async function toggleDailySubtask(id: number, done: boolean) {
   return db.update(dailySubtasks).set({ done }).where(eq(dailySubtasks.id, id)).run();
 }
 
+export async function updateDailyTask(
+  id: number,
+  fields: {
+    title?: string;
+    tag?: string;
+    deadline?: string | null;
+    reminderTime?: string | null;
+    weeklyPriorityId?: number | null;
+  }
+) {
+  return db.update(dailyTasks).set(fields).where(eq(dailyTasks.id, id)).run();
+}
+
 export async function deleteDailySubtask(id: number) {
   return db.delete(dailySubtasks).where(eq(dailySubtasks.id, id)).run();
 }

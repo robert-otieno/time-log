@@ -18,7 +18,7 @@ export default function TaskDashboard() {
         <SiteHeader />
         <div className="flex flex-1">
           <AppSidebar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-          <WeeklyPriorityList />
+          {/* <WeeklyPriorityList /> */}
           <SidebarInset>
             <div className="p-4">
               <TaskList date={selectedDate} />
