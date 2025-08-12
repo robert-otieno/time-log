@@ -29,7 +29,14 @@ if (!exists) {
     CREATE TABLE IF NOT EXISTS weekly_priorities (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
-      week_start TEXT NOT NULL
+      week_start TEXT NOT NULL,
+      tag TEXT NOT NULL DEFAULT 'work'
+    );
+    
+    CREATE TABLE IF NOT EXISTS rhythm_completions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL,
+      date TEXT NOT NULL
     );
   `);
 
@@ -37,13 +44,23 @@ if (!exists) {
   sqlite.prepare("INSERT INTO rhythm_tasks (name) VALUES (?)").run("Sleep 8 hrs");
   sqlite.prepare("INSERT INTO rhythm_tasks (name) VALUES (?)").run("Exercise 30 mins");
 } else {
-  const columns = sqlite
+  const dailyColumns = sqlite
     .prepare("PRAGMA table_info(daily_tasks);")
     .all() as { name: string }[];
-  const hasTag = columns.some((c) => c.name === "tag");
-  if (!hasTag) {
+  const hasDailyTag = dailyColumns.some((c) => c.name === "tag");
+  if (!hasDailyTag) {
     sqlite.exec(
       "ALTER TABLE daily_tasks ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';"
+    );
+  }
+
+  const weeklyColumns = sqlite
+    .prepare("PRAGMA table_info(weekly_priorities);")
+    .all() as { name: string }[];
+  const hasWeeklyTag = weeklyColumns.some((c) => c.name === "tag");
+  if (!hasWeeklyTag) {
+    sqlite.exec(
+      "ALTER TABLE weekly_priorities ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';"
     );
   }
 }

@@ -4,26 +4,29 @@ import { useState, useEffect } from "react";
 import { getWeeklyPriorities, addWeeklyPriority, deleteWeeklyPriority } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Delete, GripVertical, MoreVertical, Plus } from "lucide-react";
+import { GripVertical, MoreVertical, Plus } from "lucide-react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
 	Card,
-	CardAction,
 	CardContent,
-	CardDescription,
-	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+
+interface Priority {
+	id: number;
+	title: string;
+	tag?: string;
+	progress?: number;
+}
+
 
 export default function WeeklyPriorityList() {
 	const now = new Date();
@@ -31,23 +34,24 @@ export default function WeeklyPriorityList() {
 	const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
 	const monday = new Date(now.setDate(diff));
 	const weekStart = monday.toISOString().slice(0, 10);
-	const [priorities, setPriorities] = useState<any[]>([]);
+	const [priorities, setPriorities] = useState<Priority[]>([]);
 	const [newPriority, setNewPriority] = useState("");
 	const [filter, setFilter] = useState<"all" | "work" | "personal">("all");
-
+	const visible = priorities.filter(p => filter === "all" || p.tag === filter);
 
 	useEffect(() => {
 		loadPriorities();
 	}, []);
 
 	async function loadPriorities() {
-		const res = await getWeeklyPriorities(weekStart);
-		setPriorities(res);
+		const res: Priority[] = await getWeeklyPriorities(weekStart);
+		setPriorities(res.map(p => ({ ...p, tag: p.tag ?? "work" })));
 	}
 
 	async function handleAddPriority() {
 		if (!newPriority.trim()) return;
-		await addWeeklyPriority(newPriority, weekStart);
+		const tag = filter === "all" ? "work" : filter;
+		await addWeeklyPriority(newPriority, weekStart, tag);
 		setNewPriority("");
 		await loadPriorities();
 	}
@@ -58,33 +62,6 @@ export default function WeeklyPriorityList() {
 	}
 
 	return (
-		// <div className="p-4 space-y-4">
-		//   <h2 className="text-xl font-bold">Weekly Priorities</h2>
-		//   <div className="flex gap-2">
-		//     <Input
-		//       placeholder="New priority..."
-		//       value={newPriority}
-		//       onChange={(e) => setNewPriority(e.target.value)}
-		//     />
-		//     <Button size="icon" onClick={handleAddPriority}> <Plus /></Button>
-		//   </div>
-		//   <ul className="space-y-2">
-		//     {priorities.map((priority) => (
-		//       <li key={priority.id} className="flex text-xs items-center gap-2 border-b">
-		//         <span>{priority.title}</span>
-		//         <Button
-		//           variant="destructive"
-		//           size="icon"
-		//           className="ml-auto size-8"
-		//           onClick={() => handleDeletePriority(priority.id)}
-
-		//         >
-		//           <Delete />
-		//         </Button>
-		//       </li>
-		//     ))}
-		//   </ul>
-		// </div>
 		<Card className="border-0 shadow-sm">
 			<CardHeader className="pb-2">
 				<div className="flex items-center justify-between">
@@ -117,13 +94,13 @@ export default function WeeklyPriorityList() {
 
 			<CardContent className="pt-2">
 				<ul className="divide-y">
-					{priorities.length === 0 && (
+					{visible.length === 0 && (
 						<li className="py-6 text-sm text-muted-foreground">
 							No priorities yet. Try “Wedding planning,” “Identify photography venue,” or “Chapter 1–2 thesis.”
 						</li>
 					)}
 
-					{priorities.map((p) => (
+					{visible.map((p: Priority) => (
 						<li key={p.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3">
 							{/* Tag/Initials circle placeholder */}
 							<div className="h-8 w-8 shrink-0 rounded-full bg-muted/70 grid place-items-center text-[10px] font-semibold uppercase">

@@ -59,7 +59,7 @@ export async function getTaskDates(): Promise<string[]> {
 export async function addDailyTask(
   title: string,
   date: string,
-  tag: string = "work"
+  tag: string = "Work"
 ) {
   return db.insert(dailyTasks).values({ title, date, tag, done: false }).run();
 }
@@ -103,6 +103,7 @@ export async function getWeeklyPriorities(weekStart: string) {
           template.map((p) => ({
             title: p.title,
             weekStart,
+            tag: p.tag,
           }))
         )
         .run();
@@ -117,8 +118,8 @@ export async function getWeeklyPriorities(weekStart: string) {
   return priorities;
 }
 
-export async function addWeeklyPriority(title: string, weekStart: string) {
-  return db.insert(weeklyPriorities).values({ title, weekStart }).run();
+export async function addWeeklyPriority(title: string, weekStart: string, tag: string) {
+  return db.insert(weeklyPriorities).values({ title, weekStart, tag }).run();
 }
 
 export async function deleteWeeklyPriority(id: number) {

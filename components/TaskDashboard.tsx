@@ -9,10 +9,6 @@ import {
 } from "@/components/ui/sidebar"
 import TaskList from "./TaskList";
 
-export const iframeHeight = "800px"
-
-export const description = "A sidebar with a header and a search form."
-
 export default function TaskDashboard() {
   const format = (date: Date) =>
     date.toLocaleDateString(undefined, { year: "numeric", month: "numeric", day: "numeric" });

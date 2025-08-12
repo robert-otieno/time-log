@@ -11,8 +11,6 @@ import {
 import { SidebarDateProps } from "@/lib/sidebar-date-props";
 
 export function NavProjects({ selectedDate, onSelectDate }: SidebarDateProps) {
-  const { isMobile } = useSidebar()
-
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);

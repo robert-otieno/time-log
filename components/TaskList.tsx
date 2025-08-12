@@ -45,7 +45,7 @@ interface TaskListProps {
 
 export default function TaskList({ date }: TaskListProps) {
 
-  const tagOptions = ["Work", "Personal", "Study", "Event Planning", "Will"];
+  const tagOptions = ["Work", "Personal", "Study", "Event Planning", "Will", "GBDCEI"];
 
   const [tasks, setTasks] = useState<DailyTask[]>([]);
   const [newTask, setNewTask] = useState("");
@@ -63,6 +63,7 @@ export default function TaskList({ date }: TaskListProps) {
   async function handleAddTask() {
     if (!newTask.trim()) return;
     await addDailyTask(newTask, date, newTag);
+    setNewTask("");
     setNewTask(tagOptions[0]);
     await loadTasks();
   }
@@ -115,7 +116,7 @@ export default function TaskList({ date }: TaskListProps) {
             </SelectTrigger>
             <SelectContent>
               {tagOptions.map((tag) => (
-                <SelectItem key={tag} value={tag}>
+                <SelectItem key={tag} value={tag.toLowerCase()}>
                   {tag}
                 </SelectItem>
               ))}
@@ -138,7 +139,7 @@ export default function TaskList({ date }: TaskListProps) {
         ) : (
           orderedGroups.map(([tag, tagTasks]) => (
             <div key={tag} className="mb-6 last:mb-0">
-              <h3 className="mb-2 font-semibold">{tag}</h3>
+              <h3 className="mb-2 font-semibold capitalize">{tag}</h3>
               <ul className="divide-y">
                 {tagTasks.map((task) => (
                   <li
@@ -191,7 +192,7 @@ export default function TaskList({ date }: TaskListProps) {
                           </Badge>
                         )}
 
-                        {task.tag && <Badge variant="outline">{task.tag}</Badge>}
+                        {task.tag && <Badge variant="outline" className="capitalize">{task.tag}</Badge>}
 
                         {typeof task.count === "number" && (
                           <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">
