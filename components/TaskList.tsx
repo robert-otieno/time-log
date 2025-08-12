@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { addDailyTask, toggleDailyTask, deleteDailyTask, getTodayTasks, addDailySubtask, toggleDailySubtask, deleteDailySubtask } from "@/app/actions";
+import {
+  addDailyTask,
+  toggleDailyTask,
+  deleteDailyTask,
+  getTodayTasks,
+  addDailySubtask,
+  toggleDailySubtask,
+  deleteDailySubtask,
+  getWeeklyPriorities,
+} from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,7 +22,7 @@ import type { TaskWithSubtasks } from "@/db/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
-type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; link?: any; count?: any };
+type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; link?: any; count?: any; priority?: any };
 
 interface TaskListProps {
   date: string;
@@ -25,6 +34,8 @@ export default function TaskList({ date }: TaskListProps) {
   const [tasks, setTasks] = useState<UITask[]>([]);
   const [newTask, setNewTask] = useState("");
   const [newTag, setNewTag] = useState(tagOptions[0]);
+  const [weeklyPriorities, setWeeklyPriorities] = useState<{ id: number; title: string }[]>([]);
+  const [newPriority, setNewPriority] = useState<string>("");
   const [newDeadline, setNewDeadline] = useState("");
   const [newReminder, setNewReminder] = useState("");
   const [newSubtasks, setNewSubtasks] = useState<Record<number, string>>({});
@@ -35,7 +46,14 @@ export default function TaskList({ date }: TaskListProps) {
   }, [date]);
 
   async function loadTasks() {
-    const res = await getTodayTasks(date);
+    // const res = await getTodayTasks(date);
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    const weekStart = monday.toISOString().slice(0, 10);
+
+    const [res, priorities] = await Promise.all([getTodayTasks(date), getWeeklyPriorities(weekStart)]);
     const now = Date.now();
     const withMeta = res.map((t) => {
       let dueLabel: string | undefined;
@@ -49,13 +67,15 @@ export default function TaskList({ date }: TaskListProps) {
       return { ...t, dueLabel, hot };
     });
     setTasks(withMeta);
+    setWeeklyPriorities(priorities);
   }
 
   async function handleAddTask() {
     if (!newTask.trim()) return;
     const deadlineISO = newDeadline ? `${date}T${newDeadline}` : null;
     const reminderISO = newReminder ? `${date}T${newReminder}` : null;
-    await addDailyTask(newTask, date, newTag, deadlineISO, reminderISO);
+    const priorityId = newPriority && newPriority !== "none" ? Number(newPriority) : undefined;
+    await addDailyTask(newTask, date, newTag, deadlineISO, reminderISO, priorityId);
     setNewTask("");
     setNewTag(tagOptions[0]);
     setNewDeadline("");
@@ -161,6 +181,20 @@ export default function TaskList({ date }: TaskListProps) {
             </SelectContent>
           </Select>
 
+          <Select value={newPriority} onValueChange={(v) => setNewPriority(v)}>
+            <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select priority">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {weeklyPriorities.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Button size="icon" onClick={handleAddTask} aria-label="Add task">
             <Plus />
           </Button>
@@ -222,6 +256,12 @@ export default function TaskList({ date }: TaskListProps) {
                             {task.tag && (
                               <Badge variant="outline" className="capitalize">
                                 {task.tag}
+                              </Badge>
+                            )}
+
+                            {task.priority && (
+                              <Badge variant="secondary" className="capitalize">
+                                {task.priority.title}
                               </Badge>
                             )}
 

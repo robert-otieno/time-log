@@ -20,6 +20,7 @@ if (!exists) {
       tag TEXT NOT NULL DEFAULT 'work',
       deadline TEXT,
       reminder_time TEXT,
+      weekly_priority_id INTEGER REFERENCES weekly_priorities(id),
       done INTEGER DEFAULT 0
     );
 
@@ -60,6 +61,11 @@ if (!exists) {
   const hasReminder = dailyColumns.some((c) => c.name === "reminder_time");
   if (!hasReminder) {
     sqlite.exec("ALTER TABLE daily_tasks ADD COLUMN reminder_time TEXT;");
+  }
+
+  const hasPriorityFk = dailyColumns.some((c) => c.name === "weekly_priority_id");
+  if (!hasPriorityFk) {
+    sqlite.exec("ALTER TABLE daily_tasks ADD COLUMN weekly_priority_id INTEGER REFERENCES weekly_priorities(id);");
   }
 
   const weeklyColumns = sqlite.prepare("PRAGMA table_info(weekly_priorities);").all() as { name: string }[];

@@ -1,0 +1,1 @@
+ALTER TABLE daily_tasks ADD COLUMN weekly_priority_id INTEGER REFERENCES weekly_priorities(id);
