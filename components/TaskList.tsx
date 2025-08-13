@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { formatISODate } from "@/lib/date-utils";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { toast } from "sonner";
 
 type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; link?: any; count?: any; priority?: any };
 
@@ -51,74 +52,167 @@ export default function TaskList({ date }: TaskListProps) {
     reminder: "",
     priority: "",
   });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadTasks();
   }, [date]);
 
   async function loadTasks() {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d.setDate(diff));
-    const weekStart = formatISODate(monday);
+    try {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diff));
+      const weekStart = formatISODate(monday);
 
-    const [res, priorities] = await Promise.all([getTodayTasks(date), getWeeklyPriorities(weekStart)]);
-    const now = Date.now();
-    const withMeta = res.map((t) => {
-      let dueLabel: string | undefined;
-      let hot = false;
-      if (t.deadline) {
-        const d = new Date(t.deadline);
-        dueLabel = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        const diff = d.getTime() - now;
-        hot = diff > 0 && diff <= 60 * 60 * 1000 && !t.done;
-      }
-      return { ...t, dueLabel, hot };
-    });
-    setTasks(withMeta);
-    setWeeklyPriorities(priorities);
+      const [res, priorities] = await Promise.all([getTodayTasks(date), getWeeklyPriorities(weekStart)]);
+      const now = Date.now();
+      const withMeta = res.map((t) => {
+        let dueLabel: string | undefined;
+        let hot = false;
+        if (t.deadline) {
+          const d = new Date(t.deadline);
+          dueLabel = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          const diff = d.getTime() - now;
+          hot = diff > 0 && diff <= 60 * 60 * 1000 && !t.done;
+        }
+        return { ...t, dueLabel, hot };
+      });
+      setTasks(withMeta);
+      setWeeklyPriorities(priorities);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load tasks");
+    }
   }
 
   async function handleAddTask() {
-    if (!newTask.trim()) return;
-    const deadlineISO = newDeadline ? `${date}T${newDeadline}` : null;
-    const reminderISO = newReminder ? `${date}T${newReminder}` : null;
-    const priorityId = newPriority && newPriority !== "none" ? Number(newPriority) : undefined;
-    await addDailyTask(newTask, date, newTag, deadlineISO, reminderISO, priorityId);
-    setNewTask("");
-    setNewTag(tagOptions[0]);
-    setNewDeadline("");
-    setNewReminder("");
-    await loadTasks();
+    try {
+      if (!newTask.trim()) return;
+      const deadlineISO = newDeadline ? `${date}T${newDeadline}` : null;
+      const reminderISO = newReminder ? `${date}T${newReminder}` : null;
+      const priorityId = newPriority && newPriority !== "none" ? Number(newPriority) : undefined;
+      const res = await addDailyTask(newTask, date, newTag, deadlineISO, reminderISO, priorityId);
+      const id = Number((res as any)?.lastInsertRowid ?? (res as any)?.insertId);
+      const now = Date.now();
+      let dueLabel: string | undefined;
+      let hot = false;
+      if (deadlineISO) {
+        const d = new Date(deadlineISO);
+        dueLabel = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const diff = d.getTime() - now;
+        hot = diff > 0 && diff <= 60 * 60 * 1000;
+      }
+      const priority = priorityId ? weeklyPriorities.find((p) => p.id === priorityId) : undefined;
+      setTasks((prev) => [
+        ...prev,
+        {
+          id,
+          title: newTask,
+          date,
+          tag: newTag,
+          deadline: deadlineISO,
+          reminderTime: reminderISO,
+          weeklyPriorityId: priorityId,
+          done: false,
+          subtasks: [],
+          priority,
+          dueLabel,
+          hot,
+        },
+      ]);
+      setNewTask("");
+      setNewTag(tagOptions[0]);
+      setNewDeadline("");
+      setNewReminder("");
+      setError(null);
+      // await loadTasks();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to add task");
+    }
   }
 
   async function handleToggleTask(id: number, done: boolean) {
-    await toggleDailyTask(id, !done);
-    await loadTasks();
+    try {
+      await toggleDailyTask(id, !done);
+      setError(null);
+      // await loadTasks();
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.id !== id) return t;
+          const newDone = !done;
+          let hot = false;
+          if (t.deadline) {
+            const diff = new Date(t.deadline).getTime() - Date.now();
+            hot = diff > 0 && diff <= 60 * 60 * 1000 && !newDone;
+          }
+          return { ...t, done: newDone, hot };
+        })
+      );
+    } catch (err) {
+      console.error(err);
+      setError("Failed to update task");
+    }
   }
 
   async function handleDeleteTask(id: number) {
-    await deleteDailyTask(id);
-    await loadTasks();
+    try {
+      await deleteDailyTask(id);
+      setError(null);
+      // await loadTasks();
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) {
+      console.error(err);
+      setError("Failed to delete task");
+    }
   }
 
   async function handleAddSubtask(taskId: number) {
     const title = newSubtasks[taskId];
     if (!title?.trim()) return;
-    await addDailySubtask(taskId, title);
-    setNewSubtasks((prev) => ({ ...prev, [taskId]: "" }));
-    await loadTasks();
+    try {
+      const res = await addDailySubtask(taskId, title);
+      const id = Number((res as any)?.lastInsertRowid ?? (res as any)?.insertId);
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: [...t.subtasks, { id, taskId, title, done: false }] } : t)));
+      setNewSubtasks((prev) => ({ ...prev, [taskId]: "" }));
+    } catch (error: any) {
+      toast.error("Error Adding Subtask", error);
+    }
   }
 
   async function handleToggleSubtask(id: number, done: boolean) {
-    await toggleDailySubtask(id, !done);
-    await loadTasks();
+    try {
+      await toggleDailySubtask(id, !done);
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.subtasks.some((s) => s.id === id)
+            ? {
+                ...t,
+                subtasks: t.subtasks.map((s) => (s.id === id ? { ...s, done: !done } : s)),
+              }
+            : t
+        )
+      );
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to update subtask");
+    }
   }
 
   async function handleDeleteSubtask(id: number) {
-    await deleteDailySubtask(id);
-    await loadTasks();
+    try {
+      await deleteDailySubtask(id);
+      setError(null);
+      // await loadTasks();
+      setTasks((prev) => prev.map((t) => (t.subtasks.some((s) => s.id === id) ? { ...t, subtasks: t.subtasks.filter((s) => s.id !== id) } : t)));
+    } catch (err) {
+      console.error(err);
+      setError("Failed to delete subtask");
+    }
   }
 
   function startEditing(task: UITask) {
@@ -144,8 +238,33 @@ export default function TaskList({ date }: TaskListProps) {
       reminderTime: reminderISO,
       weeklyPriorityId: priorityId,
     });
+    const priority = priorityId ? weeklyPriorities.find((p) => p.id === priorityId) : undefined;
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id !== editingTaskId) return t;
+        let dueLabel: string | undefined;
+        let hot = false;
+        if (deadlineISO) {
+          const d = new Date(deadlineISO);
+          dueLabel = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          const diff = d.getTime() - Date.now();
+          hot = diff > 0 && diff <= 60 * 60 * 1000 && !t.done;
+        }
+        return {
+          ...t,
+          title: editingValues.title,
+          tag: editingValues.tag,
+          deadline: deadlineISO,
+          reminderTime: reminderISO,
+          weeklyPriorityId: priorityId ?? undefined,
+          priority,
+          dueLabel,
+          hot,
+        };
+      })
+    );
     setEditingTaskId(null);
-    await loadTasks();
+    // await loadTasks();
   }
 
   useEffect(() => {
@@ -192,6 +311,7 @@ export default function TaskList({ date }: TaskListProps) {
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-2xl">Tasks - {date}</CardTitle>
+          {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
 
           <div className="mt-3 flex gap-2">
             <Input

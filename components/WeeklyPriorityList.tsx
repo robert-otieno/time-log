@@ -31,6 +31,7 @@ export default function WeeklyPriorityList() {
   const [editingPriorityId, setEditingPriorityId] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const visible = priorities.filter((p) => filter === "all" || p.tag === filter);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadPriorities();

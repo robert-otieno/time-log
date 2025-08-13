@@ -21,23 +21,45 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
       yesterday.setDate(yesterday.getDate() - 1);
       const prevDate = formatISODate(yesterday);
 
-      const template = await db.select().from(dailyTasks).where(eq(dailyTasks.date, prevDate));
+      const template = await db
+        .select()
+        .from(dailyTasks)
+        .where(and(eq(dailyTasks.date, prevDate), eq(dailyTasks.done, false)));
 
       if (template.length > 0) {
-        await db
-          .insert(dailyTasks)
-          .values(
-            template.map((t) => ({
-              title: t.title,
-              date,
-              tag: t.tag,
-              deadline: t.deadline,
-              reminderTime: t.reminderTime,
-              weeklyPriorityId: t.weeklyPriorityId,
-              done: false,
-            }))
-          )
-          .run();
+        await db.transaction(async (tx) => {
+          for (const t of template) {
+            const inserted = await tx
+              .insert(dailyTasks)
+              .values({
+                title: t.title,
+                date,
+                tag: t.tag,
+                deadline: t.deadline,
+                reminderTime: t.reminderTime,
+                weeklyPriorityId: t.weeklyPriorityId,
+                done: false,
+              })
+              .run();
+
+            const newTaskId = Number(inserted.lastInsertRowid);
+
+            const subtasks = await tx.select().from(dailySubtasks).where(eq(dailySubtasks.taskId, t.id));
+
+            if (subtasks.length > 0) {
+              await tx
+                .insert(dailySubtasks)
+                .values(
+                  subtasks.map((s) => ({
+                    taskId: newTaskId,
+                    title: s.title,
+                    done: false,
+                  }))
+                )
+                .run();
+            }
+          }
+        });
 
         tasks = await db
           .select({
@@ -170,64 +192,84 @@ export async function addRhythmTask(name: string) {
 }
 
 export async function getWeeklyPriorities(weekStart: string) {
-  let priorities = await db.select().from(weeklyPriorities).where(eq(weeklyPriorities.weekStart, weekStart));
+  try {
+    let priorities = await db.select().from(weeklyPriorities).where(eq(weeklyPriorities.weekStart, weekStart));
 
-  if (priorities.length === 0) {
-    const prev = new Date(weekStart);
-    prev.setDate(prev.getDate() - 7);
-    const prevWeek = formatISODate(prev);
+    if (priorities.length === 0) {
+      const prev = new Date(weekStart);
+      prev.setDate(prev.getDate() - 7);
+      const prevWeek = formatISODate(prev);
 
-    const template = await db.select().from(weeklyPriorities).where(eq(weeklyPriorities.weekStart, prevWeek));
+      const template = await db.select().from(weeklyPriorities).where(eq(weeklyPriorities.weekStart, prevWeek));
 
-    if (template.length > 0) {
-      await db
-        .insert(weeklyPriorities)
-        .values(
-          template.map((p) => ({
-            title: p.title,
-            weekStart,
-            tag: p.tag,
-          }))
-        )
-        .run();
+      if (template.length > 0) {
+        await db
+          .insert(weeklyPriorities)
+          .values(
+            template.map((p) => ({
+              title: p.title,
+              weekStart,
+              tag: p.tag,
+            }))
+          )
+          .run();
 
-      priorities = await db.select().from(weeklyPriorities).where(eq(weeklyPriorities.weekStart, weekStart));
+        priorities = await db.select().from(weeklyPriorities).where(eq(weeklyPriorities.weekStart, weekStart));
+      }
     }
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const weekEndStr = formatISODate(weekEnd);
+
+    const tasks = await db
+      .select({
+        weeklyPriorityId: dailyTasks.weeklyPriorityId,
+        done: dailyTasks.done,
+      })
+      .from(dailyTasks)
+      .where(and(gte(dailyTasks.date, weekStart), lte(dailyTasks.date, weekEndStr)));
+
+    return priorities.map((p) => {
+      const related = tasks.filter((t) => t.weeklyPriorityId === p.id);
+      const total = related.length;
+      const completed = related.filter((t) => t.done).length;
+      const progress = total > 0 ? (completed / total) * 100 : 0;
+      return {
+        ...p,
+        progress,
+        completed: total > 0 && completed === total,
+      };
+    });
+  } catch (error) {
+    console.error("Error in getWeeklyPriorities:", error);
+    throw error;
   }
-
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  const weekEndStr = formatISODate(weekEnd);
-
-  const tasks = await db
-    .select({
-      weeklyPriorityId: dailyTasks.weeklyPriorityId,
-      done: dailyTasks.done,
-    })
-    .from(dailyTasks)
-    .where(and(gte(dailyTasks.date, weekStart), lte(dailyTasks.date, weekEndStr)));
-
-  return priorities.map((p) => {
-    const related = tasks.filter((t) => t.weeklyPriorityId === p.id);
-    const total = related.length;
-    const completed = related.filter((t) => t.done).length;
-    const progress = total > 0 ? (completed / total) * 100 : 0;
-    return {
-      ...p,
-      progress,
-      completed: total > 0 && completed === total,
-    };
-  });
 }
 
 export async function addWeeklyPriority(title: string, weekStart: string, tag: string) {
-  return db.insert(weeklyPriorities).values({ title, weekStart, tag }).run();
+  try {
+    return await db.insert(weeklyPriorities).values({ title, weekStart, tag }).run();
+  } catch (error) {
+    console.error("Error in addWeeklyPriority:", error);
+    throw error;
+  }
 }
 
 export async function updateWeeklyPriority(id: number, fields: Partial<{ title: string; weekStart: string; tag: string }>) {
-  return db.update(weeklyPriorities).set(fields).where(eq(weeklyPriorities.id, id)).run();
+  try {
+    return db.update(weeklyPriorities).set(fields).where(eq(weeklyPriorities.id, id)).run();
+  } catch (error) {
+    console.error("Error in updateWeeklyPriority:", error);
+    throw error;
+  }
 }
 
 export async function deleteWeeklyPriority(id: number) {
-  return db.delete(weeklyPriorities).where(eq(weeklyPriorities.id, id)).run();
+  try {
+    return await db.delete(weeklyPriorities).where(eq(weeklyPriorities.id, id)).run();
+  } catch (error) {
+    console.error("Error in deleteWeeklyPriority:", error);
+    throw error;
+  }
 }
