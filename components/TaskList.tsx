@@ -82,9 +82,8 @@ export default function TaskList({ date }: TaskListProps) {
       setTasks(withMeta);
       setWeeklyPriorities(priorities);
       setError(null);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load tasks");
+    } catch (err: any) {
+      toast.error("Failed to load tasks", err);
     }
   }
 
