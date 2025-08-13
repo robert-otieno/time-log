@@ -23,18 +23,17 @@ import type { TaskWithSubtasks } from "@/db/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { formatISODate } from "@/lib/date-utils";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import TaskDetailsSheet from "./task-details-sheet";
 
-type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; link?: any; count?: any; priority?: any };
+type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; count?: any; priority?: any };
 
 interface TaskListProps {
   date: string;
 }
 
 export default function TaskList({ date }: TaskListProps) {
-  const tagOptions = ["Work", "Personal", "Study", "Event Planning", "Will", "GBDCEI"];
-
   const [tasks, setTasks] = useState<UITask[]>([]);
   const [newTask, setNewTask] = useState("");
   const [newTag, setNewTag] = useState(tagOptions[0]);
@@ -45,6 +44,7 @@ export default function TaskList({ date }: TaskListProps) {
   const [newSubtasks, setNewSubtasks] = useState<Record<number, string>>({});
   const [openTasks, setOpenTasks] = useState<Record<number, boolean>>({});
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [editingValues, setEditingValues] = useState({
     title: "",
     tag: "",
@@ -116,6 +116,9 @@ export default function TaskList({ date }: TaskListProps) {
           reminderTime: reminderISO,
           weeklyPriorityId: priorityId,
           done: false,
+          notes: null,
+          link: null,
+          fileRefs: null,
           subtasks: [],
           priority,
           dueLabel,
@@ -127,7 +130,6 @@ export default function TaskList({ date }: TaskListProps) {
       setNewDeadline("");
       setNewReminder("");
       setError(null);
-      // await loadTasks();
     } catch (err) {
       console.error(err);
       setError("Failed to add task");
@@ -160,12 +162,9 @@ export default function TaskList({ date }: TaskListProps) {
   async function handleDeleteTask(id: number) {
     try {
       await deleteDailyTask(id);
-      setError(null);
-      // await loadTasks();
       setTasks((prev) => prev.filter((t) => t.id !== id));
     } catch (err) {
-      console.error(err);
-      setError("Failed to delete task");
+      toast.error("Failed to delete task");
     }
   }
 
@@ -317,7 +316,11 @@ export default function TaskList({ date }: TaskListProps) {
               placeholder="New task… e.g., ‘Draft STEAM Bingo card copy’"
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddTask()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleAddTask();
+                }
+              }}
               className="flex-1"
             />
 
@@ -398,6 +401,8 @@ export default function TaskList({ date }: TaskListProps) {
                                 </Button>
                               )}
 
+                              {task.notes && <Badge variant="secondary">Note</Badge>}
+
                               {task.hot && (
                                 <Badge className="gap-1">
                                   <Flame className="h-3.5 w-3.5" />
@@ -446,6 +451,7 @@ export default function TaskList({ date }: TaskListProps) {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48">
                                 <DropdownMenuItem onClick={() => startEditing(task)}>Edit</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSelectedTaskId(task.id)}>Details</DropdownMenuItem>
                                 <DropdownMenuItem disabled>Duplicate (coming soon)</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleDeleteTask(task.id)} className="text-destructive">
                                   <Trash2 className="mr-2 h-4 w-4" />
@@ -545,6 +551,17 @@ export default function TaskList({ date }: TaskListProps) {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+      <TaskDetailsSheet
+        task={tasks.find((t) => t.id === selectedTaskId) ?? null}
+        open={selectedTaskId !== null}
+        onOpenChange={(o) => !o && setSelectedTaskId(null)}
+        onSaved={async () => {
+          await loadTasks();
+          setSelectedTaskId(null);
+        }}
+      />
     </>
   );
 }
+
+export const tagOptions = ["Work", "Personal", "Study", "Event Planning", "Will", "GBDCEI"];

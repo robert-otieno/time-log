@@ -37,6 +37,9 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
                 tag: t.tag,
                 deadline: t.deadline,
                 reminderTime: t.reminderTime,
+                notes: t.notes,
+                link: t.link,
+                fileRefs: t.fileRefs,
                 weeklyPriorityId: t.weeklyPriorityId,
                 done: false,
               })
@@ -105,10 +108,27 @@ export async function addDailyTask(
   tag: string = "work",
   deadline?: string | null,
   reminderTime?: string | null,
-  weeklyPriorityId?: number
+  weeklyPriorityId?: number,
+  notes?: string | null,
+  link?: string | null,
+  fileRefs?: string | null
 ) {
   try {
-    return await db.insert(dailyTasks).values({ title, date, tag, deadline, reminderTime, weeklyPriorityId, done: false }).run();
+    return await db
+      .insert(dailyTasks)
+      .values({
+        title,
+        date,
+        tag,
+        deadline,
+        reminderTime,
+        weeklyPriorityId,
+        notes,
+        link,
+        fileRefs,
+        done: false,
+      })
+      .run();
   } catch (error) {
     console.error("Error in addDailyTask:", error);
     throw error;
@@ -159,8 +179,15 @@ export async function updateDailyTask(
     deadline?: string | null;
     reminderTime?: string | null;
     weeklyPriorityId?: number | null;
+    notes?: string | null;
+    link?: string | null;
+    fileRefs?: string | null;
   }
 ) {
+  return db.update(dailyTasks).set(fields).where(eq(dailyTasks.id, id)).run();
+}
+
+export async function updateTaskDetails(id: number, fields: { notes?: string | null; link?: string | null; fileRefs?: string | null }) {
   return db.update(dailyTasks).set(fields).where(eq(dailyTasks.id, id)).run();
 }
 

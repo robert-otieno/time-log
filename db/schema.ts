@@ -25,6 +25,9 @@ export const dailyTasks = sqliteTable("daily_tasks", {
   tag: text("tag").notNull().default("work"),
   deadline: text("deadline"),
   reminderTime: text("reminder_time"),
+  notes: text("notes"),
+  link: text("link"),
+  fileRefs: text("file_refs"),
   weeklyPriorityId: integer("weekly_priority_id").references(() => weeklyPriorities.id),
   done: integer("done", { mode: "boolean" }).notNull().default(false),
 });
@@ -39,6 +42,9 @@ export const dailySubtasks = sqliteTable("daily_subtasks", {
 export type DailyTask = typeof dailyTasks.$inferSelect;
 export type DailySubtask = typeof dailySubtasks.$inferSelect;
 export type TaskWithSubtasks = DailyTask & {
+  notes: string | null;
+  link: string | null;
+  fileRefs: string | null;
   subtasks: DailySubtask[];
   priority?: typeof weeklyPriorities.$inferSelect;
 };

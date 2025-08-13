@@ -20,6 +20,9 @@ if (!exists) {
       tag TEXT NOT NULL DEFAULT 'work',
       deadline TEXT,
       reminder_time TEXT,
+      notes TEXT,
+      link TEXT,
+      file_refs TEXT,
       weekly_priority_id INTEGER REFERENCES weekly_priorities(id),
       done INTEGER DEFAULT 0
     );
@@ -69,6 +72,21 @@ if (!exists) {
   const hasReminder = dailyColumns.some((c) => c.name === "reminder_time");
   if (!hasReminder) {
     sqlite.exec("ALTER TABLE daily_tasks ADD COLUMN reminder_time TEXT;");
+  }
+
+  const hasNotes = dailyColumns.some((c) => c.name === "notes");
+  if (!hasNotes) {
+    sqlite.exec("ALTER TABLE daily_tasks ADD COLUMN notes TEXT;");
+  }
+
+  const hasLink = dailyColumns.some((c) => c.name === "link");
+  if (!hasLink) {
+    sqlite.exec("ALTER TABLE daily_tasks ADD COLUMN link TEXT;");
+  }
+
+  const hasFileRefs = dailyColumns.some((c) => c.name === "file_refs");
+  if (!hasFileRefs) {
+    sqlite.exec("ALTER TABLE daily_tasks ADD COLUMN file_refs TEXT;");
   }
 
   const hasPriorityFk = dailyColumns.some((c) => c.name === "weekly_priority_id");

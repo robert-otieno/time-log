@@ -1,5 +1,14 @@
+"use client"
+
 import { formatISODate } from "@/lib/date-utils";
 import { getWeeklyPriorities, addWeeklyPriority, deleteWeeklyPriority } from "../actions";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { tagOptions } from "@/components/TaskList";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default async function WeekPage() {
   const now = new Date();
@@ -7,43 +16,59 @@ export default async function WeekPage() {
   const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
   const monday = new Date(now.setDate(diff));
   const weekStart = formatISODate(monday);
+  const [newTag, setNewTag] = useState(tagOptions[0]);
+  const [title, setTitle] = useState("");
 
   const priorities = await getWeeklyPriorities(weekStart);
 
-  async function handleAddPriority(formData: FormData) {
-    "use server";
-    const title = formData.get("title") as string;
-    const tag = formData.get("tag") === "personal" ? "personal" : "work";
-    await addWeeklyPriority(title, weekStart, tag);
+  async function handleAddPriority() {
+    try {
+      "use server"
+      await addWeeklyPriority(title, weekStart, newTag);
+    } catch (error: any) {
+      toast.error("Failed to Add Priority", error);
+    }
   }
 
   async function handleDeletePriority(id: number) {
-    "use server";
-    await deleteWeeklyPriority(id);
+    try {
+      "use server"
+      await deleteWeeklyPriority(id);
+    } catch (error) {
+      toast.error("Failed to delete priority");
+    }
   }
 
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Weekly Priorities — starting {weekStart}</h2>
-      <form action={handleAddPriority} className="flex gap-2">
-        <input type="text" name="title" placeholder="Add priority" className="border p-2 rounded flex-1" />
-        <select name="tag" className="border p-2 rounded">
-          <option value="work">Work</option>
-          <option value="personal">Personal</option>
-        </select>
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-          Add
-        </button>
-      </form>
+      <div>
+        <Input value={title} placeholder="Add priority" onChange={(e) => setTitle(e.target.value)} />
+
+        <Select value={newTag} onValueChange={(v) => setNewTag(v)}>
+          <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select tag">
+            <SelectValue placeholder="Tag" />
+          </SelectTrigger>
+          <SelectContent>
+            {tagOptions.map((tag) => (
+              <SelectItem key={tag} value={tag.toLowerCase()}>
+                {tag}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button size="icon" onClick={handleAddPriority}>
+          <Plus />
+        </Button>
+      </div>
       <ul className="space-y-2">
         {priorities.map((p) => (
           <li key={p.id} className="flex justify-between items-center border p-2 rounded">
             <span>{p.title}</span>
-            <form action={() => handleDeletePriority(p.id)}>
-              <button type="submit" className="text-red-500">
-                Delete
-              </button>
-            </form>
+            <Button variant="default" onClick={() => handleDeletePriority(p.id)}>
+              Delete
+            </Button>
           </li>
         ))}
       </ul>
