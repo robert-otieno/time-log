@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getWeeklyPriorities, addWeeklyPriority, deleteWeeklyPriority } from "@/app/actions";
+import { getWeeklyPriorities, addWeeklyPriority, deleteWeeklyPriority, updateWeeklyPriority } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GripVertical, MoreVertical, Plus, Check } from "lucide-react";
+import { GripVertical, MoreVertical, Plus, Check, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -28,6 +28,8 @@ export default function WeeklyPriorityList() {
   const [priorities, setPriorities] = useState<Priority[]>([]);
   const [newPriority, setNewPriority] = useState("");
   const [filter, setFilter] = useState<"all" | "work" | "personal">("all");
+  const [editingPriorityId, setEditingPriorityId] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
   const visible = priorities.filter((p) => filter === "all" || p.tag === filter);
 
   useEffect(() => {
@@ -49,6 +51,17 @@ export default function WeeklyPriorityList() {
 
   async function handleDeletePriority(id: number) {
     await deleteWeeklyPriority(id);
+    await loadPriorities();
+  }
+
+  async function handleRenamePriority(id: number) {
+    if (!editingTitle.trim()) {
+      setEditingPriorityId(null);
+      return;
+    }
+    await updateWeeklyPriority(id, { title: editingTitle });
+    setEditingPriorityId(null);
+    setEditingTitle("");
     await loadPriorities();
   }
 
@@ -93,14 +106,38 @@ export default function WeeklyPriorityList() {
               <div className="h-8 w-8 shrink-0 rounded-full bg-muted/70 grid place-items-center text-[10px] font-semibold uppercase">{p.tag ?? "st"}</div>
 
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className={`truncate font-medium ${p.completed ? "line-through text-muted-foreground" : ""}`}>{p.title}</span>
-                  {p.completed && (
-                    <Badge variant="secondary" className="gap-1">
-                      <Check className="h-3.5 w-3.5" /> Done
-                    </Badge>
-                  )}
-                </div>
+                {editingPriorityId === p.id ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRenamePriority(p.id);
+                        if (e.key === "Escape") {
+                          setEditingPriorityId(null);
+                          setEditingTitle("");
+                        }
+                      }}
+                      className="h-8"
+                      autoFocus
+                    />
+                    <Button size="icon" onClick={() => handleRenamePriority(p.id)} aria-label="Save priority">
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => setEditingPriorityId(null)} aria-label="Cancel rename">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className={`truncate font-medium ${p.completed ? "line-through text-muted-foreground" : ""}`}>{p.title}</span>
+                    {p.completed && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Check className="h-3.5 w-3.5" /> Done
+                      </Badge>
+                    )}
+                  </div>
+                )}
                 <div className="mt-2 flex items-center gap-3">
                   <Progress value={p.progress ?? 0} className="h-2 w-56 max-w-full" />
                   <span className="text-xs text-muted-foreground">{(p.progress ?? 0).toFixed(0)}%</span>
@@ -119,7 +156,14 @@ export default function WeeklyPriorityList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem disabled>Rename (coming soon)</DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setEditingPriorityId(p.id);
+                        setEditingTitle(p.title);
+                      }}
+                    >
+                      Rename
+                    </DropdownMenuItem>{" "}
                     <DropdownMenuItem disabled>Add subtask (coming soon)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleDeletePriority(p.id)} className="text-destructive">
                       Delete
