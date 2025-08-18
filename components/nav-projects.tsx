@@ -10,7 +10,7 @@ export function NavProjects() {
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Select Date</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-base">Calendar</SidebarGroupLabel>
       <SidebarGroupContent>
         <Calendar
           mode="single"

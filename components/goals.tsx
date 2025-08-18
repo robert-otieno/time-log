@@ -3,21 +3,39 @@
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import { formatISODate } from "@/lib/date-utils";
-import { toast } from "sonner";
 import { useState } from "react";
 import { ChevronDownIcon } from "lucide-react";
+import { useGoals } from "@/hooks/use-goals";
+import { categories } from "@/lib/tasks";
+import HabitTracker from "@/components/habit-tracker";
+import { Badge } from "@/components/ui/badge";
 
 export default function Goals() {
+  const { goals, addGoal, deleteGoal, addHabit, toggleHabit } = useGoals();
   const [open, setOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+  const [newTitle, setNewTitle] = useState("");
   const [goalDeadline, setGoalDeadline] = useState<Date | undefined>();
+  const [habitInputs, setHabitInputs] = useState<Record<number, string>>({});
 
-  const categories = ["Faith", "Career/Professional Development", "Personal", "Health & Wellness", "Home/Family", "Business", "Finance"];
+  function handleAddGoal() {
+    const deadline = goalDeadline ? formatISODate(goalDeadline) : null;
+    addGoal(newCategory, newTitle, deadline);
+    setNewCategory("");
+    setNewTitle("");
+    setGoalDeadline(undefined);
+  }
+
+  function handleAddHabit(goalId: number) {
+    const name = habitInputs[goalId];
+    addHabit(goalId, name);
+    setHabitInputs((prev) => ({ ...prev, [goalId]: "" }));
+  }
 
   return (
     <section id="goals" className="mb-6">
@@ -27,7 +45,7 @@ export default function Goals() {
           <CardDescription className="mb-4">Make your goals specific, measurable, achievable, and relevant</CardDescription>
 
           <div className="flex gap-2">
-            <Select value={newCategory} onValueChange={(v) => setNewCategory(v)}>
+            <Select value={newCategory} onValueChange={setNewCategory}>
               <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select category">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -43,13 +61,12 @@ export default function Goals() {
               </SelectContent>
             </Select>
 
-            <Input placeholder="Goal" className="w-full" />
+            <Input placeholder="Goal" className="w-full" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
 
             <div className="flex flex-col gap-3">
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" id="date-picker" className="w-32 justify-between font-normal">
-                    {/* {date ? date.toLocaleDateString() : "Set Deadline"} */}
                     {goalDeadline ? formatISODate(goalDeadline) : "Set Deadline"}
                     <ChevronDownIcon />
                   </Button>
@@ -60,7 +77,7 @@ export default function Goals() {
                     selected={goalDeadline}
                     captionLayout="dropdown"
                     onSelect={(d) => {
-                      d && setGoalDeadline(d);
+                      if (d) setGoalDeadline(d);
                       setOpen(false);
                     }}
                   />
@@ -68,13 +85,44 @@ export default function Goals() {
               </Popover>
             </div>
 
-            <Button size="icon" aria-label="Add goals" onClick={() => toast("Add goals feature coming soon!")}>
+            <Button size="icon" aria-label="Add goals" onClick={handleAddGoal}>
               <Plus />
             </Button>
           </div>
         </CardHeader>
 
-        <CardContent></CardContent>
+        <CardContent>
+          {goals.map((goal) => (
+            <div key={goal.id} className="mb-4">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">{goal.title}</span>
+                  <Badge variant="secondary" className="text-sm capitalize">{goal.category}</Badge>
+                </div>
+                <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)}>
+                  <Trash className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="ml-4 space-y-2">
+                {goal.habits.map((habit) => (
+                  <HabitTracker key={habit.id} habit={habit} onToggle={toggleHabit} />
+                ))}
+
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="New habit"
+                    value={habitInputs[goal.id] ?? ""}
+                    onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))}
+                  />
+                  <Button size="icon" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
       </Card>
     </section>
   );
