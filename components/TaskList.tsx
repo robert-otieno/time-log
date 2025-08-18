@@ -28,14 +28,12 @@ import { toast } from "sonner";
 import TaskDetailsSheet from "./task-details-sheet";
 import WeeklyPriorityList from "./WeeklyPriorityList";
 import Goals from "./goals";
+import { useSelectedDate } from "@/hooks/use-selected-date";
 
 type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; count?: any; priority?: any };
 
-interface TaskListProps {
-  date: string;
-}
-
-export default function TaskList({ date }: TaskListProps) {
+export default function TaskList() {
+  const { selectedDate: date } = useSelectedDate();
   const [tasks, setTasks] = useState<UITask[]>([]);
   const [newTask, setNewTask] = useState("");
   const [newTag, setNewTag] = useState(tagOptions[0]);
@@ -303,6 +301,11 @@ export default function TaskList({ date }: TaskListProps) {
   return (
     <>
       <Card className="border-0 shadow-none rounded-none bg-card/0">
+        <CardHeader>
+          <CardTitle>Today</CardTitle>
+          <CardDescription>{formatISODateString(date)}</CardDescription>
+        </CardHeader>
+
         <CardContent className="grid gap-6 grid-cols-2">
           <Card className="border-0 p-0 shadow-none rounded-none bg-card/0">
             <CardHeader>
@@ -357,10 +360,9 @@ export default function TaskList({ date }: TaskListProps) {
                   <Plus />
                 </Button>
               </div>
-              <CardTitle>Today</CardTitle>
-              <CardDescription>{formatISODateString(date)}</CardDescription>
               <CardTitle>Daily Tasks</CardTitle>
             </CardHeader>
+
             <CardContent>
               {tasks.length === 0 ? (
                 <ul className="divide-y">
@@ -506,6 +508,7 @@ export default function TaskList({ date }: TaskListProps) {
           </div>
         </CardContent>
       </Card>
+
       <Sheet open={editingTaskId !== null} onOpenChange={(o) => !o && setEditingTaskId(null)}>
         <SheetContent>
           <SheetHeader>

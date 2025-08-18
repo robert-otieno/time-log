@@ -22,24 +22,9 @@ export default function Goals() {
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <CardTitle>Goals</CardTitle>
-          <CardDescription>Make your goals specific, measurable, achievable, and relevant</CardDescription>
-          <CardAction></CardAction>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 flex gap-3">
-            {/* Category
-                    1. Career / Professional Development
-                      Goal: (What improvement do you want to see in your office? A promotion etc.)
-                    2. Personal Development 
-                      Goal:(What book would you like to write; or content you'd like to produce in...)
-                      Habit 1:
-                    3. Health & Wellness
-                    4. Home/Family
-                     Goal: (What skills do you want your kids to develop in 2025)
-                     Habit 1 - (think about how many hours a week you want your kids to practice the skill)
-                     
-                    */}
+          <CardDescription className="mb-4">Make your goals specific, measurable, achievable, and relevant</CardDescription>
 
+          <div className="flex gap-2">
             <Select value={newCategory} onValueChange={(v) => setNewCategory(v)}>
               <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select category">
                 <SelectValue placeholder="Category" />
@@ -55,11 +40,7 @@ export default function Goals() {
                 </SelectGroup>
               </SelectContent>
             </Select>
-            {/* Goal */}
             <Input placeholder="Goal" className="w-full" />
-            {/* Habit */}
-
-            {/* Deadline */}
             <div className="flex w-full flex-col gap-3">
               <Popover open={!!goalDeadline} onOpenChange={(o) => !o && setGoalDeadline(undefined)}>
                 <PopoverTrigger asChild>
@@ -76,7 +57,9 @@ export default function Goals() {
               <Plus />
             </Button>
           </div>
-        </CardContent>
+        </CardHeader>
+
+        <CardContent></CardContent>
       </Card>
     </section>
   );

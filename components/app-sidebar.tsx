@@ -1,28 +1,14 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Command } from "lucide-react"
+import * as React from "react";
+import { Command } from "lucide-react";
 
-import { NavProjects } from "@/components/nav-projects"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { SidebarDateProps } from "@/lib/sidebar-date-props"
+import { NavProjects } from "@/components/nav-projects";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 
-export function AppSidebar(
-  { selectedDate, onSelectDate, ...props }: React.ComponentProps<typeof Sidebar> & SidebarDateProps
-) {
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar
-      className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
-      {...props}
-    >
+    <Sidebar className="top-(--header-height) h-[calc(100svh-var(--header-height))]!" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -41,10 +27,9 @@ export function AppSidebar(
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavProjects selectedDate={selectedDate} onSelectDate={onSelectDate} />
+        <NavProjects />
       </SidebarContent>
-      <SidebarFooter>
-      </SidebarFooter>
+      <SidebarFooter></SidebarFooter>
     </Sidebar>
-  )
+  );
 }

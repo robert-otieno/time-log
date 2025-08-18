@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GripVertical, MoreVertical, Plus, Check, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { formatISODate } from "@/lib/date-utils";
@@ -68,27 +68,11 @@ export default function WeeklyPriorityList() {
 
   return (
     <Card className="border-0 shadow-sm">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <span>
-            <CardTitle>Weekly Priorities</CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">Set your weekly priorities to focus on what matters most.</CardDescription>
-          </span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                {filter === "all" ? "All" : filter === "work" ? "Work" : "Personal"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => setFilter("all")}>All</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilter("work")}>Work</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilter("personal")}>Personal</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+      <CardHeader>
+        <CardTitle>Weekly Priorities</CardTitle>
+        <CardDescription className="mb-4">Set your weekly priorities to focus on what matters most.</CardDescription>
 
-        <div className="mt-3 flex gap-2">
+        <div className="flex gap-2">
           <Input placeholder="New priority… e.g., ‘Submit thesis draft’" value={newPriority} onChange={(e) => setNewPriority(e.target.value)} />
           <Button size="icon" onClick={handleAddPriority} aria-label="Add priority">
             <Plus />
@@ -107,7 +91,7 @@ export default function WeeklyPriorityList() {
           {visible.map((p: Priority) => (
             <li key={p.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3">
               {/* Tag/Initials circle placeholder */}
-              <div className="h-8 w-8 shrink-0 rounded-full bg-muted/70 grid place-items-center text-[10px] font-semibold uppercase">{p.tag ?? "st"}</div>
+              {/* <div className="h-8 w-8 shrink-0 rounded-full bg-muted/70 grid place-items-center text-[10px] font-semibold uppercase">{p.tag ?? "st"}</div> */}
 
               <div className="min-w-0">
                 {editingPriorityId === p.id ? (
