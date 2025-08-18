@@ -10,6 +10,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { formatISODate } from "@/lib/date-utils";
+import { useSelectedDate } from "@/hooks/use-selected-date";
 
 interface Priority {
   id: number;
@@ -20,10 +21,12 @@ interface Priority {
 }
 
 export default function WeeklyPriorityList() {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-  const monday = new Date(now.setDate(diff));
+  const { selectedDate } = useSelectedDate();
+  const current = new Date(selectedDate);
+  const dayOfWeek = current.getDay();
+  const diff = current.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  const monday = new Date(current);
+  monday.setDate(diff);
   const weekStart = formatISODate(monday);
   const [priorities, setPriorities] = useState<Priority[]>([]);
   const [newPriority, setNewPriority] = useState("");
@@ -35,7 +38,7 @@ export default function WeeklyPriorityList() {
 
   useEffect(() => {
     loadPriorities();
-  }, []);
+  }, [selectedDate]);
 
   async function loadPriorities() {
     const res: Priority[] = await getWeeklyPriorities(weekStart);

@@ -1,6 +1,6 @@
 // "use client"
 
-import WeeklyPriorityList from "@/components/WeeklyPriorityList";
+import WeeklyPriorityList from "@/components/weekly-priority-list";
 
 // import { formatISODate } from "@/lib/date-utils";
 // import { getWeeklyPriorities, addWeeklyPriority, deleteWeeklyPriority } from "../actions";

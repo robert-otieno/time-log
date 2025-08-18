@@ -10,8 +10,10 @@ import { Plus } from "lucide-react";
 import { formatISODate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useState } from "react";
+import { ChevronDownIcon } from "lucide-react";
 
 export default function Goals() {
+  const [open, setOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [goalDeadline, setGoalDeadline] = useState<Date | undefined>();
 
@@ -40,19 +42,32 @@ export default function Goals() {
                 </SelectGroup>
               </SelectContent>
             </Select>
+
             <Input placeholder="Goal" className="w-full" />
-            <div className="flex w-full flex-col gap-3">
-              <Popover open={!!goalDeadline} onOpenChange={(o) => !o && setGoalDeadline(undefined)}>
+
+            <div className="flex flex-col gap-3">
+              <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start font-normal text-muted-foreground">
-                    {goalDeadline ? formatISODate(goalDeadline) : "Select Deadline"}
+                  <Button variant="outline" id="date-picker" className="w-32 justify-between font-normal">
+                    {/* {date ? date.toLocaleDateString() : "Set Deadline"} */}
+                    {goalDeadline ? formatISODate(goalDeadline) : "Set Deadline"}
+                    <ChevronDownIcon />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto overflow-hidden p-0">
-                  <Calendar mode="single" selected={goalDeadline} onSelect={(d) => d && setGoalDeadline(d)} className="w-auto rounded-md border" />
+                <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={goalDeadline}
+                    captionLayout="dropdown"
+                    onSelect={(d) => {
+                      d && setGoalDeadline(d);
+                      setOpen(false);
+                    }}
+                  />
                 </PopoverContent>
               </Popover>
             </div>
+
             <Button size="icon" aria-label="Add goals" onClick={() => toast("Add goals feature coming soon!")}>
               <Plus />
             </Button>
