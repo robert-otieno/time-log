@@ -14,6 +14,7 @@ import { useGoals } from "@/hooks/use-goals";
 import { categories } from "@/lib/tasks";
 import HabitTracker from "@/components/habit-tracker";
 import { Badge } from "@/components/ui/badge";
+import { useSelectedDate } from "@/hooks/use-selected-date";
 
 export default function Goals() {
   const { goals, addGoal, deleteGoal, addHabit, toggleHabit } = useGoals();
@@ -22,6 +23,15 @@ export default function Goals() {
   const [newTitle, setNewTitle] = useState("");
   const [goalDeadline, setGoalDeadline] = useState<Date | undefined>();
   const [habitInputs, setHabitInputs] = useState<Record<number, string>>({});
+  const { selectedDate } = useSelectedDate();
+  const recentDates = Array.from({ length: 7 }, (_, idx) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() - (6 - idx));
+    return {
+      date: formatISODate(d),
+      label: d.toLocaleDateString(undefined, { weekday: "short" }),
+    };
+  });
 
   function handleAddGoal() {
     const deadline = goalDeadline ? formatISODate(goalDeadline) : null;
@@ -92,12 +102,22 @@ export default function Goals() {
         </CardHeader>
 
         <CardContent>
+          <div className="grid grid-cols-8 gap-1 text-xs text-muted-foreground">
+            <span />
+            {recentDates.map((d) => (
+              <span key={d.date} className="text-center">
+                {d.label}
+              </span>
+            ))}
+          </div>
           {goals.map((goal) => (
             <div key={goal.id} className="mb-4">
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">{goal.title}</span>
-                  <Badge variant="secondary" className="text-sm capitalize">{goal.category}</Badge>
+                  <Badge variant="secondary" className="text-sm capitalize">
+                    {goal.category}
+                  </Badge>
                 </div>
                 <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)}>
                   <Trash className="h-4 w-4" />

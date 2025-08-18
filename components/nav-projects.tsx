@@ -18,7 +18,7 @@ export function NavProjects() {
           onSelect={(date) => {
             if (date) setSelectedDate(formatISODate(date));
           }}
-          className="w-full p-1 border rounded-lg border-input bg-background"
+          className="w-full p-4 border rounded-lg border-input bg-background"
         />
       </SidebarGroupContent>
     </SidebarGroup>

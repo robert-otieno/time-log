@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GripVertical, MoreVertical, Plus, Check, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { formatISODate } from "@/lib/date-utils";
@@ -93,9 +93,6 @@ export default function WeeklyPriorityList() {
 
           {visible.map((p: Priority) => (
             <li key={p.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3">
-              {/* Tag/Initials circle placeholder */}
-              {/* <div className="h-8 w-8 shrink-0 rounded-full bg-muted/70 grid place-items-center text-[10px] font-semibold uppercase">{p.tag ?? "st"}</div> */}
-
               <div className="min-w-0">
                 {editingPriorityId === p.id ? (
                   <div className="flex items-center gap-2">
