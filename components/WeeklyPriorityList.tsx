@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GripVertical, MoreVertical, Plus, Check, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { formatISODate } from "@/lib/date-utils";
@@ -70,7 +70,10 @@ export default function WeeklyPriorityList() {
     <Card className="border-0 shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-2xl">Weekly Priorities</CardTitle>
+          <span>
+            <CardTitle>Weekly Priorities</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">Set your weekly priorities to focus on what matters most.</CardDescription>
+          </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">

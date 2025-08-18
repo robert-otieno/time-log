@@ -16,7 +16,7 @@ export function NavProjects({ selectedDate, onSelectDate }: SidebarDateProps) {
           onSelect={(date) => {
             if (date) onSelectDate(formatISODate(date));
           }}
-          className="w-full p-0"
+          className="w-full p-1 border rounded-lg border-input bg-background"
         />
       </SidebarGroupContent>
     </SidebarGroup>

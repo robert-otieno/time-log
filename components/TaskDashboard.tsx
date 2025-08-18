@@ -5,7 +5,6 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import TaskList from "./TaskList";
-import WeeklyPriorityList from "./WeeklyPriorityList";
 import { formatISODate } from "@/lib/date-utils";
 
 export default function TaskDashboard() {
@@ -18,11 +17,8 @@ export default function TaskDashboard() {
         <SiteHeader />
         <div className="flex flex-1">
           <AppSidebar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-          <WeeklyPriorityList />
           <SidebarInset>
-            <div className="p-4">
-              <TaskList date={selectedDate} />
-            </div>
+            <TaskList date={selectedDate} />
           </SidebarInset>
         </div>
       </SidebarProvider>

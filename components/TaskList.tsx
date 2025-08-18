@@ -17,15 +17,17 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarDays, ExternalLink, ChevronRight, Flame, GripVertical, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { TaskWithSubtasks } from "@/db/schema";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { formatISODate } from "@/lib/date-utils";
+import { formatISODate, formatISODateString } from "@/lib/date-utils";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import TaskDetailsSheet from "./task-details-sheet";
+import { Week } from "react-day-picker";
+import WeeklyPriorityList from "./WeeklyPriorityList";
 
 type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; count?: any; priority?: any };
 
@@ -37,6 +39,7 @@ export default function TaskList({ date }: TaskListProps) {
   const [tasks, setTasks] = useState<UITask[]>([]);
   const [newTask, setNewTask] = useState("");
   const [newTag, setNewTag] = useState(tagOptions[0]);
+  const [newCategory, setNewCategory] = useState("");
   const [weeklyPriorities, setWeeklyPriorities] = useState<{ id: number; title: string }[]>([]);
   const [newPriority, setNewPriority] = useState<string>("");
   const [newDeadline, setNewDeadline] = useState("");
@@ -262,7 +265,6 @@ export default function TaskList({ date }: TaskListProps) {
       })
     );
     setEditingTaskId(null);
-    // await loadTasks();
   }
 
   useEffect(() => {
@@ -306,12 +308,9 @@ export default function TaskList({ date }: TaskListProps) {
 
   return (
     <>
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-none rounded-none bg-card/0">
         <CardHeader className="pb-2">
-          <CardTitle className="text-2xl">Tasks - {date}</CardTitle>
-          {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-
-          <div className="mt-3 flex gap-2">
+          <div className="mb-4 flex gap-2">
             <Input
               placeholder="New task… e.g., ‘Draft STEAM Bingo card copy’"
               value={newTask}
@@ -333,11 +332,14 @@ export default function TaskList({ date }: TaskListProps) {
                 <SelectValue placeholder="Tag" />
               </SelectTrigger>
               <SelectContent>
-                {tagOptions.map((tag) => (
-                  <SelectItem key={tag} value={tag.toLowerCase()}>
-                    {tag}
-                  </SelectItem>
-                ))}
+                <SelectGroup>
+                  <SelectLabel>Tags</SelectLabel>
+                  {tagOptions.map((tag) => (
+                    <SelectItem key={tag} value={tag.toLowerCase()}>
+                      {tag}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
 
@@ -359,146 +361,206 @@ export default function TaskList({ date }: TaskListProps) {
               <Plus />
             </Button>
           </div>
+          <CardTitle>Today</CardTitle>
+          <CardDescription>{formatISODateString(date)}</CardDescription>
         </CardHeader>
 
-        <CardContent className="pt-2">
-          {tasks.length === 0 ? (
-            <ul className="divide-y">
-              <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “STEAM Bingo Card – GBDCEI” or “Newsletter Q2 outline.”</li>
-            </ul>
-          ) : (
-            orderedGroups.map(([tag, tagTasks]) => (
-              <div key={tag} className="mb-6 last:mb-0">
-                <h3 className="mb-2 font-semibold capitalize">{tag}</h3>
-                <ul className="divide-y">
-                  {tagTasks.map((task) => (
-                    <li key={task.id} className="py-3">
-                      <Collapsible open={openTasks[task.id]} onOpenChange={(o) => setOpenTasks((prev) => ({ ...prev, [task.id]: o }))}>
-                        <div className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-3">
-                          <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="p-0 data-[state=open]:rotate-90" aria-label="Toggle subtasks">
-                              <ChevronRight />
-                            </Button>
-                          </CollapsibleTrigger>
+        <CardContent className="grid gap-4 grid-cols-2">
+          <div>
+            <CardTitle className="text-xl mb-6">Daily Tasks</CardTitle>
 
-                          {/* checkbox */}
-                          <div className="grid place-items-center">
-                            <Checkbox checked={task.done} onCheckedChange={() => handleToggleTask(task.id, task.done)} aria-label="Toggle task" />
-                          </div>
+            {tasks.length === 0 ? (
+              <ul className="divide-y">
+                <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “STEAM Bingo Card – GBDCEI” or “Newsletter Q2 outline.”</li>
+              </ul>
+            ) : (
+              orderedGroups.map(([tag, tagTasks]) => (
+                <div key={tag}>
+                  <ul className="divide-y">
+                    {tagTasks.map((task) => (
+                      <li key={task.id} className="py-3">
+                        <Collapsible open={openTasks[task.id]} onOpenChange={(o) => setOpenTasks((prev) => ({ ...prev, [task.id]: o }))}>
+                          <div className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-3">
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="sm" className="p-0 data-[state=open]:rotate-90" aria-label="Toggle subtasks">
+                                <ChevronRight />
+                              </Button>
+                            </CollapsibleTrigger>
 
-                          {/* title + pills */}
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`}>
-                                {task.title}
-                              </span>
+                            {/* checkbox */}
+                            <div className="grid place-items-center">
+                              <Checkbox checked={task.done} onCheckedChange={() => handleToggleTask(task.id, task.done)} aria-label="Toggle task" />
+                            </div>
 
-                              {task.link && (
-                                <Button asChild variant="ghost" size="icon" className="h-7 w-7" title="Open link">
-                                  <a href={task.link} target="_blank" rel="noreferrer">
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              )}
-
-                              {task.notes && <Badge variant="secondary">Note</Badge>}
-
-                              {task.hot && (
-                                <Badge className="gap-1">
-                                  <Flame className="h-3.5 w-3.5" />
-                                  Hot
-                                </Badge>
-                              )}
-
-                              {task.dueLabel && (
-                                <Badge variant="secondary" className="gap-1">
-                                  <CalendarDays className="h-3.5 w-3.5" />
-                                  {task.dueLabel}
-                                </Badge>
-                              )}
-
-                              {task.tag && (
-                                <Badge variant="outline" className="capitalize">
-                                  {task.tag}
-                                </Badge>
-                              )}
-
-                              {task.priority && (
-                                <Badge variant="secondary" className="capitalize">
-                                  {task.priority.title}
-                                </Badge>
-                              )}
-
-                              {typeof task.count === "number" && (
-                                <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">
-                                  {task.count}
+                            {/* title + pills */}
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`}>
+                                  {task.title}
                                 </span>
-                              )}
+
+                                {task.link && (
+                                  <Button asChild variant="ghost" size="icon" className="h-7 w-7" title="Open link">
+                                    <a href={task.link} target="_blank" rel="noreferrer">
+                                      <ExternalLink className="h-4 w-4" />
+                                    </a>
+                                  </Button>
+                                )}
+
+                                {task.notes && <Badge variant="secondary">Note</Badge>}
+
+                                {task.hot && (
+                                  <Badge className="gap-1">
+                                    <Flame className="h-3.5 w-3.5" />
+                                    Hot
+                                  </Badge>
+                                )}
+
+                                {task.dueLabel && (
+                                  <Badge variant="secondary" className="gap-1">
+                                    <CalendarDays className="h-3.5 w-3.5" />
+                                    {task.dueLabel}
+                                  </Badge>
+                                )}
+
+                                {task.tag && (
+                                  <Badge variant="outline" className="capitalize">
+                                    {task.tag}
+                                  </Badge>
+                                )}
+
+                                {task.priority && (
+                                  <Badge variant="secondary" className="capitalize">
+                                    {task.priority.title}
+                                  </Badge>
+                                )}
+
+                                {typeof task.count === "number" && (
+                                  <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">
+                                    {task.count}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* actions */}
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
+                                <GripVertical className="h-4 w-4" />
+                              </Button>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Task actions">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuItem onClick={() => startEditing(task)}>Edit</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setSelectedTaskId(task.id)}>Details</DropdownMenuItem>
+                                  <DropdownMenuItem disabled>Duplicate (coming soon)</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDeleteTask(task.id)} className="text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
 
-                          {/* actions */}
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
-                              <GripVertical className="h-4 w-4" />
-                            </Button>
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Task actions">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem onClick={() => startEditing(task)}>Edit</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setSelectedTaskId(task.id)}>Details</DropdownMenuItem>
-                                <DropdownMenuItem disabled>Duplicate (coming soon)</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDeleteTask(task.id)} className="text-destructive">
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-
-                        <CollapsibleContent>
-                          <ul className="mt-2 ml-12 space-y-2">
-                            {task.subtasks.map((sub) => (
-                              <li key={sub.id} className="flex items-center gap-2 text-sm">
-                                <Checkbox checked={sub.done} onCheckedChange={() => handleToggleSubtask(sub.id, sub.done)} aria-label="Toggle subtask" />
-                                <span className={`flex-1 truncate ${sub.done ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
-                                <Button variant="ghost" size="icon" aria-label="Delete subtask" onClick={() => handleDeleteSubtask(sub.id)}>
-                                  <Trash2 className="h-4 w-4" />
+                          <CollapsibleContent>
+                            <ul className="mt-2 ml-12 space-y-2">
+                              {task.subtasks.map((sub) => (
+                                <li key={sub.id} className="flex items-center gap-2 text-sm">
+                                  <Checkbox checked={sub.done} onCheckedChange={() => handleToggleSubtask(sub.id, sub.done)} aria-label="Toggle subtask" />
+                                  <span className={`flex-1 truncate ${sub.done ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
+                                  <Button variant="ghost" size="icon" aria-label="Delete subtask" onClick={() => handleDeleteSubtask(sub.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </li>
+                              ))}
+                              <li className="flex items-center gap-2">
+                                <Input
+                                  placeholder="Add subtask"
+                                  value={newSubtasks[task.id] || ""}
+                                  onChange={(e) =>
+                                    setNewSubtasks((prev) => ({
+                                      ...prev,
+                                      [task.id]: e.target.value,
+                                    }))
+                                  }
+                                  onKeyDown={(e) => e.key === "Enter" && handleAddSubtask(task.id)}
+                                  className="flex-1"
+                                />
+                                <Button size="icon" onClick={() => handleAddSubtask(task.id)} aria-label="Add subtask">
+                                  <Plus className="h-4 w-4" />
                                 </Button>
                               </li>
-                            ))}
-                            <li className="flex items-center gap-2">
-                              <Input
-                                placeholder="Add subtask"
-                                value={newSubtasks[task.id] || ""}
-                                onChange={(e) =>
-                                  setNewSubtasks((prev) => ({
-                                    ...prev,
-                                    [task.id]: e.target.value,
-                                  }))
-                                }
-                                onKeyDown={(e) => e.key === "Enter" && handleAddSubtask(task.id)}
-                                className="flex-1"
-                              />
-                              <Button size="icon" onClick={() => handleAddSubtask(task.id)} aria-label="Add subtask">
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </li>
-                          </ul>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))
-          )}
+                            </ul>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            )}
+          </div>
+          <div>
+            <section id="goals" className="mb-6">
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle>Goals</CardTitle>
+                  <CardDescription>Make your goals specific, measurable, achievable, and relevant</CardDescription>
+                  <CardAction></CardAction>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4 flex gap-3">
+                    {/* Category
+                    1. Career / Professional Development
+                      Goal: (What improvement do you want to see in your office? A promotion etc.)
+                    2. Personal Development 
+                      Goal:(What book would you like to write; or content you'd like to produce in...)
+                      Habit 1:
+                    3. Health & Wellness
+                    4. Home/Family
+                     Goal: (What skills do you want your kids to develop in 2025)
+                     Habit 1 - (think about how many hours a week you want your kids to practice the skill)
+                     
+                    */}
+
+                    <Select value={newCategory} onValueChange={(v) => setNewCategory(v)}>
+                      <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select category">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Category</SelectLabel>
+                          {["Faith", "Career/Professional Development", "Personal", "Health & Wellness", "Home/Family", "Business", "Finance"].map((cat) => (
+                            <SelectItem key={cat} value={cat.toLowerCase()}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {/* Goal */}
+                    <Input placeholder="Goal" className="w-full" />
+                    {/* Habit */}
+
+                    {/* Deadline */}
+                    <Input type="date" className="w-full" aria-label="Deadline" />
+
+                    <Button size="icon" aria-label="Add goals" onClick={() => toast("Add goals feature coming soon!")}>
+                      <Plus />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+
+            <WeeklyPriorityList />
+          </div>
         </CardContent>
       </Card>
       <Sheet open={editingTaskId !== null} onOpenChange={(o) => !o && setEditingTaskId(null)}>
