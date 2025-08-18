@@ -12,22 +12,24 @@ import {
   getWeeklyPriorities,
   updateDailyTask,
 } from "@/app/actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarDays, ExternalLink, ChevronRight, Flame, GripVertical, MoreVertical, Plus, Trash2 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { TaskWithSubtasks } from "@/db/schema";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { formatISODate, formatISODateString } from "@/lib/date-utils";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatISODate, formatISODateString } from "@/lib/date-utils";
 import { toast } from "sonner";
 import TaskDetailsSheet from "./task-details-sheet";
-import { Week } from "react-day-picker";
 import WeeklyPriorityList from "./WeeklyPriorityList";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; count?: any; priority?: any };
 
@@ -44,6 +46,7 @@ export default function TaskList({ date }: TaskListProps) {
   const [newPriority, setNewPriority] = useState<string>("");
   const [newDeadline, setNewDeadline] = useState("");
   const [newReminder, setNewReminder] = useState("");
+  const [goalDeadline, setGoalDeadline] = useState<Date | undefined>();
   const [newSubtasks, setNewSubtasks] = useState<Record<number, string>>({});
   const [openTasks, setOpenTasks] = useState<Record<number, boolean>>({});
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -309,203 +312,203 @@ export default function TaskList({ date }: TaskListProps) {
   return (
     <>
       <Card className="border-0 shadow-none rounded-none bg-card/0">
-        <CardHeader className="pb-2">
-          <div className="mb-4 flex gap-2">
-            <Input
-              placeholder="New task… e.g., ‘Draft STEAM Bingo card copy’"
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleAddTask();
-                }
-              }}
-              className="flex-1"
-            />
+        <CardContent className="grid gap-6 grid-cols-2">
+          <Card className="border-0 p-0 shadow-none rounded-none bg-card/0">
+            <CardHeader>
+              <div className="mb-4 flex gap-2">
+                <Input
+                  placeholder="New task… e.g., ‘Draft STEAM Bingo card copy’"
+                  value={newTask}
+                  onChange={(e) => setNewTask(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleAddTask();
+                    }
+                  }}
+                  className="flex-1"
+                />
 
-            <Input type="time" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} className="w-[120px]" aria-label="Deadline" />
+                <Input type="time" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} className="w-[120px]" aria-label="Deadline" />
 
-            <Input type="time" value={newReminder} onChange={(e) => setNewReminder(e.target.value)} className="w-[120px]" aria-label="Reminder time" />
+                <Input type="time" value={newReminder} onChange={(e) => setNewReminder(e.target.value)} className="w-[120px]" aria-label="Reminder time" />
 
-            <Select value={newTag} onValueChange={(v) => setNewTag(v)}>
-              <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select tag">
-                <SelectValue placeholder="Tag" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Tags</SelectLabel>
-                  {tagOptions.map((tag) => (
-                    <SelectItem key={tag} value={tag.toLowerCase()}>
-                      {tag}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+                <Select value={newTag} onValueChange={(v) => setNewTag(v)}>
+                  <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select tag">
+                    <SelectValue placeholder="Tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Tags</SelectLabel>
+                      {tagOptions.map((tag) => (
+                        <SelectItem key={tag} value={tag.toLowerCase()}>
+                          {tag}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
 
-            <Select value={newPriority} onValueChange={(v) => setNewPriority(v)}>
-              <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select priority">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {weeklyPriorities.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <Select value={newPriority} onValueChange={(v) => setNewPriority(v)}>
+                  <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select priority">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {weeklyPriorities.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-            <Button size="icon" onClick={handleAddTask} aria-label="Add task">
-              <Plus />
-            </Button>
-          </div>
-          <CardTitle>Today</CardTitle>
-          <CardDescription>{formatISODateString(date)}</CardDescription>
-        </CardHeader>
+                <Button size="icon" onClick={handleAddTask} aria-label="Add task">
+                  <Plus />
+                </Button>
+              </div>
+              <CardTitle>Today</CardTitle>
+              <CardDescription>{formatISODateString(date)}</CardDescription>
+              <CardTitle>Daily Tasks</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {tasks.length === 0 ? (
+                <ul className="divide-y">
+                  <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “STEAM Bingo Card – GBDCEI” or “Newsletter Q2 outline.”</li>
+                </ul>
+              ) : (
+                orderedGroups.map(([tag, tagTasks]) => (
+                  <div key={tag}>
+                    <ul className="divide-y">
+                      {tagTasks.map((task) => (
+                        <li key={task.id} className="py-3">
+                          <Collapsible open={openTasks[task.id]} onOpenChange={(o) => setOpenTasks((prev) => ({ ...prev, [task.id]: o }))}>
+                            <div className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-3">
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm" className="p-0 data-[state=open]:rotate-90" aria-label="Toggle subtasks">
+                                  <ChevronRight />
+                                </Button>
+                              </CollapsibleTrigger>
 
-        <CardContent className="grid gap-4 grid-cols-2">
-          <div>
-            <CardTitle className="text-xl mb-6">Daily Tasks</CardTitle>
+                              {/* checkbox */}
+                              <div className="grid place-items-center">
+                                <Checkbox checked={task.done} onCheckedChange={() => handleToggleTask(task.id, task.done)} aria-label="Toggle task" />
+                              </div>
 
-            {tasks.length === 0 ? (
-              <ul className="divide-y">
-                <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “STEAM Bingo Card – GBDCEI” or “Newsletter Q2 outline.”</li>
-              </ul>
-            ) : (
-              orderedGroups.map(([tag, tagTasks]) => (
-                <div key={tag}>
-                  <ul className="divide-y">
-                    {tagTasks.map((task) => (
-                      <li key={task.id} className="py-3">
-                        <Collapsible open={openTasks[task.id]} onOpenChange={(o) => setOpenTasks((prev) => ({ ...prev, [task.id]: o }))}>
-                          <div className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-3">
-                            <CollapsibleTrigger asChild>
-                              <Button variant="ghost" size="sm" className="p-0 data-[state=open]:rotate-90" aria-label="Toggle subtasks">
-                                <ChevronRight />
-                              </Button>
-                            </CollapsibleTrigger>
-
-                            {/* checkbox */}
-                            <div className="grid place-items-center">
-                              <Checkbox checked={task.done} onCheckedChange={() => handleToggleTask(task.id, task.done)} aria-label="Toggle task" />
-                            </div>
-
-                            {/* title + pills */}
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`}>
-                                  {task.title}
-                                </span>
-
-                                {task.link && (
-                                  <Button asChild variant="ghost" size="icon" className="h-7 w-7" title="Open link">
-                                    <a href={task.link} target="_blank" rel="noreferrer">
-                                      <ExternalLink className="h-4 w-4" />
-                                    </a>
-                                  </Button>
-                                )}
-
-                                {task.notes && <Badge variant="secondary">Note</Badge>}
-
-                                {task.hot && (
-                                  <Badge className="gap-1">
-                                    <Flame className="h-3.5 w-3.5" />
-                                    Hot
-                                  </Badge>
-                                )}
-
-                                {task.dueLabel && (
-                                  <Badge variant="secondary" className="gap-1">
-                                    <CalendarDays className="h-3.5 w-3.5" />
-                                    {task.dueLabel}
-                                  </Badge>
-                                )}
-
-                                {task.tag && (
-                                  <Badge variant="outline" className="capitalize">
-                                    {task.tag}
-                                  </Badge>
-                                )}
-
-                                {task.priority && (
-                                  <Badge variant="secondary" className="capitalize">
-                                    {task.priority.title}
-                                  </Badge>
-                                )}
-
-                                {typeof task.count === "number" && (
-                                  <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">
-                                    {task.count}
+                              {/* title + pills */}
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`}>
+                                    {task.title}
                                   </span>
-                                )}
+
+                                  {task.link && (
+                                    <Button asChild variant="ghost" size="icon" className="h-7 w-7" title="Open link">
+                                      <a href={task.link} target="_blank" rel="noreferrer">
+                                        <ExternalLink className="h-4 w-4" />
+                                      </a>
+                                    </Button>
+                                  )}
+
+                                  {task.notes && <Badge variant="secondary">Note</Badge>}
+
+                                  {task.hot && (
+                                    <Badge className="gap-1">
+                                      <Flame className="h-3.5 w-3.5" />
+                                      Hot
+                                    </Badge>
+                                  )}
+
+                                  {task.dueLabel && (
+                                    <Badge variant="secondary" className="gap-1">
+                                      <CalendarDays className="h-3.5 w-3.5" />
+                                      {task.dueLabel}
+                                    </Badge>
+                                  )}
+
+                                  {task.tag && (
+                                    <Badge variant="outline" className="capitalize">
+                                      {task.tag}
+                                    </Badge>
+                                  )}
+
+                                  {task.priority && (
+                                    <Badge variant="secondary" className="capitalize">
+                                      {task.priority.title}
+                                    </Badge>
+                                  )}
+
+                                  {typeof task.count === "number" && (
+                                    <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">
+                                      {task.count}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* actions */}
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
+                                  <GripVertical className="h-4 w-4" />
+                                </Button>
+
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Task actions">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={() => startEditing(task)}>Edit</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setSelectedTaskId(task.id)}>Details</DropdownMenuItem>
+                                    <DropdownMenuItem disabled>Duplicate (coming soon)</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDeleteTask(task.id)} className="text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </div>
 
-                            {/* actions */}
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
-                                <GripVertical className="h-4 w-4" />
-                              </Button>
-
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Task actions">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-48">
-                                  <DropdownMenuItem onClick={() => startEditing(task)}>Edit</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => setSelectedTaskId(task.id)}>Details</DropdownMenuItem>
-                                  <DropdownMenuItem disabled>Duplicate (coming soon)</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleDeleteTask(task.id)} className="text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
-
-                          <CollapsibleContent>
-                            <ul className="mt-2 ml-12 space-y-2">
-                              {task.subtasks.map((sub) => (
-                                <li key={sub.id} className="flex items-center gap-2 text-sm">
-                                  <Checkbox checked={sub.done} onCheckedChange={() => handleToggleSubtask(sub.id, sub.done)} aria-label="Toggle subtask" />
-                                  <span className={`flex-1 truncate ${sub.done ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
-                                  <Button variant="ghost" size="icon" aria-label="Delete subtask" onClick={() => handleDeleteSubtask(sub.id)}>
-                                    <Trash2 className="h-4 w-4" />
+                            <CollapsibleContent>
+                              <ul className="mt-2 ml-12 space-y-2">
+                                {task.subtasks.map((sub) => (
+                                  <li key={sub.id} className="flex items-center gap-2 text-sm">
+                                    <Checkbox checked={sub.done} onCheckedChange={() => handleToggleSubtask(sub.id, sub.done)} aria-label="Toggle subtask" />
+                                    <span className={`flex-1 truncate ${sub.done ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
+                                    <Button variant="ghost" size="icon" aria-label="Delete subtask" onClick={() => handleDeleteSubtask(sub.id)}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </li>
+                                ))}
+                                <li className="flex items-center gap-2">
+                                  <Input
+                                    placeholder="Add subtask"
+                                    value={newSubtasks[task.id] || ""}
+                                    onChange={(e) =>
+                                      setNewSubtasks((prev) => ({
+                                        ...prev,
+                                        [task.id]: e.target.value,
+                                      }))
+                                    }
+                                    onKeyDown={(e) => e.key === "Enter" && handleAddSubtask(task.id)}
+                                    className="flex-1"
+                                  />
+                                  <Button size="icon" onClick={() => handleAddSubtask(task.id)} aria-label="Add subtask">
+                                    <Plus className="h-4 w-4" />
                                   </Button>
                                 </li>
-                              ))}
-                              <li className="flex items-center gap-2">
-                                <Input
-                                  placeholder="Add subtask"
-                                  value={newSubtasks[task.id] || ""}
-                                  onChange={(e) =>
-                                    setNewSubtasks((prev) => ({
-                                      ...prev,
-                                      [task.id]: e.target.value,
-                                    }))
-                                  }
-                                  onKeyDown={(e) => e.key === "Enter" && handleAddSubtask(task.id)}
-                                  className="flex-1"
-                                />
-                                <Button size="icon" onClick={() => handleAddSubtask(task.id)} aria-label="Add subtask">
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </li>
-                            </ul>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))
-            )}
-          </div>
+                              </ul>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
           <div>
             <section id="goals" className="mb-6">
               <Card className="border-0 shadow-sm">
@@ -549,8 +552,18 @@ export default function TaskList({ date }: TaskListProps) {
                     {/* Habit */}
 
                     {/* Deadline */}
-                    <Input type="date" className="w-full" aria-label="Deadline" />
-
+                    <div className="flex w-full flex-col gap-3">
+                      <Popover open={!!goalDeadline} onOpenChange={(o) => !o && setGoalDeadline(undefined)}>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start font-normal text-muted-foreground">
+                            {goalDeadline ? formatISODate(goalDeadline) : "Select Deadline"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto overflow-hidden p-0">
+                          <Calendar mode="single" selected={goalDeadline} onSelect={(d) => d && setGoalDeadline(d)} className="w-auto rounded-md border" />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                     <Button size="icon" aria-label="Add goals" onClick={() => toast("Add goals feature coming soon!")}>
                       <Plus />
                     </Button>
