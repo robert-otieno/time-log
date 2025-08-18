@@ -18,8 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { TaskWithSubtasks } from "@/db/schema";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +27,7 @@ import { formatISODate, formatISODateString } from "@/lib/date-utils";
 import { toast } from "sonner";
 import TaskDetailsSheet from "./task-details-sheet";
 import WeeklyPriorityList from "./WeeklyPriorityList";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import Goals from "./goals";
 
 type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; count?: any; priority?: any };
 
@@ -41,12 +39,10 @@ export default function TaskList({ date }: TaskListProps) {
   const [tasks, setTasks] = useState<UITask[]>([]);
   const [newTask, setNewTask] = useState("");
   const [newTag, setNewTag] = useState(tagOptions[0]);
-  const [newCategory, setNewCategory] = useState("");
   const [weeklyPriorities, setWeeklyPriorities] = useState<{ id: number; title: string }[]>([]);
   const [newPriority, setNewPriority] = useState<string>("");
   const [newDeadline, setNewDeadline] = useState("");
   const [newReminder, setNewReminder] = useState("");
-  const [goalDeadline, setGoalDeadline] = useState<Date | undefined>();
   const [newSubtasks, setNewSubtasks] = useState<Record<number, string>>({});
   const [openTasks, setOpenTasks] = useState<Record<number, boolean>>({});
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -135,18 +131,14 @@ export default function TaskList({ date }: TaskListProps) {
       setNewTag(tagOptions[0]);
       setNewDeadline("");
       setNewReminder("");
-      setError(null);
     } catch (err) {
-      console.error(err);
-      setError("Failed to add task");
+      toast.error("Failed to add task");
     }
   }
 
   async function handleToggleTask(id: number, done: boolean) {
     try {
       await toggleDailyTask(id, !done);
-      setError(null);
-      // await loadTasks();
       setTasks((prev) =>
         prev.map((t) => {
           if (t.id !== id) return t;
@@ -160,8 +152,7 @@ export default function TaskList({ date }: TaskListProps) {
         })
       );
     } catch (err) {
-      console.error(err);
-      setError("Failed to update task");
+      toast.error("Failed to update task");
     }
   }
 
@@ -510,68 +501,7 @@ export default function TaskList({ date }: TaskListProps) {
             </CardContent>
           </Card>
           <div>
-            <section id="goals" className="mb-6">
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle>Goals</CardTitle>
-                  <CardDescription>Make your goals specific, measurable, achievable, and relevant</CardDescription>
-                  <CardAction></CardAction>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-4 flex gap-3">
-                    {/* Category
-                    1. Career / Professional Development
-                      Goal: (What improvement do you want to see in your office? A promotion etc.)
-                    2. Personal Development 
-                      Goal:(What book would you like to write; or content you'd like to produce in...)
-                      Habit 1:
-                    3. Health & Wellness
-                    4. Home/Family
-                     Goal: (What skills do you want your kids to develop in 2025)
-                     Habit 1 - (think about how many hours a week you want your kids to practice the skill)
-                     
-                    */}
-
-                    <Select value={newCategory} onValueChange={(v) => setNewCategory(v)}>
-                      <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select category">
-                        <SelectValue placeholder="Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Category</SelectLabel>
-                          {["Faith", "Career/Professional Development", "Personal", "Health & Wellness", "Home/Family", "Business", "Finance"].map((cat) => (
-                            <SelectItem key={cat} value={cat.toLowerCase()}>
-                              {cat}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                    {/* Goal */}
-                    <Input placeholder="Goal" className="w-full" />
-                    {/* Habit */}
-
-                    {/* Deadline */}
-                    <div className="flex w-full flex-col gap-3">
-                      <Popover open={!!goalDeadline} onOpenChange={(o) => !o && setGoalDeadline(undefined)}>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start font-normal text-muted-foreground">
-                            {goalDeadline ? formatISODate(goalDeadline) : "Select Deadline"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto overflow-hidden p-0">
-                          <Calendar mode="single" selected={goalDeadline} onSelect={(d) => d && setGoalDeadline(d)} className="w-auto rounded-md border" />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <Button size="icon" aria-label="Add goals" onClick={() => toast("Add goals feature coming soon!")}>
-                      <Plus />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </section>
-
+            <Goals />
             <WeeklyPriorityList />
           </div>
         </CardContent>
@@ -626,6 +556,7 @@ export default function TaskList({ date }: TaskListProps) {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
       <TaskDetailsSheet
         task={tasks.find((t) => t.id === selectedTaskId) ?? null}
         open={selectedTaskId !== null}
