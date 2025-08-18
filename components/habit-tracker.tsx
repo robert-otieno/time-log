@@ -3,7 +3,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import type { HabitWithCompletions } from "@/app/actions";
 import { useSelectedDate } from "@/hooks/use-selected-date";
-import { Label } from "@/components/ui/label";
 import { formatISODate } from "@/lib/date-utils";
 
 interface HabitTrackerProps {

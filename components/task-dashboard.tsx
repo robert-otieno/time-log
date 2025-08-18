@@ -3,7 +3,7 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import TaskList from "./TaskList";
+import TaskList from "@/components/task-list";
 
 export default function TaskDashboard() {
   return (

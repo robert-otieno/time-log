@@ -82,7 +82,7 @@ export default function TaskList() {
               ) : (
                 orderedGroups.map(([tag, tagTasks]) => (
                   <div key={tag}>
-                    <ul className="divide-y">
+                    <ul>
                       {tagTasks.map((task) => (
                         <TaskItem
                           key={task.id}
@@ -102,6 +102,7 @@ export default function TaskList() {
               )}
             </CardContent>
           </Card>
+
           <div>
             <Goals />
             <WeeklyPriorityList />

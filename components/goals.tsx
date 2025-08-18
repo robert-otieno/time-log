@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { formatISODate } from "@/lib/date-utils";
 import { useState } from "react";
 import { ChevronDownIcon } from "lucide-react";
@@ -120,7 +120,7 @@ export default function Goals() {
                   </Badge>
                 </div>
                 <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)}>
-                  <Trash className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
 
@@ -129,11 +129,13 @@ export default function Goals() {
                   <HabitTracker key={habit.id} habit={habit} onToggle={toggleHabit} />
                 ))}
 
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <Input
                     placeholder="New habit"
                     value={habitInputs[goal.id] ?? ""}
                     onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddHabit(goal.id)}
+                    className="flex-1"
                   />
                   <Button size="icon" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)}>
                     <Plus className="h-4 w-4" />
