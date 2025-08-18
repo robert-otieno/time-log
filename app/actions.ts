@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { dailyTasks, dailySubtasks, rhythmTasks, weeklyPriorities, type TaskWithSubtasks, type DailySubtask } from "@/db/schema";
+import { dailyTasks, dailySubtasks, rhythmTasks, weeklyPriorities, goals, habitCompletions, type TaskWithSubtasks, type DailySubtask } from "@/db/schema";
 import { formatISODate } from "@/lib/date-utils";
 import { eq, desc, inArray, and, gte, lte } from "drizzle-orm";
 
@@ -196,6 +196,106 @@ export async function deleteDailySubtask(id: number) {
     return db.delete(dailySubtasks).where(eq(dailySubtasks.id, id)).run();
   } catch (error) {
     console.error("Error in deleteDailySubtask:", error);
+    throw error;
+  }
+}
+
+export type HabitWithCompletions = typeof rhythmTasks.$inferSelect & { completions: string[] };
+export type GoalWithHabits = typeof goals.$inferSelect & { habits: HabitWithCompletions[] };
+
+export async function getGoalsWithHabits(): Promise<GoalWithHabits[]> {
+  try {
+    const rows = await db
+      .select({ goal: goals, habit: rhythmTasks, completion: habitCompletions })
+      .from(goals)
+      .leftJoin(rhythmTasks, eq(rhythmTasks.goalId, goals.id))
+      .leftJoin(habitCompletions, eq(habitCompletions.habitId, rhythmTasks.id));
+
+    const goalMap = new Map<number, GoalWithHabits>();
+
+    for (const row of rows) {
+      const g = row.goal;
+      if (!goalMap.has(g.id)) {
+        goalMap.set(g.id, { ...g, habits: [] });
+      }
+      if (row.habit) {
+        const goal = goalMap.get(g.id)!;
+        let habit = goal.habits.find((h) => h.id === row.habit.id);
+        if (!habit) {
+          habit = { ...row.habit, completions: [] };
+          goal.habits.push(habit);
+        }
+        if (row.completion) {
+          habit.completions.push(row.completion.date);
+        }
+      }
+    }
+
+    return Array.from(goalMap.values());
+  } catch (error) {
+    console.error("Error in getGoalsWithHabits:", error);
+    throw error;
+  }
+}
+
+export async function addGoal(category: string, title: string, deadline?: string | null) {
+  try {
+    return db.insert(goals).values({ category, title, deadline }).run();
+  } catch (error) {
+    console.error("Error in addGoal:", error);
+    throw error;
+  }
+}
+
+export async function addHabit(goalId: number, name: string) {
+  try {
+    return db.insert(rhythmTasks).values({ goalId, name }).run();
+  } catch (error) {
+    console.error("Error in addHabit:", error);
+    throw error;
+  }
+}
+
+export async function toggleHabitCompletion(habitId: number, date: string) {
+  try {
+    const existing = await db
+      .select({ id: habitCompletions.id })
+      .from(habitCompletions)
+      .where(and(eq(habitCompletions.habitId, habitId), eq(habitCompletions.date, date)));
+
+    if (existing.length > 0) {
+      return db.delete(habitCompletions).where(eq(habitCompletions.id, existing[0].id)).run();
+    } else {
+      return db.insert(habitCompletions).values({ habitId, date }).run();
+    }
+  } catch (error) {
+    console.error("Error in toggleHabitCompletion:", error);
+    throw error;
+  }
+}
+
+export async function updateGoal(id: number, fields: Partial<{ category: string; title: string; deadline: string | null }>) {
+  try {
+    return db.update(goals).set(fields).where(eq(goals.id, id)).run();
+  } catch (error) {
+    console.error("Error in updateGoal:", error);
+    throw error;
+  }
+}
+
+export async function deleteGoal(id: number) {
+  try {
+    await db.transaction(async (tx) => {
+      const habits = await tx.select({ id: rhythmTasks.id }).from(rhythmTasks).where(eq(rhythmTasks.goalId, id));
+      const habitIds = habits.map((h) => h.id);
+      if (habitIds.length > 0) {
+        await tx.delete(habitCompletions).where(inArray(habitCompletions.habitId, habitIds)).run();
+        await tx.delete(rhythmTasks).where(inArray(rhythmTasks.id, habitIds)).run();
+      }
+      await tx.delete(goals).where(eq(goals.id, id)).run();
+    });
+  } catch (error) {
+    console.error("Error in deleteGoal:", error);
     throw error;
   }
 }
