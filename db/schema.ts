@@ -7,16 +7,26 @@ export const weeklyPriorities = sqliteTable("weekly_priorities", {
   tag: text("tag").notNull().default("work"),
 });
 
+export const goals = sqliteTable("goals", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  category: text("category").notNull(),
+  title: text("title").notNull(),
+  deadline: text("deadline"),
+});
+
 export const rhythmTasks = sqliteTable("rhythm_tasks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
+  goalId: integer("goal_id").references(() => goals.id),
 });
 
-export const rhythmCompletions = sqliteTable("rhythm_completions", {
+export const habitCompletions = sqliteTable("habit_completions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  taskId: integer("task_id").notNull(),
+  habitId: integer("habit_id").notNull(),
   date: text("date").notNull(),
 });
+
+export { habitCompletions as rhythmCompletions };
 
 export const dailyTasks = sqliteTable("daily_tasks", {
   id: integer("id").primaryKey({ autoIncrement: true }),

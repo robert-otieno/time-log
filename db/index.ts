@@ -27,9 +27,17 @@ if (!exists) {
       done INTEGER DEFAULT 0
     );
 
+    CREATE TABLE IF NOT EXISTS goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      deadline TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS rhythm_tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL
+      name TEXT NOT NULL,
+      goal_id INTEGER REFERENCES goals(id)
     );
 
     CREATE TABLE IF NOT EXISTS weekly_priorities (
@@ -39,10 +47,11 @@ if (!exists) {
       tag TEXT NOT NULL DEFAULT 'work'
     );
     
-    CREATE TABLE IF NOT EXISTS rhythm_completions (
+    CREATE TABLE IF NOT EXISTS habit_completions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      task_id INTEGER NOT NULL,
-      date TEXT NOT NULL
+      habit_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      FOREIGN KEY(habit_id) REFERENCES rhythm_tasks(id)
     );
     
     CREATE TABLE IF NOT EXISTS daily_subtasks (
@@ -54,9 +63,11 @@ if (!exists) {
     );
   `);
 
-  // Seed rhythm tasks
-  sqlite.prepare("INSERT INTO rhythm_tasks (name) VALUES (?)").run("Sleep 8 hrs");
-  sqlite.prepare("INSERT INTO rhythm_tasks (name) VALUES (?)").run("Exercise 30 mins");
+  // Seed goals and rhythm tasks
+  const goal = sqlite.prepare("INSERT INTO goals (category, title, deadline) VALUES (?, ?, ?)").run("health", "Wellness", null);
+  const goalId = Number(goal.lastInsertRowid);
+  sqlite.prepare("INSERT INTO rhythm_tasks (name, goal_id) VALUES (?, ?)").run("Sleep 8 hrs", goalId);
+  sqlite.prepare("INSERT INTO rhythm_tasks (name, goal_id) VALUES (?, ?)").run("Exercise 30 mins", goalId);
 } else {
   const dailyColumns = sqlite.prepare("PRAGMA table_info(daily_tasks);").all() as { name: string }[];
   const hasDailyTag = dailyColumns.some((c) => c.name === "tag");
@@ -98,6 +109,45 @@ if (!exists) {
   const hasWeeklyTag = weeklyColumns.some((c) => c.name === "tag");
   if (!hasWeeklyTag) {
     sqlite.exec("ALTER TABLE weekly_priorities ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';");
+  }
+  const goalsTable = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='goals'").get();
+  if (!goalsTable) {
+    sqlite.exec(`
+      CREATE TABLE goals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category TEXT NOT NULL,
+        title TEXT NOT NULL,
+        deadline TEXT
+      );
+    `);
+  }
+
+  const rhythmColumns = sqlite.prepare("PRAGMA table_info(rhythm_tasks);").all() as { name: string }[];
+  const hasGoalId = rhythmColumns.some((c) => c.name === "goal_id");
+  if (!hasGoalId) {
+    sqlite.exec("ALTER TABLE rhythm_tasks ADD COLUMN goal_id INTEGER REFERENCES goals(id);");
+  }
+
+  const habitTable = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='habit_completions'").get();
+  if (!habitTable) {
+    const oldHabit = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='rhythm_completions'").get();
+    if (oldHabit) {
+      sqlite.exec("ALTER TABLE rhythm_completions RENAME TO habit_completions;");
+    } else {
+      sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS habit_completions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          habit_id INTEGER NOT NULL,
+          date TEXT NOT NULL,
+          FOREIGN KEY(habit_id) REFERENCES rhythm_tasks(id)
+        );
+      `);
+    }
+  }
+  const habitColumns = sqlite.prepare("PRAGMA table_info(habit_completions);").all() as { name: string }[];
+  const hasHabitId = habitColumns.some((c) => c.name === "habit_id");
+  if (!hasHabitId && habitColumns.some((c) => c.name === "task_id")) {
+    sqlite.exec("ALTER TABLE habit_completions RENAME COLUMN task_id TO habit_id;");
   }
   const subtaskColumns = sqlite.prepare("PRAGMA table_info(daily_subtasks);").all() as { name: string }[];
   const hasSubtaskPriority = subtaskColumns.some((c) => c.name === "weekly_priority_id");
