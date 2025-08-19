@@ -50,26 +50,39 @@ export function useGoals() {
     try {
       const res = await addHabit(goalId, name);
       const id = Number((res as any)?.lastInsertRowid ?? (res as any)?.insertId);
-      setGoals((prev) => prev.map((g) => (g.id === goalId ? { ...g, habits: [...g.habits, { id, goalId, name, completions: [] }] } : g)));
+      setGoals((prev) =>
+        prev.map((g) => (g.id === goalId ? { ...g, habits: [...g.habits, { id, goalId, name, type: "checkbox", target: 1, completions: [] }] } : g))
+      );
     } catch (err) {
       console.error(err);
       toast.error("Failed to add habit");
     }
   }
 
-  async function toggleHabit(habitId: number, date: string) {
+  async function toggleHabit(habitId: number, date: string, value = 1) {
     try {
-      await toggleHabitCompletion(habitId, date);
+      await toggleHabitCompletion(habitId, date, value);
       setGoals((prev) =>
         prev.map((g) => ({
           ...g,
           habits: g.habits.map((h) => {
             if (h.id !== habitId) return h;
-            const done = h.completions.includes(date);
-            return {
-              ...h,
-              completions: done ? h.completions.filter((d) => d !== date) : [...h.completions, date],
-            };
+            const existing = h.completions.find((c) => c.date === date);
+            if (h.type === "checkbox") {
+              return {
+                ...h,
+                completions: existing ? h.completions.filter((c) => c.date !== date) : [...h.completions, { date, value: 1 }],
+              };
+            } else {
+              if (existing) {
+                return {
+                  ...h,
+                  completions: h.completions.map((c) => (c.date === date ? { date, value: c.value + value } : c)),
+                };
+              } else {
+                return { ...h, completions: [...h.completions, { date, value }] };
+              }
+            }
           }),
         }))
       );

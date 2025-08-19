@@ -148,18 +148,12 @@ export default function TaskItem({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={task.deadline ? new Date(task.deadline) : undefined}
-                    onSelect={handleDueSelect}
-                    initialFocus
-                    captionLayout="dropdown"
-                  />
+                  <Calendar mode="single" selected={task.deadline ? new Date(task.deadline) : undefined} onSelect={handleDueSelect} captionLayout="dropdown" />
                 </PopoverContent>
               </Popover>
 
               <Select defaultValue={task.tag ?? ""} onValueChange={handleTagChange}>
-                <SelectTrigger className="h-7 w-[120px] capitalize" aria-label="Select tag">
+                <SelectTrigger size="sm" className="h-7 w-[120px] capitalize" aria-label="Select tag">
                   <SelectValue placeholder="Tag" />
                 </SelectTrigger>
                 <SelectContent>
@@ -172,7 +166,7 @@ export default function TaskItem({
               </Select>
 
               <Select defaultValue={defaults.priority} onValueChange={handlePriorityChange}>
-                <SelectTrigger className="h-7 w-[140px]" aria-label="Select priority">
+                <SelectTrigger size="sm" className="h-7 w-[140px]" aria-label="Select priority">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent>

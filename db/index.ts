@@ -37,8 +37,9 @@ if (!exists) {
     CREATE TABLE IF NOT EXISTS rhythm_tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      goal_id INTEGER REFERENCES goals(id)
-    );
+      goal_id INTEGER REFERENCES goals(id),
+      type TEXT NOT NULL DEFAULT 'checkbox',
+      target INTEGER NOT NULL DEFAULT 1    );
 
     CREATE TABLE IF NOT EXISTS weekly_priorities (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,6 +52,7 @@ if (!exists) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       habit_id INTEGER NOT NULL,
       date TEXT NOT NULL,
+      value INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY(habit_id) REFERENCES rhythm_tasks(id)
     );
     
@@ -128,6 +130,15 @@ if (!exists) {
     sqlite.exec("ALTER TABLE rhythm_tasks ADD COLUMN goal_id INTEGER REFERENCES goals(id);");
   }
 
+  const hasType = rhythmColumns.some((c) => c.name === "type");
+  if (!hasType) {
+    sqlite.exec("ALTER TABLE rhythm_tasks ADD COLUMN type TEXT NOT NULL DEFAULT 'checkbox';");
+  }
+  const hasTarget = rhythmColumns.some((c) => c.name === "target");
+  if (!hasTarget) {
+    sqlite.exec("ALTER TABLE rhythm_tasks ADD COLUMN target INTEGER NOT NULL DEFAULT 1;");
+  }
+
   const habitTable = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='habit_completions'").get();
   if (!habitTable) {
     const oldHabit = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='rhythm_completions'").get();
@@ -148,6 +159,10 @@ if (!exists) {
   const hasHabitId = habitColumns.some((c) => c.name === "habit_id");
   if (!hasHabitId && habitColumns.some((c) => c.name === "task_id")) {
     sqlite.exec("ALTER TABLE habit_completions RENAME COLUMN task_id TO habit_id;");
+  }
+  const hasValue = habitColumns.some((c) => c.name === "value");
+  if (!hasValue) {
+    sqlite.exec("ALTER TABLE habit_completions ADD COLUMN value INTEGER NOT NULL DEFAULT 0;");
   }
   const subtaskColumns = sqlite.prepare("PRAGMA table_info(daily_subtasks);").all() as { name: string }[];
   const hasSubtaskPriority = subtaskColumns.some((c) => c.name === "weekly_priority_id");

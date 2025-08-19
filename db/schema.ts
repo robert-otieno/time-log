@@ -18,12 +18,15 @@ export const rhythmTasks = sqliteTable("rhythm_tasks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   goalId: integer("goal_id").references(() => goals.id),
+  type: text("type").notNull().default("checkbox"),
+  target: integer("target").notNull().default(1),
 });
 
 export const habitCompletions = sqliteTable("habit_completions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   habitId: integer("habit_id").notNull(),
   date: text("date").notNull(),
+  value: integer("value").notNull().default(0),
 });
 
 export { habitCompletions as rhythmCompletions };

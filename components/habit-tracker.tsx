@@ -5,10 +5,11 @@ import type { HabitWithCompletions } from "@/app/actions";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { formatISODate } from "@/lib/date-utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface HabitTrackerProps {
   habit: HabitWithCompletions;
-  onToggle: (habitId: number, date: string) => void;
+  onToggle: (habitId: number, date: string, value?: number) => void;
   days?: number;
 }
 
@@ -21,13 +22,14 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
     return formatISODate(d);
   });
 
-  const completions = new Set(habit.completions);
+  const completionMap = new Map(habit.completions.map((c) => [c.date, c.value]));
   let streak = 0;
   for (let i = 0; ; i++) {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() - i);
     const formatted = formatISODate(d);
-    if (!completions.has(formatted)) break;
+    const val = completionMap.get(formatted) ?? 0;
+    if (val < habit.target) break;
     streak++;
   }
 
@@ -37,9 +39,20 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
         {habit.name}
         <Badge variant="secondary">🔥{streak}</Badge>
       </span>
-      {dates.map((date) => (
-        <Checkbox key={date} aria-label={date} checked={habit.completions.includes(date)} onCheckedChange={() => onToggle(habit.id, date)} />
-      ))}
+      {dates.map((date) => {
+        const val = completionMap.get(date) ?? 0;
+        if (habit.type === "checkbox") {
+          return <Checkbox key={date} aria-label={date} checked={val >= habit.target} onCheckedChange={() => onToggle(habit.id, date)} />;
+        }
+        let display = `${val}/${habit.target}`;
+        if (habit.type === "timer") display = `${val}m/${habit.target}m`;
+        if (habit.type === "pomodoro") display = `🍅${val}/${habit.target}`;
+        return (
+          <Button key={date} variant="outline" size="sm" className="h-6" onClick={() => onToggle(habit.id, date, 1)}>
+            {display}
+          </Button>
+        );
+      })}
     </div>
   );
 }

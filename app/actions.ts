@@ -200,7 +200,8 @@ export async function deleteDailySubtask(id: number) {
   }
 }
 
-export type HabitWithCompletions = typeof rhythmTasks.$inferSelect & { completions: string[] };
+export type HabitCompletion = { date: string; value: number };
+export type HabitWithCompletions = typeof rhythmTasks.$inferSelect & { completions: HabitCompletion[] };
 export type GoalWithHabits = typeof goals.$inferSelect & { habits: HabitWithCompletions[] };
 
 export async function getGoalsWithHabits(): Promise<GoalWithHabits[]> {
@@ -220,13 +221,14 @@ export async function getGoalsWithHabits(): Promise<GoalWithHabits[]> {
       }
       if (row.habit) {
         const goal = goalMap.get(g.id)!;
-        let habit = goal.habits.find((h) => h.id === row.habit.id);
+        const rh = row.habit;
+        let habit = goal.habits.find((h) => h.id === rh.id);
         if (!habit) {
-          habit = { ...row.habit, completions: [] };
+          habit = { ...rh, completions: [] };
           goal.habits.push(habit);
         }
         if (row.completion) {
-          habit.completions.push(row.completion.date);
+          habit.completions.push({ date: row.completion.date, value: row.completion.value });
         }
       }
     }
@@ -247,26 +249,37 @@ export async function addGoal(category: string, title: string, deadline?: string
   }
 }
 
-export async function addHabit(goalId: number, name: string) {
+export async function addHabit(goalId: number, name: string, type = "checkbox", target = 1) {
   try {
-    return db.insert(rhythmTasks).values({ goalId, name }).run();
+    return db.insert(rhythmTasks).values({ goalId, name, type, target }).run();
   } catch (error) {
     console.error("Error in addHabit:", error);
     throw error;
   }
 }
 
-export async function toggleHabitCompletion(habitId: number, date: string) {
+export async function toggleHabitCompletion(habitId: number, date: string, value = 1) {
   try {
+    const habit = await db.select().from(rhythmTasks).where(eq(rhythmTasks.id, habitId));
+    if (habit.length === 0) throw new Error("Habit not found");
     const existing = await db
-      .select({ id: habitCompletions.id })
+      .select({ id: habitCompletions.id, value: habitCompletions.value })
       .from(habitCompletions)
       .where(and(eq(habitCompletions.habitId, habitId), eq(habitCompletions.date, date)));
 
-    if (existing.length > 0) {
-      return db.delete(habitCompletions).where(eq(habitCompletions.id, existing[0].id)).run();
+    if (habit[0].type === "checkbox") {
+      if (existing.length > 0) {
+        return db.delete(habitCompletions).where(eq(habitCompletions.id, existing[0].id)).run();
+      } else {
+        return db.insert(habitCompletions).values({ habitId, date, value: 1 }).run();
+      }
     } else {
-      return db.insert(habitCompletions).values({ habitId, date }).run();
+      if (existing.length > 0) {
+        const newValue = existing[0].value + value;
+        return db.update(habitCompletions).set({ value: newValue }).where(eq(habitCompletions.id, existing[0].id)).run();
+      } else {
+        return db.insert(habitCompletions).values({ habitId, date, value }).run();
+      }
     }
   } catch (error) {
     console.error("Error in toggleHabitCompletion:", error);

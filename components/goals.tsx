@@ -114,23 +114,23 @@ export default function Goals() {
           {goals.map((goal) => {
             const today = new Date(selectedDate);
             const allCompletions = goal.habits.flatMap((h) => h.completions);
-            const completedDays = allCompletions.length;
+            const totalCompleted = allCompletions.reduce((sum, c) => sum + c.value, 0);
             let progress = 0;
             let paceLabel = "";
 
             if (goal.deadline) {
               const deadline = new Date(goal.deadline);
-              const completionDates = allCompletions.map((d) => new Date(d));
+              const completionDates = allCompletions.map((c) => new Date(c.date));
               const earliest = completionDates.length > 0 ? new Date(Math.min(...completionDates.map((d) => d.getTime()))) : today;
               const totalDays = Math.max(1, Math.ceil((deadline.getTime() - earliest.getTime()) / 86400000) + 1);
               const daysPassed = Math.min(totalDays, Math.max(0, Math.ceil((today.getTime() - earliest.getTime()) / 86400000) + 1));
-              const target = goal.habits.length * totalDays;
-              progress = target > 0 ? (completedDays / target) * 100 : 0;
-              const expected = daysPassed / totalDays;
+              const target = goal.habits.reduce((sum, h) => sum + h.target * totalDays, 0);
+              progress = target > 0 ? (totalCompleted / target) * 100 : 0;
+              const expected = goal.habits.reduce((sum, h) => sum + h.target * daysPassed, 0) / target;
               paceLabel = progress / 100 >= expected ? "On pace" : "Behind";
             } else {
-              const target = goal.habits.length * 7;
-              progress = target > 0 ? (completedDays / target) * 100 : 0;
+              const target = goal.habits.reduce((sum, h) => sum + h.target * 7, 0);
+              progress = target > 0 ? (totalCompleted / target) * 100 : 0;
             }
 
             return (
