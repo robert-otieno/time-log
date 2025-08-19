@@ -70,106 +70,108 @@ export default function WeeklyPriorityList() {
   }
 
   return (
-    <Card className="border-0 shadow-sm">
-      <CardHeader>
-        <CardTitle>Weekly Priorities</CardTitle>
-        <CardDescription className="mb-4">Set your weekly priorities to focus on what matters most.</CardDescription>
+    <section id="weekly-priorities">
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>Weekly Priorities</CardTitle>
+          <CardDescription className="mb-4">Set your weekly priorities to focus on what matters most.</CardDescription>
 
-        <div className="flex gap-2">
-          <Input placeholder="New priority… e.g., ‘Submit thesis draft’" value={newPriority} onChange={(e) => setNewPriority(e.target.value)} />
-          <Button size="icon" onClick={handleAddPriority} aria-label="Add priority">
-            <Plus />
-          </Button>
-        </div>
-      </CardHeader>
+          <div className="flex gap-2">
+            <Input placeholder="New priority… e.g., ‘Submit thesis draft’" value={newPriority} onChange={(e) => setNewPriority(e.target.value)} />
+            <Button size="icon" onClick={handleAddPriority} aria-label="Add priority">
+              <Plus />
+            </Button>
+          </div>
+        </CardHeader>
 
-      <CardContent className="pt-2">
-        <ul className="divide-y">
-          {visible.length === 0 && (
-            <li className="py-6 text-sm text-muted-foreground">
-              No priorities yet. Try “Wedding planning,” “Identify photography venue,” or “Chapter 1–2 thesis.”
-            </li>
-          )}
+        <CardContent className="pt-2">
+          <ul className="divide-y">
+            {visible.length === 0 && (
+              <li className="py-6 text-sm text-muted-foreground">
+                No priorities yet. Try “Wedding planning,” “Identify photography venue,” or “Chapter 1–2 thesis.”
+              </li>
+            )}
 
-          {visible.map((p: Priority) => (
-            <li key={p.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3">
-              <div className="min-w-0">
-                {editingPriorityId === p.id ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={editingTitle}
-                      onChange={(e) => setEditingTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleRenamePriority(p.id);
-                        if (e.key === "Escape") {
-                          setEditingPriorityId(null);
-                          setEditingTitle("");
-                        }
-                      }}
-                      className="h-8"
-                      autoFocus
-                    />
-                    <Button size="icon" onClick={() => handleRenamePriority(p.id)} aria-label="Save priority">
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setEditingPriorityId(null)} aria-label="Cancel rename">
-                      <X className="h-4 w-4" />
-                    </Button>
+            {visible.map((p: Priority) => (
+              <li key={p.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3">
+                <div className="min-w-0">
+                  {editingPriorityId === p.id ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRenamePriority(p.id);
+                          if (e.key === "Escape") {
+                            setEditingPriorityId(null);
+                            setEditingTitle("");
+                          }
+                        }}
+                        className="h-8"
+                        autoFocus
+                      />
+                      <Button size="icon" onClick={() => handleRenamePriority(p.id)} aria-label="Save priority">
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setEditingPriorityId(null)} aria-label="Cancel rename">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className={`truncate font-medium ${p.completed ? "line-through text-muted-foreground" : ""}`}>{p.title}</span>
+                      {p.completed && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Check className="h-3.5 w-3.5" /> Done
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center gap-3">
+                    <Progress value={p.progress ?? 0} className="h-2 w-56 max-w-full" />
+                    <span className="text-xs text-muted-foreground">{(p.progress ?? 0).toFixed(0)}%</span>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className={`truncate font-medium ${p.completed ? "line-through text-muted-foreground" : ""}`}>{p.title}</span>
-                    {p.completed && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Check className="h-3.5 w-3.5" /> Done
-                      </Badge>
-                    )}
-                  </div>
-                )}
-                <div className="mt-2 flex items-center gap-3">
-                  <Progress value={p.progress ?? 0} className="h-2 w-56 max-w-full" />
-                  <span className="text-xs text-muted-foreground">{(p.progress ?? 0).toFixed(0)}%</span>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
-                  <GripVertical className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
+                    <GripVertical className="h-4 w-4" />
+                  </Button>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Priority actions">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setEditingPriorityId(p.id);
-                        setEditingTitle(p.title);
-                      }}
-                    >
-                      Rename
-                    </DropdownMenuItem>{" "}
-                    <DropdownMenuItem disabled>Add subtask (coming soon)</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDeletePriority(p.id)} className="text-destructive">
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Priority actions">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditingPriorityId(p.id);
+                          setEditingTitle(p.title);
+                        }}
+                      >
+                        Rename
+                      </DropdownMenuItem>{" "}
+                      <DropdownMenuItem disabled>Add subtask (coming soon)</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDeletePriority(p.id)} className="text-destructive">
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </li>
+            ))}
+          </ul>
 
-        {/* Subtle helper */}
-        <div className="mt-3">
-          <Badge variant="secondary" className="text-xs">
-            Tip: Use the menu to manage priorities. Drag handle to reorder.
-          </Badge>
-        </div>
-      </CardContent>
-    </Card>
+          {/* Subtle helper */}
+          <div className="mt-3">
+            <Badge variant="secondary" className="text-xs">
+              Tip: Use the menu to manage priorities. Drag handle to reorder.
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
   );
 }
