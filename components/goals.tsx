@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { formatISODate } from "@/lib/date-utils";
 import { useState } from "react";
 import { ChevronDownIcon } from "lucide-react";
@@ -16,6 +16,7 @@ import HabitTracker from "@/components/habit-tracker";
 import { Badge } from "@/components/ui/badge";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { Progress } from "@/components/ui/progress";
+import CircularProgress from "./progress-07";
 
 export default function Goals() {
   const { goals, addGoal, deleteGoal, addHabit, toggleHabit } = useGoals();
@@ -77,12 +78,12 @@ export default function Goals() {
             <div className="flex flex-col gap-3">
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" id="date-picker" className="w-32 justify-between font-normal">
+                  <Button variant="outline" className="gap-1">
+                    <CalendarDays />
                     {goalDeadline ? formatISODate(goalDeadline) : "Set Deadline"}
-                    <ChevronDownIcon />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={goalDeadline}
@@ -137,14 +138,14 @@ export default function Goals() {
               <div key={goal.id} className="mb-4">
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <CircularProgress value={progress} size={50} strokeWidth={4} />
+                      {goal.deadline && <span className={`text-xs ${paceLabel === "On pace" ? "text-green-600" : "text-red-600"}`}>{paceLabel}</span>}
+                    </div>
                     <span className="font-medium text-sm">{goal.title}</span>
                     <Badge variant="secondary" className="text-sm capitalize">
                       {goal.category}
                     </Badge>
-                    <div className="flex items-center gap-2">
-                      <Progress value={progress} className="h-2 w-24" />
-                      {goal.deadline && <span className={`text-xs ${paceLabel === "On pace" ? "text-green-600" : "text-red-600"}`}>{paceLabel}</span>}
-                    </div>
                   </div>
                   <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)}>
                     <Trash2 className="h-4 w-4" />

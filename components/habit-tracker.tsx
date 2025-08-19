@@ -36,42 +36,55 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
   }
 
   return (
-    <div className="grid grid-cols-8 items-center gap-1">
+    <div className="space-y-1">
       <span className="flex items-center gap-1 text-sm">
         {habit.name}
         <Badge variant="secondary">🔥{streak}</Badge>
       </span>
-      {dates.map((date) => {
-        const val = completionMap.get(date) ?? 0;
-        const due = date === today && habit.dueToday;
-
-        if (habit.type === "checkbox") {
-          return (
-            <Checkbox
-              key={date}
-              aria-label={date}
-              checked={val >= habit.target}
-              onCheckedChange={() => onToggle(habit.id, date)}
-              className={cn(due && val < habit.target ? "animate-pulse" : "")}
-            />
-          );
-        }
-        let display = `${val}/${habit.target}`;
-        if (habit.type === "timer") display = `${val}m/${habit.target}m`;
-        if (habit.type === "pomodoro") display = `🍅${val}/${habit.target}`;
-        return (
-          <Button
-            key={date}
-            variant="outline"
-            size="sm"
-            className={cn("h-6", due && val < habit.target ? "animate-pulse" : "")}
-            onClick={() => onToggle(habit.id, date, 1)}
-          >
-            {" "}
-            {display}
-          </Button>
-        );
-      })}
+      {habit.type === "checkbox" ? (
+        <ol className="grid grid-cols-7 gap-1">
+          {dates.map((date) => {
+            const val = completionMap.get(date) ?? 0;
+            const due = date === today && habit.dueToday;
+            return (
+              <li key={date}>
+                <button
+                  type="button"
+                  aria-label={val >= habit.target ? `Completed ${habit.name} on ${date}` : `Not completed ${habit.name} on ${date}`}
+                  aria-pressed={val >= habit.target}
+                  onClick={() => onToggle(habit.id, date)}
+                  className={cn(
+                    "h-3 w-3 rounded-full border",
+                    val >= habit.target && "bg-primary",
+                    due && val < habit.target && "animate-pulse border-primary"
+                  )}
+                />
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <div className="grid grid-cols-7 gap-1">
+          {dates.map((date) => {
+            const val = completionMap.get(date) ?? 0;
+            const due = date === today && habit.dueToday;
+            let display = `${val}/${habit.target}`;
+            if (habit.type === "timer") display = `${val}m/${habit.target}m`;
+            if (habit.type === "pomodoro") display = `🍅${val}/${habit.target}`;
+            return (
+              <Button
+                key={date}
+                variant="outline"
+                size="sm"
+                className={cn("h-6", due && val < habit.target ? "animate-pulse" : "")}
+                onClick={() => onToggle(habit.id, date, 1)}
+              >
+                {display}
+              </Button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
