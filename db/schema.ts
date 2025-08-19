@@ -20,6 +20,7 @@ export const rhythmTasks = sqliteTable("rhythm_tasks", {
   goalId: integer("goal_id").references(() => goals.id),
   type: text("type").notNull().default("checkbox"),
   target: integer("target").notNull().default(1),
+  scheduleMask: text("schedule_mask").notNull().default("MTWTF--"),
 });
 
 export const habitCompletions = sqliteTable("habit_completions", {

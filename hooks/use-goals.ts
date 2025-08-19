@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { addGoal, addHabit, deleteGoal, getGoalsWithHabits, toggleHabitCompletion, type GoalWithHabits } from "@/app/actions";
 import { toast } from "sonner";
+import { formatISODate } from "@/lib/date-utils";
+import { isHabitDue } from "@/lib/habit-schedule";
 
 export function useGoals() {
   const [goals, setGoals] = useState<GoalWithHabits[]>([]);
@@ -13,7 +15,8 @@ export function useGoals() {
 
   async function loadGoals() {
     try {
-      const res = await getGoalsWithHabits();
+      const today = formatISODate(new Date());
+      const res = await getGoalsWithHabits(today);
       setGoals(res);
       setError(null);
     } catch (err) {
@@ -50,9 +53,29 @@ export function useGoals() {
     try {
       const res = await addHabit(goalId, name);
       const id = Number((res as any)?.lastInsertRowid ?? (res as any)?.insertId);
+      const scheduleMask = "MTWTF--";
+      const dueToday = isHabitDue(scheduleMask, new Date());
       setGoals((prev) =>
-        prev.map((g) => (g.id === goalId ? { ...g, habits: [...g.habits, { id, goalId, name, type: "checkbox", target: 1, completions: [] }] } : g))
-      );
+prev.map((g) =>
+          g.id === goalId
+            ? {
+                ...g,
+                habits: [
+                  ...g.habits,
+                  {
+                    id,
+                    goalId,
+                    name,
+                    type: "checkbox",
+                    target: 1,
+                    scheduleMask,
+                    completions: [],
+                    dueToday,
+                  },
+                ],
+              }
+            : g
+        )      );
     } catch (err) {
       console.error(err);
       toast.error("Failed to add habit");
@@ -68,21 +91,23 @@ export function useGoals() {
           habits: g.habits.map((h) => {
             if (h.id !== habitId) return h;
             const existing = h.completions.find((c) => c.date === date);
+            let newCompletions;
             if (h.type === "checkbox") {
-              return {
-                ...h,
-                completions: existing ? h.completions.filter((c) => c.date !== date) : [...h.completions, { date, value: 1 }],
-              };
+              newCompletions = existing
+                ? h.completions.filter((c) => c.date !== date)
+                : [...h.completions, { date, value: 1 }];
             } else {
               if (existing) {
-                return {
-                  ...h,
-                  completions: h.completions.map((c) => (c.date === date ? { date, value: c.value + value } : c)),
-                };
+                                newCompletions = h.completions.map((c) => (c.date === date ? { date, value: c.value + value } : c));
+
               } else {
-                return { ...h, completions: [...h.completions, { date, value }] };
+                newCompletions = [...h.completions, { date, value }];
               }
             }
+            const today = formatISODate(new Date());
+            const todayVal = newCompletions.find((c) => c.date === today)?.value ?? 0;
+            const dueToday = isHabitDue(h.scheduleMask, new Date()) && todayVal < h.target;
+            return { ...h, completions: newCompletions, dueToday };
           }),
         }))
       );

@@ -6,6 +6,7 @@ import { useSelectedDate } from "@/hooks/use-selected-date";
 import { formatISODate } from "@/lib/date-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface HabitTrackerProps {
   habit: HabitWithCompletions;
@@ -15,6 +16,7 @@ interface HabitTrackerProps {
 
 export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTrackerProps) {
   const { selectedDate } = useSelectedDate();
+  const today = formatISODate(new Date());
 
   const dates = Array.from({ length: days }, (_, idx) => {
     const d = new Date(selectedDate);
@@ -41,14 +43,31 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
       </span>
       {dates.map((date) => {
         const val = completionMap.get(date) ?? 0;
+        const due = date === today && habit.dueToday;
+
         if (habit.type === "checkbox") {
-          return <Checkbox key={date} aria-label={date} checked={val >= habit.target} onCheckedChange={() => onToggle(habit.id, date)} />;
+          return (
+            <Checkbox
+              key={date}
+              aria-label={date}
+              checked={val >= habit.target}
+              onCheckedChange={() => onToggle(habit.id, date)}
+              className={cn(due && val < habit.target ? "animate-pulse" : "")}
+            />
+          );
         }
         let display = `${val}/${habit.target}`;
         if (habit.type === "timer") display = `${val}m/${habit.target}m`;
         if (habit.type === "pomodoro") display = `🍅${val}/${habit.target}`;
         return (
-          <Button key={date} variant="outline" size="sm" className="h-6" onClick={() => onToggle(habit.id, date, 1)}>
+          <Button
+            key={date}
+            variant="outline"
+            size="sm"
+            className={cn("h-6", due && val < habit.target ? "animate-pulse" : "")}
+            onClick={() => onToggle(habit.id, date, 1)}
+          >
+            {" "}
             {display}
           </Button>
         );

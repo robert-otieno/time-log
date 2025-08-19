@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { dailyTasks, dailySubtasks, rhythmTasks, weeklyPriorities, goals, habitCompletions, type TaskWithSubtasks, type DailySubtask } from "@/db/schema";
 import { formatISODate } from "@/lib/date-utils";
+import { isHabitDue } from "@/lib/habit-schedule";
 import { eq, desc, inArray, and, gte, lte } from "drizzle-orm";
 
 export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
@@ -201,10 +202,13 @@ export async function deleteDailySubtask(id: number) {
 }
 
 export type HabitCompletion = { date: string; value: number };
-export type HabitWithCompletions = typeof rhythmTasks.$inferSelect & { completions: HabitCompletion[] };
+export type HabitWithCompletions = typeof rhythmTasks.$inferSelect & {
+  completions: HabitCompletion[];
+  dueToday: boolean;
+};
 export type GoalWithHabits = typeof goals.$inferSelect & { habits: HabitWithCompletions[] };
 
-export async function getGoalsWithHabits(): Promise<GoalWithHabits[]> {
+export async function getGoalsWithHabits(date: string = formatISODate(new Date())): Promise<GoalWithHabits[]> {
   try {
     const rows = await db
       .select({ goal: goals, habit: rhythmTasks, completion: habitCompletions })
@@ -233,6 +237,15 @@ export async function getGoalsWithHabits(): Promise<GoalWithHabits[]> {
       }
     }
 
+    const dateObj = new Date(date);
+    for (const goal of goalMap.values()) {
+      goal.habits = goal.habits.map((h) => {
+        const completion = h.completions.find((c) => c.date === date);
+        const dueToday = isHabitDue(h.scheduleMask, dateObj) && (!completion || completion.value < h.target);
+        return { ...h, dueToday };
+      });
+    }
+
     return Array.from(goalMap.values());
   } catch (error) {
     console.error("Error in getGoalsWithHabits:", error);
@@ -249,9 +262,9 @@ export async function addGoal(category: string, title: string, deadline?: string
   }
 }
 
-export async function addHabit(goalId: number, name: string, type = "checkbox", target = 1) {
+export async function addHabit(goalId: number, name: string, type = "checkbox", target = 1, scheduleMask = "MTWTF--") {
   try {
-    return db.insert(rhythmTasks).values({ goalId, name, type, target }).run();
+    return db.insert(rhythmTasks).values({ goalId, name, type, target, scheduleMask }).run();
   } catch (error) {
     console.error("Error in addHabit:", error);
     throw error;
