@@ -48,7 +48,7 @@ export default function Goals() {
   }
 
   return (
-    <section id="goals" className="mb-6">
+    <section id="goals" className="space-y-6">
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <CardTitle>Goals</CardTitle>
@@ -102,14 +102,6 @@ export default function Goals() {
         </CardHeader>
 
         <CardContent>
-          <div className="grid grid-cols-8 gap-1 text-xs text-muted-foreground">
-            <span />
-            {recentDates.map((d) => (
-              <span key={d.date} className="text-center">
-                {d.label}
-              </span>
-            ))}
-          </div>
           {goals.map((goal) => {
             const today = new Date(selectedDate);
             const allCompletions = goal.habits.flatMap((h) => h.completions);
@@ -133,12 +125,22 @@ export default function Goals() {
             }
 
             return (
-              <div key={goal.id} className="mb-4">
+              <div key={goal.id}>
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2">
                       <CircularProgress value={progress} size={50} strokeWidth={4} />
-                      {goal.deadline && <span className={`text-xs ${paceLabel === "On pace" ? "text-green-600" : "text-red-600"}`}>{paceLabel}</span>}
+                      {goal.deadline && (
+                        <Badge
+                          className={`font-normal ${
+                            paceLabel === "On pace"
+                              ? "bg-emerald-600/10 dark:bg-emerald-600/20 hover:bg-emerald-600/10 text-emerald-500"
+                              : "bg-red-600/10 dark:bg-red-600/20 hover:bg-red-600/10 text-red-500"
+                          } shadow-none rounded-full`}
+                        >
+                          {paceLabel}
+                        </Badge>
+                      )}
                     </div>
                     <span className="font-medium text-sm">{goal.title}</span>
                     <Badge variant="secondary" className="text-sm capitalize">
@@ -150,9 +152,9 @@ export default function Goals() {
                   </Button>
                 </div>
 
-                <div className="ml-4 space-y-2">
+                <div className="ml-4 space-y-1">
                   {goal.habits.map((habit) => (
-                    <div key={habit.id} className="flex items-center gap-2">
+                    <div key={habit.id} className="flex items-center justify-between gap-2">
                       <HabitTracker habit={habit} onToggle={toggleHabit} />
                       <Button variant="ghost" size="icon" aria-label="Delete habit" onClick={() => deleteHabit(habit.id)}>
                         <Trash2 className="h-4 w-4" />

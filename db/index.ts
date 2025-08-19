@@ -123,7 +123,6 @@ if (!exists) {
       );
     `);
   }
-
   const rhythmColumns = sqlite.prepare("PRAGMA table_info(rhythm_tasks);").all() as { name: string }[];
   const hasGoalId = rhythmColumns.some((c) => c.name === "goal_id");
   if (!hasGoalId) {

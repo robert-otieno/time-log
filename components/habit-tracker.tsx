@@ -36,7 +36,7 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
   }
 
   return (
-    <div className="space-y-1">
+    <div className="flex items-center justify-between gap-2">
       <span className="flex items-center gap-1 text-sm">
         {habit.name}
         <Badge variant="secondary">🔥{streak}</Badge>
