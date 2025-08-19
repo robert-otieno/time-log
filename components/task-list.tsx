@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatISODateString } from "@/lib/date-utils";
-import TaskForm from "@/app/task-form";
+import TaskForm from "@/components/task-form";
 import TaskItem from "@/components/task-item";
 import TaskEditSheet from "@/components/task-edit-sheet";
 import TaskDetailsSheet from "@/components/task-details-sheet";
