@@ -15,6 +15,7 @@ import { categories } from "@/lib/tasks";
 import HabitTracker from "@/components/habit-tracker";
 import { Badge } from "@/components/ui/badge";
 import { useSelectedDate } from "@/hooks/use-selected-date";
+import { Progress } from "@/components/ui/progress";
 
 export default function Goals() {
   const { goals, addGoal, deleteGoal, addHabit, toggleHabit } = useGoals();
@@ -110,40 +111,67 @@ export default function Goals() {
               </span>
             ))}
           </div>
-          {goals.map((goal) => (
-            <div key={goal.id} className="mb-4">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{goal.title}</span>
-                  <Badge variant="secondary" className="text-sm capitalize">
-                    {goal.category}
-                  </Badge>
-                </div>
-                <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+          {goals.map((goal) => {
+            const today = new Date(selectedDate);
+            const allCompletions = goal.habits.flatMap((h) => h.completions);
+            const completedDays = allCompletions.length;
+            let progress = 0;
+            let paceLabel = "";
 
-              <div className="ml-4 space-y-2">
-                {goal.habits.map((habit) => (
-                  <HabitTracker key={habit.id} habit={habit} onToggle={toggleHabit} />
-                ))}
+            if (goal.deadline) {
+              const deadline = new Date(goal.deadline);
+              const completionDates = allCompletions.map((d) => new Date(d));
+              const earliest = completionDates.length > 0 ? new Date(Math.min(...completionDates.map((d) => d.getTime()))) : today;
+              const totalDays = Math.max(1, Math.ceil((deadline.getTime() - earliest.getTime()) / 86400000) + 1);
+              const daysPassed = Math.min(totalDays, Math.max(0, Math.ceil((today.getTime() - earliest.getTime()) / 86400000) + 1));
+              const target = goal.habits.length * totalDays;
+              progress = target > 0 ? (completedDays / target) * 100 : 0;
+              const expected = daysPassed / totalDays;
+              paceLabel = progress / 100 >= expected ? "On pace" : "Behind";
+            } else {
+              const target = goal.habits.length * 7;
+              progress = target > 0 ? (completedDays / target) * 100 : 0;
+            }
 
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="New habit"
-                    value={habitInputs[goal.id] ?? ""}
-                    onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddHabit(goal.id)}
-                    className="flex-1"
-                  />
-                  <Button size="icon" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)}>
-                    <Plus className="h-4 w-4" />
+            return (
+              <div key={goal.id} className="mb-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">{goal.title}</span>
+                    <Badge variant="secondary" className="text-sm capitalize">
+                      {goal.category}
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Progress value={progress} className="h-2 w-24" />
+                      {goal.deadline && <span className={`text-xs ${paceLabel === "On pace" ? "text-green-600" : "text-red-600"}`}>{paceLabel}</span>}
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)}>
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+
+                <div className="ml-4 space-y-2">
+                  {goal.habits.map((habit) => (
+                    <HabitTracker key={habit.id} habit={habit} onToggle={toggleHabit} />
+                  ))}
+
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="New habit"
+                      value={habitInputs[goal.id] ?? ""}
+                      onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))}
+                      onKeyDown={(e) => e.key === "Enter" && handleAddHabit(goal.id)}
+                      className="flex-1"
+                    />
+                    <Button size="icon" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     </section>
