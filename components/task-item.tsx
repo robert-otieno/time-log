@@ -9,6 +9,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronRight, ExternalLink, Flame, GripVertical, MoreVertical, Plus, Trash2, CalendarDays } from "lucide-react";
 import type { UITask } from "@/hooks/use-tasks";
+import { formatISODate } from "@/lib/date-utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { tagOptions } from "@/lib/tasks";
 
 interface TaskItemProps {
   task: UITask;
@@ -19,15 +24,68 @@ interface TaskItemProps {
   onDeleteSubtask: (id: number) => Promise<void>;
   onEdit: (task: UITask) => void;
   onSelect: (id: number) => void;
+  onUpdateTask: (id: number, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
+  weeklyPriorities: { id: number; title: string }[];
 }
 
-export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onEdit, onSelect }: TaskItemProps) {
+export default function TaskItem({
+  task,
+  onToggleTask,
+  onDeleteTask,
+  onAddSubtask,
+  onToggleSubtask,
+  onDeleteSubtask,
+  onEdit,
+  onSelect,
+  onUpdateTask,
+  weeklyPriorities,
+}: TaskItemProps) {
   const [open, setOpen] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [title, setTitle] = useState(task.title);
+  const [dueOpen, setDueOpen] = useState(false);
+
+  const defaults = {
+    title: task.title,
+    tag: task.tag ?? "",
+    deadline: task.deadline ? task.deadline.split("T")[0] : "",
+    reminder: task.reminderTime ? task.reminderTime.split("T")[1]?.slice(0, 5) ?? "" : "",
+    priority: task.weeklyPriorityId ? String(task.weeklyPriorityId) : "none",
+  };
+
+  const persist = async (changes: Partial<typeof defaults>) => {
+    await onUpdateTask(task.id, { ...defaults, ...changes });
+  };
 
   const handleAddSubtask = async () => {
     await onAddSubtask(task.id, newSubtask);
     setNewSubtask("");
+  };
+
+  const handleTitleSave = async () => {
+    setEditingTitle(false);
+    const newTitle = title.trim();
+    if (newTitle && newTitle !== task.title) {
+      await persist({ title: newTitle });
+    } else {
+      setTitle(task.title);
+    }
+  };
+
+  const handleTagChange = async (v: string) => {
+    await persist({ tag: v });
+  };
+
+  const handlePriorityChange = async (v: string) => {
+    await persist({ priority: v });
+  };
+
+  const handleDueSelect = async (d: Date | undefined) => {
+    setDueOpen(false);
+    if (d) {
+      await persist({ deadline: formatISODate(d) });
+    }
   };
 
   return (
@@ -46,8 +104,25 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`}>{task.title}</span>
-
+              {editingTitle ? (
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={handleTitleSave}
+                  onKeyDown={(e) => e.key === "Enter" && handleTitleSave()}
+                  className="h-7 w-auto text-sm"
+                  autoFocus
+                />
+              ) : (
+                <span
+                  className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`}
+                  onDoubleClick={() => setEditingTitle(true)}
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && setEditingTitle(true)}
+                >
+                  {task.title}
+                </span>
+              )}
               {task.link && (
                 <Button asChild variant="ghost" size="icon" className="h-7 w-7" title="Open link">
                   <a href={task.link} target="_blank" rel="noreferrer">
@@ -65,24 +140,50 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
                 </Badge>
               )}
 
-              {task.dueLabel && (
-                <Badge variant="secondary" className="gap-1">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  {task.dueLabel}
-                </Badge>
-              )}
+              <Popover open={dueOpen} onOpenChange={setDueOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7 gap-1">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {task.dueLabel ?? "Set due"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={task.deadline ? new Date(task.deadline) : undefined}
+                    onSelect={handleDueSelect}
+                    initialFocus
+                    captionLayout="dropdown"
+                  />
+                </PopoverContent>
+              </Popover>
 
-              {task.tag && (
-                <Badge variant="outline" className="capitalize">
-                  {task.tag}
-                </Badge>
-              )}
+              <Select defaultValue={task.tag ?? ""} onValueChange={handleTagChange}>
+                <SelectTrigger className="h-7 w-[120px] capitalize" aria-label="Select tag">
+                  <SelectValue placeholder="Tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tagOptions.map((t) => (
+                    <SelectItem key={t} value={t.toLowerCase()}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              {task.priority && (
-                <Badge variant="secondary" className="capitalize">
-                  {task.priority.title}
-                </Badge>
-              )}
+              <Select defaultValue={defaults.priority} onValueChange={handlePriorityChange}>
+                <SelectTrigger className="h-7 w-[140px]" aria-label="Select priority">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {weeklyPriorities.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               {typeof task.count === "number" && (
                 <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">{task.count}</span>

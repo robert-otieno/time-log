@@ -10,11 +10,11 @@ import TaskDetailsSheet from "@/components/task-details-sheet";
 import WeeklyPriorityList from "@/components/weekly-priority-list";
 import Goals from "@/components/goals";
 import { useSelectedDate } from "@/hooks/use-selected-date";
-
 import { useTasks, UITask } from "@/hooks/use-tasks";
 import { tagOptions } from "@/lib/tasks";
+import { cn } from "@/lib/utils";
 
-export default function TaskList() {
+export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
   const { selectedDate: date } = useSelectedDate();
   const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, loadTasks } = useTasks(date);
   const [editingTask, setEditingTask] = useState<UITask | null>(null);
@@ -67,7 +67,7 @@ export default function TaskList() {
           <CardDescription>{formatISODateString(date)}</CardDescription>
         </CardHeader>
 
-        <CardContent className="grid gap-6 grid-cols-2">
+        <CardContent className={cn("grid gap-6 transition-all", focusMode ? "grid-cols-1" : "grid-cols-2")}>
           <Card className="border-0 p-0 shadow-none rounded-none bg-card/0">
             <CardHeader>
               <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} />
@@ -94,6 +94,8 @@ export default function TaskList() {
                           onDeleteSubtask={deleteSubtask}
                           onEdit={(t) => setEditingTask(t)}
                           onSelect={(id) => setSelectedTaskId(id)}
+                          onUpdateTask={updateTask}
+                          weeklyPriorities={weeklyPriorities}
                         />
                       ))}
                     </ul>
@@ -103,10 +105,12 @@ export default function TaskList() {
             </CardContent>
           </Card>
 
-          <div>
-            <Goals />
-            <WeeklyPriorityList />
-          </div>
+          {!focusMode && (
+            <div className="space-y-6">
+              <Goals />
+              <WeeklyPriorityList />
+            </div>
+          )}
         </CardContent>
       </Card>
 

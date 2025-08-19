@@ -11,7 +11,7 @@ import { useSelectedDate } from "@/hooks/use-selected-date";
 
 export default function TaskDashboard() {
   const { setSelectedDate } = useSelectedDate();
-  const { toggleFocusMode } = useFocusMode();
+  const { focusMode, toggleFocusMode } = useFocusMode();
 
   useShortcuts({
     onNewTask: () => {
@@ -35,10 +35,10 @@ export default function TaskDashboard() {
     <div className="[--header-height:calc(--spacing(14))]">
       <SidebarProvider className="flex flex-col">
         <SiteHeader />
-        <div className="flex flex-1">
-          <AppSidebar />
-          <SidebarInset>
-            <TaskList />
+        <div className="flex flex-1 transition-all duration-300">
+          {!focusMode && <AppSidebar />}
+          <SidebarInset className="transition-all duration-300">
+            <TaskList focusMode={focusMode} />
           </SidebarInset>
         </div>
       </SidebarProvider>

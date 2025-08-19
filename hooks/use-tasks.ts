@@ -41,9 +41,9 @@ export function useTasks(date: string) {
         let hot = false;
         if (t.deadline) {
           const deadline = new Date(t.deadline);
-          dueLabel = deadline.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          dueLabel = deadline.toLocaleDateString([], { month: "short", day: "numeric" });
           const diff = deadline.getTime() - now;
-          hot = diff > 0 && diff <= 60 * 60 * 1000 && !t.done;
+          hot = diff > 0 && diff <= 24 * 60 * 60 * 1000 && !t.done;
         }
         return { ...t, dueLabel, hot } as UITask;
       });
@@ -60,7 +60,7 @@ export function useTasks(date: string) {
   async function addTask(title: string, tag: string, deadline: string, reminder: string, priority: string) {
     try {
       if (!title.trim()) return;
-      const deadlineISO = deadline ? `${date}T${deadline}` : null;
+      const deadlineISO = deadline && deadline.length <= 5 && !deadline.includes("T") ? `${date}T${deadline}` : deadline || null;
       const reminderISO = reminder ? `${date}T${reminder}` : null;
       const priorityId = priority && priority !== "none" ? Number(priority) : undefined;
       const res = await addDailyTask(title, date, tag, deadlineISO, reminderISO, priorityId);
@@ -70,9 +70,9 @@ export function useTasks(date: string) {
       let hot = false;
       if (deadlineISO) {
         const d = new Date(deadlineISO);
-        dueLabel = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        dueLabel = d.toLocaleDateString([], { month: "short", day: "numeric" });
         const diff = d.getTime() - now;
-        hot = diff > 0 && diff <= 60 * 60 * 1000;
+        hot = diff > 0 && diff <= 24 * 60 * 60 * 1000;
       }
       const priorityObj = priorityId ? weeklyPriorities.find((p) => p.id === priorityId) : undefined;
       setTasks((prev) => [
@@ -111,7 +111,7 @@ export function useTasks(date: string) {
           let hot = false;
           if (t.deadline) {
             const diff = new Date(t.deadline).getTime() - Date.now();
-            hot = diff > 0 && diff <= 60 * 60 * 1000 && !newDone;
+            hot = diff > 0 && diff <= 24 * 60 * 60 * 1000 && !newDone;
           }
           return { ...t, done: newDone, hot };
         })
@@ -176,7 +176,8 @@ export function useTasks(date: string) {
   }
 
   async function updateTask(id: number, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) {
-    const deadlineISO = values.deadline ? `${date}T${values.deadline}` : null;
+    const deadlineISO =
+      values.deadline && values.deadline.length <= 5 && !values.deadline.includes("T") ? `${date}T${values.deadline}` : values.deadline || null;
     const reminderISO = values.reminder ? `${date}T${values.reminder}` : null;
     const priorityId = values.priority && values.priority !== "none" ? Number(values.priority) : null;
     await updateDailyTask(id, {
@@ -194,9 +195,9 @@ export function useTasks(date: string) {
         let hot = false;
         if (deadlineISO) {
           const d = new Date(deadlineISO);
-          dueLabel = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          dueLabel = d.toLocaleDateString([], { month: "short", day: "numeric" });
           const diff = d.getTime() - Date.now();
-          hot = diff > 0 && diff <= 60 * 60 * 1000 && !t.done;
+          hot = diff > 0 && diff <= 24 * 60 * 60 * 1000 && !t.done;
         }
         return {
           ...t,
