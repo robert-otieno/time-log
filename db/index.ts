@@ -8,9 +8,8 @@ const DB_PATH = path.join(process.cwd(), "tracker.db");
 const exists = fs.existsSync(DB_PATH);
 const sqlite = new Database(DB_PATH);
 
-export const db = drizzle(sqlite, { schema }); // ✅ Drizzle client
+export const db = drizzle(sqlite, { schema });
 
-// Create tables if they don't exist
 if (!exists) {
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS daily_tasks (
@@ -39,7 +38,9 @@ if (!exists) {
       name TEXT NOT NULL,
       goal_id INTEGER REFERENCES goals(id),
       type TEXT NOT NULL DEFAULT 'checkbox',
-      target INTEGER NOT NULL DEFAULT 1    );
+      target INTEGER NOT NULL DEFAULT 1,
+      schedule_mask TEXT NOT NULL DEFAULT 'MTWTF--'
+    );
 
     CREATE TABLE IF NOT EXISTS weekly_priorities (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,7 +66,6 @@ if (!exists) {
     );
   `);
 
-  // Seed goals and rhythm tasks
   const goal = sqlite.prepare("INSERT INTO goals (category, title, deadline) VALUES (?, ?, ?)").run("health", "Wellness", null);
   const goalId = Number(goal.lastInsertRowid);
   sqlite.prepare("INSERT INTO rhythm_tasks (name, goal_id) VALUES (?, ?)").run("Sleep 8 hrs", goalId);
@@ -138,7 +138,10 @@ if (!exists) {
   if (!hasTarget) {
     sqlite.exec("ALTER TABLE rhythm_tasks ADD COLUMN target INTEGER NOT NULL DEFAULT 1;");
   }
-
+  const hasScheduleMask = rhythmColumns.some((c) => c.name === "schedule_mask");
+  if (!hasScheduleMask) {
+    sqlite.exec("ALTER TABLE rhythm_tasks ADD COLUMN schedule_mask TEXT NOT NULL DEFAULT 'MTWTF--';");
+  }
   const habitTable = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='habit_completions'").get();
   if (!habitTable) {
     const oldHabit = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='rhythm_completions'").get();

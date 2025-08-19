@@ -228,7 +228,7 @@ export async function getGoalsWithHabits(date: string = formatISODate(new Date()
         const rh = row.habit;
         let habit = goal.habits.find((h) => h.id === rh.id);
         if (!habit) {
-          habit = { ...rh, completions: [] };
+          habit = { ...rh, completions: [], dueToday: false };
           goal.habits.push(habit);
         }
         if (row.completion) {
@@ -267,6 +267,16 @@ export async function addHabit(goalId: number, name: string, type = "checkbox", 
     return db.insert(rhythmTasks).values({ goalId, name, type, target, scheduleMask }).run();
   } catch (error) {
     console.error("Error in addHabit:", error);
+    throw error;
+  }
+}
+
+export async function deleteHabit(id: number) {
+  try {
+    await db.delete(habitCompletions).where(eq(habitCompletions.habitId, id)).run();
+    await db.delete(rhythmTasks).where(eq(rhythmTasks.id, id)).run();
+  } catch (error) {
+    console.error("Error in deleteHabit:", error);
     throw error;
   }
 }

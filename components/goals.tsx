@@ -9,17 +9,15 @@ import { Button } from "@/components/ui/button";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { formatISODate } from "@/lib/date-utils";
 import { useState } from "react";
-import { ChevronDownIcon } from "lucide-react";
 import { useGoals } from "@/hooks/use-goals";
 import { categories } from "@/lib/tasks";
 import HabitTracker from "@/components/habit-tracker";
 import { Badge } from "@/components/ui/badge";
 import { useSelectedDate } from "@/hooks/use-selected-date";
-import { Progress } from "@/components/ui/progress";
 import CircularProgress from "./progress-07";
 
 export default function Goals() {
-  const { goals, addGoal, deleteGoal, addHabit, toggleHabit } = useGoals();
+  const { goals, addGoal, deleteGoal, addHabit, deleteHabit, toggleHabit } = useGoals();
   const [open, setOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [newTitle, setNewTitle] = useState("");
@@ -154,7 +152,12 @@ export default function Goals() {
 
                 <div className="ml-4 space-y-2">
                   {goal.habits.map((habit) => (
-                    <HabitTracker key={habit.id} habit={habit} onToggle={toggleHabit} />
+                    <div key={habit.id} className="flex items-center gap-2">
+                      <HabitTracker habit={habit} onToggle={toggleHabit} />
+                      <Button variant="ghost" size="icon" aria-label="Delete habit" onClick={() => deleteHabit(habit.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
 
                   <div className="flex items-center gap-2">

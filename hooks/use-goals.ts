@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { addGoal, addHabit, deleteGoal, getGoalsWithHabits, toggleHabitCompletion, type GoalWithHabits } from "@/app/actions";
+import { addGoal, addHabit, deleteGoal, deleteHabit as deleteHabitAction, getGoalsWithHabits, toggleHabitCompletion, type GoalWithHabits } from "@/app/actions";
 import { toast } from "sonner";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
@@ -56,7 +56,7 @@ export function useGoals() {
       const scheduleMask = "MTWTF--";
       const dueToday = isHabitDue(scheduleMask, new Date());
       setGoals((prev) =>
-prev.map((g) =>
+        prev.map((g) =>
           g.id === goalId
             ? {
                 ...g,
@@ -75,10 +75,21 @@ prev.map((g) =>
                 ],
               }
             : g
-        )      );
+        )
+      );
     } catch (err) {
       console.error(err);
       toast.error("Failed to add habit");
+    }
+  }
+
+  async function removeHabit(habitId: number) {
+    try {
+      await deleteHabitAction(habitId);
+      setGoals((prev) => prev.map((g) => ({ ...g, habits: g.habits.filter((h) => h.id !== habitId) })));
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete habit");
     }
   }
 
@@ -93,13 +104,10 @@ prev.map((g) =>
             const existing = h.completions.find((c) => c.date === date);
             let newCompletions;
             if (h.type === "checkbox") {
-              newCompletions = existing
-                ? h.completions.filter((c) => c.date !== date)
-                : [...h.completions, { date, value: 1 }];
+              newCompletions = existing ? h.completions.filter((c) => c.date !== date) : [...h.completions, { date, value: 1 }];
             } else {
               if (existing) {
-                                newCompletions = h.completions.map((c) => (c.date === date ? { date, value: c.value + value } : c));
-
+                newCompletions = h.completions.map((c) => (c.date === date ? { date, value: c.value + value } : c));
               } else {
                 newCompletions = [...h.completions, { date, value }];
               }
@@ -124,6 +132,7 @@ prev.map((g) =>
     addGoal: addNewGoal,
     deleteGoal: removeGoal,
     addHabit: addNewHabit,
+    deleteHabit: removeHabit,
     toggleHabit,
   };
 }
