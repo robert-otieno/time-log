@@ -32,6 +32,15 @@ export const habitCompletions = sqliteTable("habit_completions", {
 
 export { habitCompletions as rhythmCompletions };
 
+export const nudgeEvents = sqliteTable("nudge_events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  habitId: integer("habit_id").notNull(),
+  date: text("date").notNull(),
+  remaining: integer("remaining").notNull(),
+  status: text("status").notNull().default("pending"),
+  createdAt: text("created_at").notNull(),
+});
+
 export const dailyTasks = sqliteTable("daily_tasks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
@@ -62,3 +71,4 @@ export type TaskWithSubtasks = DailyTask & {
   subtasks: DailySubtask[];
   priority?: typeof weeklyPriorities.$inferSelect;
 };
+export type NudgeEvent = typeof nudgeEvents.$inferSelect;

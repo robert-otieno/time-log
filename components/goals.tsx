@@ -133,9 +133,7 @@ export default function Goals() {
                       {goal.deadline && (
                         <Badge
                           className={`font-normal ${
-                            paceLabel === "On pace"
-                              ? "bg-emerald-600/10 dark:bg-emerald-600/20 hover:bg-emerald-600/10 text-emerald-500"
-                              : "bg-red-600/10 dark:bg-red-600/20 hover:bg-red-600/10 text-red-500"
+                            paceLabel === "On pace" ? "bg-emerald-600/10 text-emerald-600" : "bg-red-600/10 text-red-600"
                           } shadow-none rounded-full`}
                         >
                           {paceLabel}
@@ -168,9 +166,9 @@ export default function Goals() {
                       value={habitInputs[goal.id] ?? ""}
                       onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))}
                       onKeyDown={(e) => e.key === "Enter" && handleAddHabit(goal.id)}
-                      className="flex-1"
+                      className="flex-1 h-8"
                     />
-                    <Button size="icon" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)}>
+                    <Button size="sm" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)}>
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>

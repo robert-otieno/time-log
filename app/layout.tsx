@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/sonner";
-import { SelectedDateProvider } from "@/hooks/use-selected-date";
+import NudgeBanner from "@/components/nudge-banner";
+import { Geist, Geist_Mono } from "next/font/google";
 import { FocusModeProvider } from "@/hooks/use-focus-mode";
+import { SelectedDateProvider } from "@/hooks/use-selected-date";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +30,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}>
         <SelectedDateProvider>
-          <FocusModeProvider>{children}</FocusModeProvider>
+          <FocusModeProvider>
+            <NudgeBanner />
+            {children}
+          </FocusModeProvider>
         </SelectedDateProvider>
         <Toaster />
       </body>

@@ -57,6 +57,16 @@ if (!exists) {
       FOREIGN KEY(habit_id) REFERENCES rhythm_tasks(id)
     );
     
+    CREATE TABLE IF NOT EXISTS nudge_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      habit_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      remaining INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(habit_id) REFERENCES rhythm_tasks(id)
+    );
+    
     CREATE TABLE IF NOT EXISTS daily_subtasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       task_id INTEGER NOT NULL,
@@ -165,6 +175,21 @@ if (!exists) {
   const hasValue = habitColumns.some((c) => c.name === "value");
   if (!hasValue) {
     sqlite.exec("ALTER TABLE habit_completions ADD COLUMN value INTEGER NOT NULL DEFAULT 0;");
+  }
+
+  const nudgeTable = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='nudge_events'").get();
+  if (!nudgeTable) {
+    sqlite.exec(`
+      CREATE TABLE nudge_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        habit_id INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        remaining INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(habit_id) REFERENCES rhythm_tasks(id)
+      );
+    `);
   }
   const subtaskColumns = sqlite.prepare("PRAGMA table_info(daily_subtasks);").all() as { name: string }[];
   const hasSubtaskPriority = subtaskColumns.some((c) => c.name === "weekly_priority_id");
