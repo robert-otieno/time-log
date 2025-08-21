@@ -134,8 +134,8 @@ export default function TaskItem({
               {task.notes && <Badge variant="secondary">Note</Badge>}
 
               {task.hot && (
-                <Badge className="gap-1">
-                  <Flame className="h-3.5 w-3.5" />
+                <Badge className="gap-1 bg-orange-600/10 dark:bg-orange-500/20 text-orange-500">
+                  <Flame className="h-3.5 w-3.5 animate-pulse text-yellow-500" />
                   Hot
                 </Badge>
               )}
@@ -153,7 +153,7 @@ export default function TaskItem({
               </Popover>
 
               <Select defaultValue={task.tag ?? ""} onValueChange={handleTagChange}>
-                <SelectTrigger size="sm" className="h-7 w-[120px] capitalize" aria-label="Select tag">
+                <SelectTrigger size="sm" className="h-7 min-w-[120px] capitalize border-0" aria-label="Select tag">
                   <SelectValue placeholder="Tag" />
                 </SelectTrigger>
                 <SelectContent>
@@ -166,7 +166,7 @@ export default function TaskItem({
               </Select>
 
               <Select defaultValue={defaults.priority} onValueChange={handlePriorityChange}>
-                <SelectTrigger size="sm" className="h-7 w-[140px]" aria-label="Select priority">
+                <SelectTrigger size="sm" className="h-7 w-[140px] border-0" aria-label="Select priority">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent>
