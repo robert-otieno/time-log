@@ -373,6 +373,7 @@ export async function getWeeklyPriorities(weekStart: string) {
               title: p.title,
               weekStart,
               tag: p.tag,
+              level: p.level,
             }))
           )
           .run();
@@ -410,16 +411,16 @@ export async function getWeeklyPriorities(weekStart: string) {
   }
 }
 
-export async function addWeeklyPriority(title: string, weekStart: string, tag: string) {
+export async function addWeeklyPriority(title: string, weekStart: string, tag: string, level: string) {
   try {
-    return await db.insert(weeklyPriorities).values({ title, weekStart, tag }).run();
+    return await db.insert(weeklyPriorities).values({ title, weekStart, tag, level }).run();
   } catch (error) {
     console.error("Error in addWeeklyPriority:", error);
     throw error;
   }
 }
 
-export async function updateWeeklyPriority(id: number, fields: Partial<{ title: string; weekStart: string; tag: string }>) {
+export async function updateWeeklyPriority(id: number, fields: Partial<{ title: string; weekStart: string; tag: string; level: string }>) {
   try {
     return db.update(weeklyPriorities).set(fields).where(eq(weeklyPriorities.id, id)).run();
   } catch (error) {

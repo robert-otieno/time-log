@@ -12,7 +12,7 @@ interface TaskEditSheetProps {
   task: UITask | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  weeklyPriorities: { id: number; title: string }[];
+  weeklyPriorities: { id: number; title: string; level: string }[];
   onSave: (id: number, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
 }
 

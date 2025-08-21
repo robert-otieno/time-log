@@ -46,7 +46,8 @@ if (!exists) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       week_start TEXT NOT NULL,
-      tag TEXT NOT NULL DEFAULT 'work'
+      tag TEXT NOT NULL DEFAULT 'work',
+      level TEXT NOT NULL DEFAULT 'medium'
     );
     
     CREATE TABLE IF NOT EXISTS habit_completions (
@@ -121,6 +122,10 @@ if (!exists) {
   const hasWeeklyTag = weeklyColumns.some((c) => c.name === "tag");
   if (!hasWeeklyTag) {
     sqlite.exec("ALTER TABLE weekly_priorities ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';");
+  }
+  const hasWeeklyLevel = weeklyColumns.some((c) => c.name === "level");
+  if (!hasWeeklyLevel) {
+    sqlite.exec("ALTER TABLE weekly_priorities ADD COLUMN level TEXT NOT NULL DEFAULT 'medium';");
   }
   const goalsTable = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='goals'").get();
   if (!goalsTable) {

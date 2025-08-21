@@ -9,7 +9,7 @@ import { tagOptions } from "@/lib/tasks";
 
 interface TaskFormProps {
   onAdd: (title: string, tag: string, deadline: string, reminder: string, priority: string) => Promise<void>;
-  weeklyPriorities: { id: number; title: string }[];
+  weeklyPriorities: { id: number; title: string; level: string }[];
 }
 
 export default function TaskForm({ onAdd, weeklyPriorities }: TaskFormProps) {

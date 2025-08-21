@@ -1,58 +1,16 @@
 1) Product & UX (single screen + right sheets)
-
 Unify to one dashboard and reveal details in right-side sheets (you already have TaskEditSheet/TaskDetailsSheet—lean into them).
-
 Layout skeleton (sticky header + 2-column with right rail):
-```
-// app/page.tsx
-export default function Dashboard() {
-  return (
-    <div className="min-h-dvh grid grid-rows-[auto_1fr]">
-      <Header /> {/* search, quick add, date switcher, user menu */}
-      <main className="grid grid-cols-12 gap-4 p-4">
-        {/* Left rail */}
-        <aside className="col-span-3 space-y-4">
-          <CalendarCard />
-          <HabitTrackerCard />    {/* 7x habits x week grid */}
-        </aside>
-
-        {/* Center (primary) */}
-        <section className="col-span-6 space-y-4">
-          <DailyTasks />          {/* group by tag/project */}
-          <CompletedTodayCollapsible />
-        </section>
-
-        {/* Right rail (widgets) */}
-        <aside className="col-span-3 space-y-4">
-          <GoalsCard />
-          <WeeklyPrioritiesCard />
-        </aside>
-
-        {/* Sheets slide in from the right */}
-        <TaskDetailsSheet />
-        <PriorityEditSheet />
-        <GoalEditSheet />
-      </main>
-    </div>
-  );
-}
-```
 
 Key UX upgrades
 
-Command palette (cmd/ctrl+k) for “New task / habit / priority / goal”, “Jump to date”.
-
-Keyboard shortcuts: n add task, d set due today, g go to goals, p priorities.
-
-Smart quick-add parser: Write brief @GBDCEI #priority:high ^2025-08-15 !09:00.
-
-Task grouping: by tag/project then priority; compact rows; virtualized list for long days.
-
-Streaks & momentum: small streak badges in HabitTracker, “On pace” meter for goals.
-
-Inline editing: title, due, tag, priority without opening sheets.
-
-Focus mode: hide sidebars, show only Today list + next habits (toggle f).
+- Command palette (cmd/ctrl+k) for “New task / habit / priority / goal”, “Jump to date”.
+- Keyboard shortcuts: n add task, d set due today, g go to goals, p priorities.
+- Smart quick-add parser: Write brief @GBDCEI #priority:high ^2025-08-15 !09:00.
+- Task grouping: by tag/project then priority; compact rows; virtualized list for long days.
+- Streaks & momentum: small streak badges in HabitTracker, “On pace” meter for goals.
+- Inline editing: title, due, tag, priority without opening sheets.
+- Focus mode: hide sidebars, show only Today list + next habits (toggle f).
 
 2) Data model & scalability
 

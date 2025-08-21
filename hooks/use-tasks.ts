@@ -18,7 +18,7 @@ export type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; coun
 
 export function useTasks(date: string) {
   const [tasks, setTasks] = useState<UITask[]>([]);
-  const [weeklyPriorities, setWeeklyPriorities] = useState<{ id: number; title: string }[]>([]);
+  const [weeklyPriorities, setWeeklyPriorities] = useState<{ id: number; title: string; level: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function useTasks(date: string) {
         return { ...t, dueLabel, hot } as UITask;
       });
       setTasks(withMeta);
-      setWeeklyPriorities(priorities);
+      setWeeklyPriorities(priorities.map((p: any) => ({ id: p.id, title: p.title, level: p.level })));
       setError(null);
     } catch (err: any) {
       console.error(err);

@@ -5,6 +5,7 @@ export const weeklyPriorities = sqliteTable("weekly_priorities", {
   title: text("title").notNull(),
   weekStart: text("week_start").notNull(),
   tag: text("tag").notNull().default("work"),
+  level: text("level").notNull().default("medium"),
 });
 
 export const goals = sqliteTable("goals", {

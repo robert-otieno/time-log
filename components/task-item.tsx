@@ -25,7 +25,7 @@ interface TaskItemProps {
   onEdit: (task: UITask) => void;
   onSelect: (id: number) => void;
   onUpdateTask: (id: number, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
-  weeklyPriorities: { id: number; title: string }[];
+  weeklyPriorities: { id: number; title: string; level: string }[];
 }
 
 export default function TaskItem({
@@ -165,19 +165,21 @@ export default function TaskItem({
                 </SelectContent>
               </Select>
 
-              <Select defaultValue={defaults.priority} onValueChange={handlePriorityChange}>
-                <SelectTrigger size="sm" className="h-7 w-[140px] border-0" aria-label="Select priority">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {weeklyPriorities.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {task.priority && (
+                <Select defaultValue={defaults.priority} onValueChange={handlePriorityChange}>
+                  <SelectTrigger size="sm" className="h-7 w-[140px] border-0" aria-label="Select priority">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {weeklyPriorities.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
               {typeof task.count === "number" && (
                 <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">{task.count}</span>
