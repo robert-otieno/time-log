@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { formatISODate } from "@/lib/date-utils";
+import { formatISODate, formatWeekRange } from "@/lib/date-utils";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 
 interface Priority {
@@ -28,13 +28,13 @@ export default function WeeklyPriorityList() {
   const monday = new Date(current);
   monday.setDate(diff);
   const weekStart = formatISODate(monday);
+  const weekRange = formatWeekRange(monday);
   const [priorities, setPriorities] = useState<Priority[]>([]);
   const [newPriority, setNewPriority] = useState("");
   const [filter, setFilter] = useState<"all" | "work" | "personal">("all");
   const [editingPriorityId, setEditingPriorityId] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const visible = priorities.filter((p) => filter === "all" || p.tag === filter);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadPriorities();
@@ -73,7 +73,7 @@ export default function WeeklyPriorityList() {
     <section id="weekly-priorities">
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>Weekly Priorities</CardTitle>
+          <CardTitle>{`Priorities: Week - ${weekRange}`}</CardTitle>
           <CardDescription className="mb-4">Set your weekly priorities to focus on what matters most.</CardDescription>
 
           <div className="flex gap-2">

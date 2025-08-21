@@ -20,3 +20,10 @@ export function formatISODateString(isoDate: string, locale = "en-US"): string {
     timeZone: "UTC",
   }).format(date);
 }
+
+export function formatWeekRange(start: Date, locale = "en-US"): string {
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const fmt = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" });
+  return `${fmt.format(start)} - ${fmt.format(end)}`;
+}
