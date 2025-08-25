@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { formatISODate } from "@/lib/date-utils";
 
 import { collection, getDocs, query, where, documentId, doc } from "firebase/firestore";
-import { auth, db } from "@/db";
+import { db } from "@/db";
 import { verifyIdToken } from "@/lib/firebase-admin";
 
 // Firestore `in` operator accepts at most 10 values
