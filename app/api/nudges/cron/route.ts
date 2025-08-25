@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { auth, db } from "@/db";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDocs, query, where } from "firebase/firestore";
 
 const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
 
 export async function GET() {
   const today = formatISODate(new Date());
 
-  // 1) Load all habits
-  const habitsSnap = await getDocs(collection(db, "rhythm_tasks"));
+  // 1) Load all habits for the current user
+  const habitsSnap = await getDocs(collection(doc(db, "users", auth.currentUser!.uid), "rhythm_tasks"));
   const allHabits = habitsSnap.docs.map((d) => ({ id: Number(d.id), ...(d.data() as any) }));
 
   // 2) Keep only habits due today (by schedule mask)
@@ -22,7 +22,7 @@ export async function GET() {
 
   for (const ids of chunk(habitIds, 10)) {
     // If you store habitId as a number in completions:
-    const compsQ = query(collection(db, "habit_completions"), where("habitId", "in", ids), where("date", "==", today));
+    const compsQ = query(collection(doc(db, "users", auth.currentUser!.uid), "habit_completions"), where("habitId", "in", ids), where("date", "==", today));
     const compsSnap = await getDocs(compsQ);
     compsSnap.forEach((doc) => {
       const c = doc.data() as { habitId: number; date: string; value: number };
