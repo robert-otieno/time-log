@@ -5,6 +5,7 @@ import NudgeBanner from "@/components/nudge-banner";
 import { Geist, Geist_Mono } from "next/font/google";
 import { FocusModeProvider } from "@/hooks/use-focus-mode";
 import { SelectedDateProvider } from "@/hooks/use-selected-date";
+import { AuthProvider } from "@/components/auth-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,12 +30,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}>
-        <SelectedDateProvider>
-          <FocusModeProvider>
-            <NudgeBanner />
-            {children}
-          </FocusModeProvider>
-        </SelectedDateProvider>
+        <AuthProvider>
+          <SelectedDateProvider>
+            <FocusModeProvider>
+              <NudgeBanner />
+              {children}
+            </FocusModeProvider>
+          </SelectedDateProvider>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

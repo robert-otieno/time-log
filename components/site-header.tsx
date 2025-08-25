@@ -9,10 +9,14 @@ import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
 import { CommandMenu } from "./command-menu";
+import { signOut } from "firebase/auth";
+import { auth } from "@/db";
+import { useAuth } from "@/components/auth-provider";
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -41,6 +45,11 @@ export function SiteHeader() {
             </BreadcrumbList>
           </Breadcrumb>
           <SearchForm className="w-full sm:ml-auto sm:w-auto" />
+          {user && (
+            <Button variant="ghost" onClick={() => signOut(auth)} className="ml-2">
+              Sign out
+            </Button>
+          )}
         </div>
       </header>
       <CommandMenu open={open} setOpen={setOpen} />
