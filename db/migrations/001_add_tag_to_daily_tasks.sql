@@ -1,1 +1,0 @@
-ALTER TABLE daily_tasks ADD COLUMN tag TEXT NOT NULL DEFAULT 'work';

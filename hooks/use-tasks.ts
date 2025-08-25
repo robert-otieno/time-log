@@ -9,8 +9,8 @@ import {
   toggleDailySubtask,
   toggleDailyTask,
   updateDailyTask,
+  TaskWithSubtasks,
 } from "@/app/actions";
-import type { TaskWithSubtasks } from "@/db/schema";
 import { formatISODate } from "@/lib/date-utils";
 import { toast } from "sonner";
 

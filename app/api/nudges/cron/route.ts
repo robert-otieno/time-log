@@ -1,39 +1,42 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { rhythmTasks, habitCompletions, nudgeEvents } from "@/db/schema";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
-import { and, eq } from "drizzle-orm";
+import { collection, getDocs, query, where } from "firebase/firestore";
+
+const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
 
 export async function GET() {
   const today = formatISODate(new Date());
-  const habits = await db.select().from(rhythmTasks);
-  const created: { habitId: number; remaining: number }[] = [];
 
-  for (const h of habits) {
-    if (!isHabitDue(h.scheduleMask)) continue;
-    const completion = await db
-      .select({ value: habitCompletions.value })
-      .from(habitCompletions)
-      .where(and(eq(habitCompletions.habitId, h.id), eq(habitCompletions.date, today)));
-    const value = completion.length > 0 ? completion[0].value : 0;
-    if (value >= h.target) continue;
-    const existing = await db
-      .select()
-      .from(nudgeEvents)
-      .where(and(eq(nudgeEvents.habitId, h.id), eq(nudgeEvents.date, today)));
-    if (existing.length === 0) {
-      await db
-        .insert(nudgeEvents)
-        .values({
-          habitId: h.id,
-          date: today,
-          remaining: h.target - value,
-          status: "pending",
-          createdAt: new Date().toISOString(),
-        })
-        .run();
-      created.push({ habitId: h.id, remaining: h.target - value });
+  // 1) Load all habits
+  const habitsSnap = await getDocs(collection(db, "rhythm_tasks"));
+  const allHabits = habitsSnap.docs.map((d) => ({ id: Number(d.id), ...(d.data() as any) }));
+
+  // 2) Keep only habits due today (by schedule mask)
+  const dueHabits = allHabits.filter((h) => isHabitDue(h.scheduleMask));
+
+  // 3) Fetch today's completions in batches of 10 habitIds
+  const habitIds = dueHabits.map((h) => h.id);
+  const completionsByHabit = new Map<number, number>();
+
+  for (const ids of chunk(habitIds, 10)) {
+    // If you store habitId as a number in completions:
+    const compsQ = query(collection(db, "habit_completions"), where("habitId", "in", ids), where("date", "==", today));
+    const compsSnap = await getDocs(compsQ);
+    compsSnap.forEach((doc) => {
+      const c = doc.data() as { habitId: number; date: string; value: number };
+      completionsByHabit.set(c.habitId, c.value ?? 0);
+    });
+  }
+
+  // 4) Build remaining list
+  const created: { habitId: number; remaining: number }[] = [];
+  for (const h of dueHabits) {
+    const current = completionsByHabit.get(h.id) ?? 0;
+    const remaining = Math.max(0, (h.target ?? 1) - current);
+    if (remaining > 0) {
+      created.push({ habitId: h.id, remaining });
     }
   }
 

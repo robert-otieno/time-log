@@ -1,7 +1,0 @@
-CREATE TABLE IF NOT EXISTS daily_subtasks (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  task_id INTEGER NOT NULL,
-  title TEXT NOT NULL,
-  done INTEGER NOT NULL DEFAULT 0,
-  FOREIGN KEY(task_id) REFERENCES daily_tasks(id)
-);
