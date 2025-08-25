@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { formatISODate } from "@/lib/date-utils";
 
-import { getFirestore, collection, getDocs, query, where, documentId } from "firebase/firestore";
-
-const db = getFirestore();
+import { collection, getDocs, query, where, documentId } from "firebase/firestore";
+import { db } from "@/db";
 
 // Firestore `in` operator accepts at most 10 values
 const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
