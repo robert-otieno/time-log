@@ -21,7 +21,10 @@ export default function LoginPage() {
   const signIn = async () => {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
-    router.push("/");
+    const token = await auth.currentUser?.getIdToken();
+    if (token) {
+      document.cookie = `token=${token}; path=/`;
+    }
   };
 
   return (
