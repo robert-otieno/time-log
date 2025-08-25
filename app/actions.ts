@@ -1,11 +1,18 @@
 "use server";
 
-import { db } from "@/db";
+import { auth, db } from "@/db";
 import { formatISODate } from "@/lib/date-utils";
 import { collection, query, where, getDocs, setDoc, doc, updateDoc, writeBatch, deleteDoc, addDoc } from "firebase/firestore";
 
 function genId() {
   return Date.now();
+}
+
+function userId() {
+  if (!auth.currentUser) {
+    throw new Error("User is not authenticated.");
+  }
+  return auth.currentUser.uid;
 }
 
 export interface WeeklyPriority {
@@ -78,7 +85,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
   const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
 
   // --- tasks ---
-  const tasksQ = query(collection(db, "daily_tasks"), where("date", "==", date));
+  const tasksQ = query(collection(doc(db, "users", userId()), "daily_tasks"), where("date", "==", date));
   const tasksSnap = await getDocs(tasksQ);
 
   const tasks: DailyTask[] = tasksSnap.docs.map((d) => ({
@@ -93,7 +100,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
   if (taskIds.length > 0) {
     const subChunks = chunk(taskIds, 10);
     for (const ids of subChunks) {
-      const subsQ = query(collection(db, "daily_subtasks"), where("taskId", "in", ids));
+      const subsQ = query(collection(doc(db, "users", userId()), "daily_subtasks"), where("taskId", "in", ids));
       const subsSnap = await getDocs(subsQ);
       subtasks.push(
         ...subsSnap.docs.map((d) => ({
@@ -111,7 +118,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
   if (priorityIds.length > 0) {
     const priChunks = chunk(priorityIds, 10);
     for (const ids of priChunks) {
-      const priQ = query(collection(db, "weekly_priorities"), where("id", "in", ids));
+      const priQ = query(collection(doc(db, "users", userId()), "weekly_priorities"), where("id", "in", ids));
       const priSnap = await getDocs(priQ);
       priSnap.forEach((doc) => {
         const data = doc.data() as WeeklyPriority & { id: number };
@@ -128,8 +135,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
 }
 
 export async function getTaskDates(): Promise<string[]> {
-  const snap = await getDocs(collection(db, "daily_tasks"));
-
+  const snap = await getDocs(collection(doc(db, "users", userId()), "daily_tasks"));
   const dates = Array.from(new Set(snap.docs.map((d) => (d.data() as any).date)));
 
   // sort ascending then reverse → latest first
@@ -148,8 +154,7 @@ export async function addDailyTask(
   fileRefs?: string | null
 ) {
   const id = genId(); // your own id generator
-  const docRef = doc(collection(db, "daily_tasks"), docId(id)); // docId() = your custom mapping
-
+  const docRef = doc(collection(doc(db, "users", userId()), "daily_tasks"), docId(id)); // docId() = your custom mapping
   await setDoc(docRef, {
     title,
     date,
@@ -167,17 +172,16 @@ export async function addDailyTask(
 }
 
 export async function toggleDailyTask(id: number, done: boolean) {
-  const taskRef = doc(collection(db, "daily_tasks"), docId(id));
+  const taskRef = doc(collection(doc(db, "users", userId()), "daily_tasks"), docId(id));
   await updateDoc(taskRef, { done });
 }
 
 /** DELETE a task and its subtasks (batch) */
 export async function deleteDailyTask(id: number) {
   const taskDocId = docId(id); // ensure this is a string
-  const taskRef = doc(collection(db, "daily_tasks"), taskDocId);
-
+  const taskRef = doc(collection(doc(db, "users", userId()), "daily_tasks"), taskDocId);
   // find subtasks by FK (stored as the parent task's doc id)
-  const subsQ = query(collection(db, "daily_subtasks"), where("taskId", "==", taskDocId));
+  const subsQ = query(collection(doc(db, "users", userId()), "daily_subtasks"), where("taskId", "==", taskDocId));
   const subsSnap = await getDocs(subsQ);
 
   const batch = writeBatch(db);
@@ -189,7 +193,7 @@ export async function deleteDailyTask(id: number) {
 /** CREATE a subtask */
 export async function addDailySubtask(taskId: number, title: string) {
   const id = genId();
-  const subRef = doc(collection(db, "daily_subtasks"), docId(id));
+  const subRef = doc(collection(doc(db, "users", userId()), "daily_subtasks"), docId(id));
 
   await setDoc(subRef, {
     taskId: docId(taskId), // FK stored as string doc id
@@ -202,25 +206,25 @@ export async function addDailySubtask(taskId: number, title: string) {
 
 /** TOGGLE a subtask */
 export async function toggleDailySubtask(id: number, done: boolean) {
-  const subRef = doc(collection(db, "daily_subtasks"), docId(id));
+  const subRef = doc(collection(doc(db, "users", userId()), "daily_subtasks"), docId(id));
   await updateDoc(subRef, { done });
 }
 
 /** UPDATE a task (partial) */
 export async function updateDailyTask(id: number, fields: Partial<DailyTask>) {
-  const taskRef = doc(collection(db, "daily_tasks"), docId(id));
+  const taskRef = doc(collection(doc(db, "users", userId()), "daily_tasks"), docId(id));
   await updateDoc(taskRef, fields as any);
 }
 
 // ---------------- Tasks ----------------
 
 export async function updateTaskDetails(id: number, fields: { notes?: string | null; link?: string | null; fileRefs?: string | null }) {
-  const taskRef = doc(collection(db, "daily_tasks"), docId(id));
+  const taskRef = doc(collection(doc(db, "users", userId()), "daily_tasks"), docId(id));
   await updateDoc(taskRef, fields as any);
 }
 
 export async function deleteDailySubtask(id: number) {
-  const subRef = doc(collection(db, "daily_subtasks"), docId(id));
+  const subRef = doc(collection(doc(db, "users", userId()), "daily_subtasks"), docId(id));
   await deleteDoc(subRef);
 }
 
@@ -228,21 +232,21 @@ export async function deleteDailySubtask(id: number) {
 
 export async function getGoalsWithHabits(date: string = formatISODate(new Date())): Promise<GoalWithHabits[]> {
   // goals
-  const goalsSnap = await getDocs(collection(db, "goals"));
+  const goalsSnap = await getDocs(collection(doc(db, "users", userId()), "goals"));
   const goals: Goal[] = goalsSnap.docs.map((d) => ({
     id: Number(d.id),
     ...(d.data() as any),
   }));
 
   // habits
-  const habitsSnap = await getDocs(collection(db, "rhythm_tasks"));
+  const habitsSnap = await getDocs(collection(doc(db, "users", userId()), "rhythm_tasks"));
   const habits: RhythmTask[] = habitsSnap.docs.map((d) => ({
     id: Number(d.id),
     ...(d.data() as any),
   }));
 
   // completions for the date
-  const compsQ = query(collection(db, "habit_completions"), where("date", "==", date));
+  const compsQ = query(collection(doc(db, "users", userId()), "habit_completions"), where("date", "==", date));
   const completionsSnap = await getDocs(compsQ);
   const completions = completionsSnap.docs.map((d) => ({ ...(d.data() as any) }));
 
@@ -261,7 +265,7 @@ export async function getGoalsWithHabits(date: string = formatISODate(new Date()
 /** GOALS */
 export async function addGoal(category: string, title: string, deadline?: string | null) {
   const id = genId();
-  const goalRef = doc(collection(db, "goals"), docId(id));
+  const goalRef = doc(collection(doc(db, "users", userId()), "goals"), docId(id));
   await setDoc(goalRef, {
     category,
     title,
@@ -271,14 +275,14 @@ export async function addGoal(category: string, title: string, deadline?: string
 }
 
 export async function updateGoal(id: number, fields: Partial<{ category: string; title: string; deadline: string | null }>) {
-  const goalRef = doc(collection(db, "goals"), docId(id));
+  const goalRef = doc(collection(doc(db, "users", userId()), "goals"), docId(id));
   await updateDoc(goalRef, fields as any);
 }
 
 /** HABITS */
 export async function addHabit(goalId: number, name: string, type = "checkbox", target = 1, scheduleMask = "MTWTF--") {
   const id = genId();
-  const habitRef = doc(collection(db, "rhythm_tasks"), docId(id));
+  const habitRef = doc(collection(doc(db, "users", userId()), "rhythm_tasks"), docId(id));
   await setDoc(habitRef, {
     name,
     goalId, // stored as number; keep consistent across your schema
@@ -290,10 +294,10 @@ export async function addHabit(goalId: number, name: string, type = "checkbox", 
 }
 
 export async function deleteHabit(id: number) {
-  const habitRef = doc(collection(db, "rhythm_tasks"), docId(id));
+  const habitRef = doc(collection(doc(db, "users", userId()), "rhythm_tasks"), docId(id));
 
   // delete completions tied to this habit in a batch
-  const compsQ = query(collection(db, "habit_completions"), where("habitId", "==", id));
+  const compsQ = query(collection(doc(db, "users", userId()), "habit_completions"), where("habitId", "==", id));
   const compsSnap = await getDocs(compsQ);
 
   const batch = writeBatch(db);
@@ -305,12 +309,12 @@ export async function deleteHabit(id: number) {
 /** HABIT COMPLETIONS */
 export async function toggleHabitCompletion(habitId: number, date: string, value = 1) {
   // Find existing completion for (habitId, date)
-  const q = query(collection(db, "habit_completions"), where("habitId", "==", habitId), where("date", "==", date));
+  const q = query(collection(doc(db, "users", userId()), "habit_completions"), where("habitId", "==", habitId), where("date", "==", date));
   const snap = await getDocs(q);
 
   if (snap.empty) {
     // Create new completion doc
-    await addDoc(collection(db, "habit_completions"), { habitId, date, value });
+    await addDoc(collection(doc(db, "users", userId()), "habit_completions"), { habitId, date, value });
   } else {
     // Update first matching completion
     await updateDoc(snap.docs[0].ref, { value });
@@ -325,7 +329,7 @@ export async function deleteGoal(id: number) {
   const goalDocId = docId(id); // ensure this returns a string
 
   // 1) Fetch habits linked to the goal
-  const habitsQ = query(collection(db, "rhythm_tasks"), where("goalId", "==", id));
+  const habitsQ = query(collection(doc(db, "users", userId()), "rhythm_tasks"), where("goalId", "==", id));
   const habitsSnap = await getDocs(habitsQ);
 
   // Compute habit doc IDs (string) and the numeric FK values used in completions
@@ -336,10 +340,10 @@ export async function deleteGoal(id: number) {
   {
     const batch = writeBatch(db);
     // delete goal
-    batch.delete(doc(collection(db, "goals"), goalDocId));
+    batch.delete(doc(collection(doc(db, "users", userId()), "goals"), goalDocId));
     // delete all habit docs for this goal
     for (const hid of habitDocIds) {
-      batch.delete(doc(collection(db, "rhythm_tasks"), hid));
+      batch.delete(doc(collection(doc(db, "users", userId()), "rhythm_tasks"), hid));
     }
     await batch.commit();
   }
@@ -347,7 +351,7 @@ export async function deleteGoal(id: number) {
   // 3) Delete completions for those habits (respect `in` limit=10; also avoid huge batches)
   if (habitIdNumbers.length > 0) {
     for (const ids of chunk(habitIdNumbers, 10)) {
-      const compsQ = query(collection(db, "habit_completions"), where("habitId", "in", ids));
+      const compsQ = query(collection(doc(db, "users", userId()), "habit_completions"), where("habitId", "in", ids));
       const compsSnap = await getDocs(compsQ);
 
       // Commit deletions in batches to stay under Firestore write limits
@@ -360,14 +364,14 @@ export async function deleteGoal(id: number) {
 
 /** Read all rhythm tasks (habits). */
 export async function getRhythmTasks() {
-  const snap = await getDocs(collection(db, "rhythm_tasks"));
+  const snap = await getDocs(collection(doc(db, "users", userId()), "rhythm_tasks"));
   return snap.docs.map((d) => ({ id: Number(d.id), ...(d.data() as any) }));
 }
 
 /** Create a rhythm task (habit) with a generated ID. */
 export async function addRhythmTask(name: string) {
   const id = genId();
-  const ref = doc(collection(db, "rhythm_tasks"), docId(id)); // string ID
+  const ref = doc(collection(doc(db, "users", userId()), "rhythm_tasks"), docId(id)); // string ID
   await setDoc(ref, { name });
   return { id };
 }
@@ -375,7 +379,7 @@ export async function addRhythmTask(name: string) {
 /** Get weekly priorities + computed progress from tasks in the same week */
 export async function getWeeklyPriorities(weekStart: string) {
   // 1) priorities for the given week
-  const priQ = query(collection(db, "weekly_priorities"), where("weekStart", "==", weekStart));
+  const priQ = query(collection(doc(db, "users", userId()), "weekly_priorities"), where("weekStart", "==", weekStart));
   const prioritiesSnap = await getDocs(priQ);
 
   const priorities: WeeklyPriority[] = prioritiesSnap.docs.map((d) => ({
@@ -387,7 +391,7 @@ export async function getWeeklyPriorities(weekStart: string) {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
 
-  const tasksQ = query(collection(db, "daily_tasks"), where("date", ">=", weekStart), where("date", "<=", formatISODate(weekEnd)));
+  const tasksQ = query(collection(doc(db, "users", userId()), "daily_tasks"), where("date", ">=", weekStart), where("date", "<=", formatISODate(weekEnd)));
   const tasksSnap = await getDocs(tasksQ);
 
   const tasks = tasksSnap.docs.map((d) => ({
@@ -408,18 +412,18 @@ export async function getWeeklyPriorities(weekStart: string) {
 /** Create a weekly priority */
 export async function addWeeklyPriority(title: string, weekStart: string, tag: string, level: string) {
   const id = genId();
-  const ref = doc(collection(db, "weekly_priorities"), docId(id));
+  const ref = doc(collection(doc(db, "users", userId()), "weekly_priorities"), docId(id));
   await setDoc(ref, { id, title, weekStart, tag, level });
   return { id };
 }
 
 /** Patch a weekly priority */
 export async function updateWeeklyPriority(id: number, fields: Partial<{ title: string; weekStart: string; tag: string; level: string }>) {
-  const ref = doc(collection(db, "weekly_priorities"), docId(id));
+  const ref = doc(collection(doc(db, "users", userId()), "weekly_priorities"), docId(id));
   await updateDoc(ref, fields as any);
 }
 
 export async function deleteWeeklyPriority(id: number) {
-  const ref = doc(collection(db, "weekly_priorities"), docId(id));
+  const ref = doc(collection(doc(db, "users", userId()), "weekly_priorities"), docId(id));
   await deleteDoc(ref);
 }
