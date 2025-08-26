@@ -30,7 +30,7 @@ export function useGoals() {
     if (!category || !title.trim()) return;
     try {
       const res = await addGoal(category, title, deadline);
-      const id = Number((res as any)?.lastInsertRowid ?? (res as any)?.insertId);
+      const id = res.id;
       setGoals((prev) => [...prev, { id, category, title, deadline: deadline ?? null, habits: [] }]);
     } catch (err) {
       console.error(err);
@@ -52,7 +52,7 @@ export function useGoals() {
     if (!name.trim()) return;
     try {
       const res = await addHabit(goalId, name);
-      const id = Number((res as any)?.lastInsertRowid ?? (res as any)?.insertId);
+      const id = res.id;
       const scheduleMask = "MTWTF--";
       const dueToday = isHabitDue(scheduleMask, new Date());
       setGoals((prev) =>

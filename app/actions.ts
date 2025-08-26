@@ -371,13 +371,9 @@ export async function deleteGoal(id: number) {
   {
     const batch = writeBatch(db);
     // delete goal
-    const user = await getCurrentUser();
-    if (!user) throw new Error("Not authenticated");
     batch.delete(doc(userCol(user.uid, "goals"), goalDocId));
     // delete all habit docs for this goal
     for (const hid of habitDocIds) {
-      const user = await getCurrentUser();
-      if (!user) throw new Error("Not authenticated");
       batch.delete(doc(userCol(user.uid, "rhythm_tasks"), hid));
     }
     await batch.commit();
@@ -386,8 +382,6 @@ export async function deleteGoal(id: number) {
   // 3) Delete completions for those habits (respect `in` limit=10; also avoid huge batches)
   if (habitIdNumbers.length > 0) {
     for (const ids of chunk(habitIdNumbers, 10)) {
-      const user = await getCurrentUser();
-      if (!user) throw new Error("Not authenticated");
       const compsQ = query(userCol(user.uid, "habit_completions"), where("habitId", "in", ids));
       const compsSnap = await getDocs(compsQ);
 

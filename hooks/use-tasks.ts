@@ -64,7 +64,7 @@ export function useTasks(date: string) {
       const reminderISO = reminder ? `${date}T${reminder}` : null;
       const priorityId = priority && priority !== "none" ? Number(priority) : undefined;
       const res = await addDailyTask(title, date, tag, deadlineISO, reminderISO, priorityId);
-      const id = Number((res as any)?.lastInsertRowid ?? (res as any)?.insertId);
+      const id = res.id;
       const now = Date.now();
       let dueLabel: string | undefined;
       let hot = false;
@@ -136,7 +136,7 @@ export function useTasks(date: string) {
     if (!title?.trim()) return;
     try {
       const res = await addDailySubtask(taskId, title);
-      const id = Number((res as any)?.lastInsertRowid ?? (res as any)?.insertId);
+      const id = res.id;
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: [...t.subtasks, { id, taskId, title, done: false }] } : t)));
     } catch (err: any) {
       console.error(err);
