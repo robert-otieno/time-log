@@ -3,24 +3,19 @@ import { auth, db } from "@/db";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
 import { collection, doc, getDocs, query, where } from "firebase/firestore";
-import { verifyToken } from "@/lib/verify-token";
-import { cookies } from "next/headers";
+import { getUserIdFromRequest } from "@/lib/get-authenticated-user";
 
 const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  const cookieToken = (await cookies()).get("token")?.value;
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : cookieToken;
-  const decoded = await verifyToken(token);
-  if (!decoded?.user_id) {
+  const userId = await getUserIdFromRequest(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const uid = decoded.user_id;
   const today = formatISODate(new Date());
 
   // 1) Load all habits for the current user
-  const habitsSnap = await getDocs(collection(doc(db, "users", uid), "rhythm_tasks"));
+  const habitsSnap = await getDocs(collection(doc(db, "users", userId), "rhythm_tasks"));
   const allHabits = habitsSnap.docs.map((d) => ({ id: Number(d.id), ...(d.data() as any) }));
 
   // 2) Keep only habits due today (by schedule mask)
@@ -32,7 +27,7 @@ export async function GET(req: Request) {
 
   for (const ids of chunk(habitIds, 10)) {
     // If you store habitId as a number in completions:
-    const compsQ = query(collection(doc(db, "users", uid), "habit_completions"), where("habitId", "in", ids), where("date", "==", today));
+    const compsQ = query(collection(doc(db, "users", userId), "habit_completions"), where("habitId", "in", ids), where("date", "==", today));
     const compsSnap = await getDocs(compsQ);
     compsSnap.forEach((doc) => {
       const c = doc.data() as { habitId: number; date: string; value: number };

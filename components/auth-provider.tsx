@@ -1,37 +1,20 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
-import { usePathname, useRouter } from "next/navigation";
-
+import { ReactNode, createContext, useEffect, useState } from "react";
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { auth } from "@/db";
 
-interface AuthContextValue {
-  user: User | null;
-}
-
-const AuthContext = createContext<AuthContextValue>({ user: null });
+export const AuthContext = createContext<FirebaseUser | null | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const router = useRouter();
-  const pathname = usePathname();
+  const [user, setUser] = useState<FirebaseUser | null | undefined>(undefined);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      if (!firebaseUser && pathname !== "/login") {
-        router.push("/login");
-      } else if (firebaseUser && pathname === "/login") {
-        router.push("/");
-      }
-    });
-    return () => unsubscribe();
-  }, [router, pathname]);
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return unsubscribe;
+  }, []);
 
-  return <AuthContext.Provider value={{ user }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={user}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export default AuthProvider;

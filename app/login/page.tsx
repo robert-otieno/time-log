@@ -5,11 +5,10 @@ import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
 import { auth } from "@/db";
-import { useAuth } from "@/components/auth-provider";
 import { LoginForm } from "@/components/login-form";
 
 export default function LoginPage() {
-  const { user } = useAuth();
+  const user = auth.currentUser;
   const router = useRouter();
 
   useEffect(() => {

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { formatISODate } from "@/lib/date-utils";
-import { cookies } from "next/headers";
 
 import { collection, getDocs, query, where, documentId, doc } from "firebase/firestore";
 import { db } from "@/db";
-import { verifyToken } from "@/lib/verify-token";
+import { getUserIdFromRequest } from "@/lib/get-authenticated-user";
 
 // Firestore `in` operator accepts at most 10 values
 const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
@@ -12,18 +11,15 @@ const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(
 type EventRow = { id: number; remaining: number; habit: string };
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  const cookieToken = (await cookies()).get("token")?.value;
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : cookieToken;
-  const decoded = await verifyToken(token);
-  if (!decoded?.user_id) {
+  // 0) Verify user auth
+  const userId = await getUserIdFromRequest(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const uid = decoded.user_id;
   const today = formatISODate(new Date());
 
   // 1) Load today's pending nudges for the current user
-  const nudgesQ = query(collection(doc(db, "users", uid), "nudge_events"), where("date", "==", today), where("status", "==", "pending"));
+  const nudgesQ = query(collection(doc(db, "users", userId), "nudge_events"), where("date", "==", today), where("status", "==", "pending"));
   const nudgesSnap = await getDocs(nudgesQ);
 
   if (nudgesSnap.empty) {
@@ -37,7 +33,7 @@ export async function GET(req: Request) {
   const habitNameById = new Map<string, string>();
 
   for (const ids of chunk(habitIds, 10)) {
-    const habitsQ = query(collection(doc(db, "users", uid), "rhythm_tasks"), where(documentId(), "in", ids));
+    const habitsQ = query(collection(doc(db, "users", userId), "rhythm_tasks"), where(documentId(), "in", ids));
     const habitsSnap = await getDocs(habitsQ);
     habitsSnap.forEach((h) => {
       const name = (h.data() as any)?.name ?? "";

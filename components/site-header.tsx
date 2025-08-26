@@ -11,12 +11,12 @@ import { useEffect, useState } from "react";
 import { CommandMenu } from "./command-menu";
 import { signOut } from "firebase/auth";
 import { auth } from "@/db";
-import { useAuth } from "@/components/auth-provider";
+// import { useAuth } from "@/components/auth-provider";
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
+  const user = auth.currentUser;
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -46,7 +46,7 @@ export function SiteHeader() {
           </Breadcrumb>
           <SearchForm className="w-full sm:ml-auto sm:w-auto" />
           {user && (
-            <Button variant="ghost" size='icon' onClick={() => signOut(auth)} className="ml-2">
+            <Button variant="ghost" size="icon" onClick={() => signOut(auth)} className="ml-2">
               <Power />
             </Button>
           )}
