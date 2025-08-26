@@ -10,7 +10,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
 import { CommandMenu } from "./command-menu";
 import { signOut } from "firebase/auth";
-import { auth } from "@/db";
+// import { auth } from "@/db";
 import { useRouter } from "next/navigation";
 
 export function SiteHeader() {

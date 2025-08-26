@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { formatISODate } from "@/lib/date-utils";
 import { userCol } from "@/lib/user-collection";
+import { FieldValue } from "firebase-admin/firestore";
 import { query, where, getDocs, setDoc, doc, updateDoc, writeBatch, deleteDoc, addDoc } from "firebase/firestore";
 
 function genId() {
@@ -245,153 +246,199 @@ export async function deleteDailySubtask(id: number) {
 
 // -------------- Goals & Habits ----------------
 
-export async function getGoalsWithHabits(date: string = formatISODate(new Date())): Promise<GoalWithHabits[]> {
-  // goals
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-  const goalsSnap = await getDocs(userCol(user.uid, "goals"));
-  const goals: Goal[] = goalsSnap.docs.map((d) => ({
-    id: Number(d.id),
-    ...(d.data() as any),
-  }));
+// export async function getGoalsWithHabits(date: string = formatISODate(new Date())): Promise<GoalWithHabits[]> {
+//   // goals
+//   const user = await getCurrentUser();
+//   if (!user) throw new Error("Not authenticated");
+//   const goalsSnap = await getDocs(userCol(user.uid, "goals"));
+//   const goals: Goal[] = goalsSnap.docs.map((d) => ({
+//     id: Number(d.id),
+//     ...(d.data() as any),
+//   }));
 
-  // habits
-  const habitsSnap = await getDocs(userCol(user.uid, "rhythm_tasks"));
-  const habits: RhythmTask[] = habitsSnap.docs.map((d) => ({
-    id: Number(d.id),
-    ...(d.data() as any),
-  }));
+//   // habits
+//   const habitsSnap = await getDocs(userCol(user.uid, "rhythm_tasks"));
+//   const habits: RhythmTask[] = habitsSnap.docs.map((d) => ({
+//     id: Number(d.id),
+//     ...(d.data() as any),
+//   }));
 
-  // completions for the date
-  const compsQ = query(userCol(user.uid, "habit_completions"), where("date", "==", date));
-  const completionsSnap = await getDocs(compsQ);
-  const completions = completionsSnap.docs.map((d) => ({ ...(d.data() as any) }));
+//   // completions for the date
+//   const compsQ = query(userCol(user.uid, "habit_completions"), where("date", "==", date));
+//   const completionsSnap = await getDocs(compsQ);
+//   const completions = completionsSnap.docs.map((d) => ({
+//     id: Number(d.id),
+//     ...(d.data() as any),
+//   }));
 
-  // assemble
-  return goals.map((g) => ({
-    ...g,
-    habits: habits
-      .filter((h) => h.goalId === g.id)
-      .map((h) => ({
-        ...h,
-        completions: completions.filter((c) => c.habitId === h.id).map((c) => ({ date: c.date, value: c.value })),
-      })),
-  }));
-}
+//   // assemble
+//   return goals.map((g) => ({
+//     ...g,
+//     habits: habits
+//       .filter((h) => h.goalId === g.id)
+//       .map((h) => ({
+//         ...h,
+//         completions: completions.filter((c) => c.habitId === h.id).map((c) => ({ date: c.date, value: c.value })),
+//       })),
+//   }));
+// }
 
 /** GOALS */
-export async function addGoal(category: string, title: string, deadline?: string | null) {
-  const id = genId();
+// export async function addGoal(category: string, title: string, deadline?: string | null) {
+//   const id = genId();
+//   const user = await getCurrentUser();
+//   if (!user) throw new Error("Not authenticated");
+//   const goalRef = doc(userCol(user.uid, "goals"), docId(id));
+//   await setDoc(goalRef, {
+//     category,
+//     title,
+//     deadline: deadline ?? null,
+//   });
+//   return { id };
+// }
+
+type CreateGoalInput = {
+  category: string;
+  title: string;
+  description?: string | null;
+  targetDate?: string | null;
+};
+
+export async function createGoal(input: CreateGoalInput) {
   const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-  const goalRef = doc(userCol(user.uid, "goals"), docId(id));
-  await setDoc(goalRef, {
-    category,
-    title,
-    deadline: deadline ?? null,
-  });
-  return { id };
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const id = crypto.randomUUID();
+
+  const ref = db.collection("users").doc(user.uid).collection("goals").doc(id);
+
+  const payload = {
+    id,
+    title: input.title.trim(),
+    description: input.description ?? null,
+    category: input.category ?? "",
+    targetDate: input.targetDate ?? null,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+    // any defaults you use elsewhere:
+    // status: "active",
+    // progress: 0,
+    // tags: [],
+  };
+
+  await ref.set(payload);
+
+  // Read back once to materialize server timestamps
+  const snap = await ref.get();
+  if (!snap.exists) {
+    throw new Error("Goal creation failed (document missing after write).");
+  }
+
+  // Return the created doc data (typed as you need in your app)
+  return snap.data();
 }
 
-export async function updateGoal(id: number, fields: Partial<{ category: string; title: string; deadline: string | null }>) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-  const goalRef = doc(userCol(user.uid, "goals"), docId(id));
-  await updateDoc(goalRef, fields as any);
-}
+// export async function updateGoal(id: number, fields: Partial<{ category: string; title: string; deadline: string | null }>) {
+//   const user = await getCurrentUser();
+//   if (!user) throw new Error("Not authenticated");
+//   const goalRef = doc(userCol(user.uid, "goals"), docId(id));
+//   await updateDoc(goalRef, fields as any);
+// }
 
 /** HABITS */
-export async function addHabit(goalId: number, name: string, type = "checkbox", target = 1, scheduleMask = "MTWTF--") {
-  const id = genId();
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-  const habitRef = doc(userCol(user.uid, "rhythm_tasks"), docId(id));
-  await setDoc(habitRef, {
-    name,
-    goalId, // stored as number; keep consistent across your schema
-    type,
-    target,
-    scheduleMask,
-  });
-  return { id };
-}
+// export async function addHabit(goalId: number, name: string, type = "checkbox", target = 1, scheduleMask = "MTWTF--") {
+//   const id = genId();
+//   const user = await getCurrentUser();
+//   if (!user) throw new Error("Not authenticated");
+//   const habitRef = doc(userCol(user.uid, "rhythm_tasks"), docId(id));
+//   await setDoc(habitRef, {
+//     name,
+//     goalId, // stored as number; keep consistent across your schema
+//     type,
+//     target,
+//     scheduleMask,
+//   });
+//   return { id };
+// }
 
-export async function deleteHabit(id: number) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-  const habitRef = doc(userCol(user.uid, "rhythm_tasks"), docId(id));
+// export async function deleteHabit(id: number) {
+//   const user = await getCurrentUser();
+//   if (!user) throw new Error("Not authenticated");
+//   const habitRef = doc(userCol(user.uid, "rhythm_tasks"), docId(id));
 
-  // delete completions tied to this habit in a batch
-  const compsQ = query(userCol(user.uid, "habit_completions"), where("habitId", "==", id));
-  const compsSnap = await getDocs(compsQ);
+//   // delete completions tied to this habit in a batch
+//   const compsQ = query(userCol(user.uid, "habit_completions"), where("habitId", "==", id));
+//   const compsSnap = await getDocs(compsQ);
 
-  const batch = writeBatch(db);
-  batch.delete(habitRef);
-  compsSnap.forEach((d) => batch.delete(d.ref));
-  await batch.commit();
-}
+//   const batch = writeBatch(db);
+//   batch.delete(habitRef);
+//   compsSnap.forEach((d) => batch.delete(d.ref));
+//   await batch.commit();
+// }
 
 /** HABIT COMPLETIONS */
-export async function toggleHabitCompletion(habitId: number, date: string, value = 1) {
-  // Find existing completion for (habitId, date)
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-  const q = query(userCol(user.uid, "habit_completions"), where("habitId", "==", habitId), where("date", "==", date));
-  const snap = await getDocs(q);
+// export async function toggleHabitCompletion(habitId: number, date: string, value = 1) {
+//   // Find existing completion for (habitId, date)
+//   const user = await getCurrentUser();
+//   if (!user) throw new Error("Not authenticated");
+//   const q = query(userCol(user.uid, "habit_completions"), where("habitId", "==", habitId), where("date", "==", date));
+//   const snap = await getDocs(q);
 
-  if (snap.empty) {
-    // Create new completion doc
-    const user = await getCurrentUser();
-    if (!user) throw new Error("Not authenticated");
-    await addDoc(userCol(user.uid, "habit_completions"), { habitId, date, value });
-  } else {
-    // Update first matching completion
-    await updateDoc(snap.docs[0].ref, { value });
-  }
-}
+//   if (snap.empty) {
+//     // Create new completion doc
+//     const user = await getCurrentUser();
+//     if (!user) throw new Error("Not authenticated");
+//     await addDoc(userCol(user.uid, "habit_completions"), { habitId, date, value });
+//   } else {
+//     // Update first matching completion
+//     await updateDoc(snap.docs[0].ref, { value });
+//   }
+// }
 
-// Small helpers
-const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
+// // Small helpers
+// const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
 
 /** Delete a goal, all its habits, and their completions. */
-export async function deleteGoal(id: number) {
-  const goalDocId = docId(id); // ensure this returns a string
+// export async function deleteGoal(id: number) {
+//   const goalDocId = docId(id); // ensure this returns a string
 
-  // 1) Fetch habits linked to the goal
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-  const habitsQ = query(userCol(user.uid, "rhythm_tasks"), where("goalId", "==", id));
-  const habitsSnap = await getDocs(habitsQ);
+//   // 1) Fetch habits linked to the goal
+//   const user = await getCurrentUser();
+//   if (!user) throw new Error("Not authenticated");
+//   const habitsQ = query(userCol(user.uid, "rhythm_tasks"), where("goalId", "==", id));
+//   const habitsSnap = await getDocs(habitsQ);
 
-  // Compute habit doc IDs (string) and the numeric FK values used in completions
-  const habitDocIds = habitsSnap.docs.map((d) => d.id);
-  const habitIdNumbers = habitsSnap.docs.map((d) => Number(d.id)); // adjust if you store habitId as string
+//   // Compute habit doc IDs (string) and the numeric FK values used in completions
+//   const habitDocIds = habitsSnap.docs.map((d) => d.id);
+//   const habitIdNumbers = habitsSnap.docs.map((d) => Number(d.id)); // adjust if you store habitId as string
 
-  // 2) Delete the goal + its habits in a single batch
-  {
-    const batch = writeBatch(db);
-    // delete goal
-    batch.delete(doc(userCol(user.uid, "goals"), goalDocId));
-    // delete all habit docs for this goal
-    for (const hid of habitDocIds) {
-      batch.delete(doc(userCol(user.uid, "rhythm_tasks"), hid));
-    }
-    await batch.commit();
-  }
+//   // 2) Delete the goal + its habits in a single batch
+//   {
+//     const batch = writeBatch(db);
+//     // delete goal
+//     batch.delete(doc(userCol(user.uid, "goals"), goalDocId));
+//     // delete all habit docs for this goal
+//     for (const hid of habitDocIds) {
+//       batch.delete(doc(userCol(user.uid, "rhythm_tasks"), hid));
+//     }
+//     await batch.commit();
+//   }
 
-  // 3) Delete completions for those habits (respect `in` limit=10; also avoid huge batches)
-  if (habitIdNumbers.length > 0) {
-    for (const ids of chunk(habitIdNumbers, 10)) {
-      const compsQ = query(userCol(user.uid, "habit_completions"), where("habitId", "in", ids));
-      const compsSnap = await getDocs(compsQ);
+//   // 3) Delete completions for those habits (respect `in` limit=10; also avoid huge batches)
+//   if (habitIdNumbers.length > 0) {
+//     for (const ids of chunk(habitIdNumbers, 10)) {
+//       const compsQ = query(userCol(user.uid, "habit_completions"), where("habitId", "in", ids));
+//       const compsSnap = await getDocs(compsQ);
 
-      // Commit deletions in batches to stay under Firestore write limits
-      const batch = writeBatch(db);
-      compsSnap.forEach((c) => batch.delete(c.ref));
-      await batch.commit();
-    }
-  }
-}
+//       // Commit deletions in batches to stay under Firestore write limits
+//       const batch = writeBatch(db);
+//       compsSnap.forEach((c) => batch.delete(c.ref));
+//       await batch.commit();
+//     }
+//   }
+// }
 
 /** Read all rhythm tasks (habits). */
 export async function getRhythmTasks() {

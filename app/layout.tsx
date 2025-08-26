@@ -31,16 +31,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}>
-        <AuthProvider>
-          <AuthGuard>
+        {/* <AuthGuard> */}
+          <AuthProvider>
             <SelectedDateProvider>
               <FocusModeProvider>
                 <NudgeBanner />
                 {children}
               </FocusModeProvider>
             </SelectedDateProvider>
-          </AuthGuard>
-        </AuthProvider>
+          </AuthProvider>
+        {/* </AuthGuard> */}
         <Toaster />
       </body>
     </html>
