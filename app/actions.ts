@@ -1,4 +1,8 @@
-// "use server";
+"use server";
+
+import { db } from "@/db";
+import { getCurrentUser } from "@/lib/auth";
+import { FieldValue } from "firebase-admin/firestore";
 
 // import { db } from "@/db";
 // import { getCurrentUser } from "@/lib/auth";
@@ -103,11 +107,6 @@ type DailyTask = {
   date: string; // "YYYY-MM-DD"
   done: boolean;
 };
-("use server");
-
-import { db } from "@/db";
-import { getCurrentUser } from "@/lib/auth";
-import { FieldValue } from "firebase-admin/firestore";
 
 const COL_PRIORITIES = "weekly_priorities";
 const COL_TASKS = "daily_tasks";
@@ -115,7 +114,6 @@ const COL_TASKS = "daily_tasks";
 function addDaysISO(isoDate: string, days: number): string {
   const d = new Date(isoDate + "T00:00:00");
   d.setDate(d.getDate() + days);
-  // to YYYY-MM-DD
   return d.toISOString().slice(0, 10);
 }
 

@@ -9,7 +9,7 @@ import { tagOptions } from "@/lib/tasks";
 
 interface TaskFormProps {
   onAdd: (title: string, tag: string, deadline: string, reminder: string, priority: string) => Promise<void>;
-  weeklyPriorities: { id: number; title: string; level: string }[];
+  weeklyPriorities: { id: string; title: string; level: string }[];
 }
 
 export default function TaskForm({ onAdd, weeklyPriorities }: TaskFormProps) {
@@ -96,7 +96,7 @@ export default function TaskForm({ onAdd, weeklyPriorities }: TaskFormProps) {
           <SelectContent>
             <SelectItem value="none">None</SelectItem>
             {weeklyPriorities.map((p) => (
-              <SelectItem key={p.id} value={String(p.id)}>
+              <SelectItem key={p.id} value={p.id}>
                 {p.title}
               </SelectItem>
             ))}

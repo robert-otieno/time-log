@@ -9,7 +9,7 @@ export type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; coun
 
 export function useTasks(date: string) {
   const [tasks, setTasks] = useState<UITask[]>([]);
-  const [weeklyPriorities, setWeeklyPriorities] = useState<{ id: number; title: string; level: string }[]>([]);
+  const [weeklyPriorities, setWeeklyPriorities] = useState<{ id: string; title: string; level: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,8 +53,15 @@ export function useTasks(date: string) {
       if (!title.trim()) return;
       const deadlineISO = deadline && deadline.length <= 5 && !deadline.includes("T") ? `${date}T${deadline}` : deadline || null;
       const reminderISO = reminder ? `${date}T${reminder}` : null;
-      const priorityId = priority && priority !== "none" ? Number(priority) : undefined;
-      const res = await addDailyTask({ title, date, tag, deadlineISO, reminderISO, priorityId });
+      const priorityId = priority && priority !== "none" ? priority : undefined;
+      const res = await addDailyTask({
+        title,
+        date,
+        tag,
+        deadline: deadlineISO,
+        reminderTime: reminderISO,
+        weeklyPriorityId: priorityId,
+      });
       const id = res.id;
       const now = Date.now();
       let dueLabel: string | undefined;
@@ -81,10 +88,10 @@ export function useTasks(date: string) {
           link: null,
           fileRefs: null,
           subtasks: [],
-          priority: priorityObj,
+          priority: priorityObj as any,
           dueLabel,
           hot,
-        },
+        } as UITask,
       ]);
     } catch (err) {
       console.error(err);
@@ -92,7 +99,7 @@ export function useTasks(date: string) {
     }
   }
 
-  async function toggleTask(id: number, done: boolean) {
+  async function toggleTask(id: string, done: boolean) {
     try {
       await toggleDailyTask(id, !done);
       setTasks((prev) =>
@@ -113,7 +120,7 @@ export function useTasks(date: string) {
     }
   }
 
-  async function deleteTask(id: number) {
+  async function deleteTask(id: string) {
     try {
       await deleteDailyTask(id);
       setTasks((prev) => prev.filter((t) => t.id !== id));
@@ -127,14 +134,14 @@ export function useTasks(date: string) {
     if (!title?.trim()) return;
     try {
       const res = await addDailySubtask({ taskId, title });
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: [...t.subtasks, { id, taskId, title, done: false }] } : t)));
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: [...t.subtasks, { id: res!.id, taskId, title, done: false }] } : t)));
     } catch (err: any) {
       console.error(err);
       toast.error("Error Adding Subtask", err);
     }
   }
 
-  async function toggleSubtask(id: number, done: boolean) {
+  async function toggleSubtask(id: string, done: boolean) {
     try {
       await toggleDailySubtask(id, !done);
       setTasks((prev) =>
@@ -154,7 +161,7 @@ export function useTasks(date: string) {
     }
   }
 
-  async function deleteSubtask(id: number) {
+  async function deleteSubtask(id: string) {
     try {
       await deleteDailySubtask(id);
       setTasks((prev) => prev.map((t) => (t.subtasks.some((s) => s.id === id) ? { ...t, subtasks: t.subtasks.filter((s) => s.id !== id) } : t)));
@@ -165,10 +172,10 @@ export function useTasks(date: string) {
     }
   }
 
-  async function updateTask(id: number, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) {
+  async function updateTask(id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) {
     const deadlineISO = values.deadline && values.deadline.length <= 5 && !values.deadline.includes("T") ? `${date}T${values.deadline}` : values.deadline || null;
     const reminderISO = values.reminder ? `${date}T${values.reminder}` : null;
-    const priorityId = values.priority && values.priority !== "none" ? Number(values.priority) : null;
+    const priorityId = values.priority && values.priority !== "none" ? values.priority : null;
     await updateDailyTask(id, {
       title: values.title,
       tag: values.tag,
@@ -195,10 +202,10 @@ export function useTasks(date: string) {
           deadline: deadlineISO,
           reminderTime: reminderISO,
           weeklyPriorityId: priorityId ?? undefined,
-          priority: priorityObj,
+          priority: priorityObj as any,
           dueLabel,
           hot,
-        };
+        } as UITask;
       })
     );
   }

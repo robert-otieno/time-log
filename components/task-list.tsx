@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatISODateString } from "@/lib/date-utils";
 import TaskForm from "@/components/task-form";
 import TaskItem from "@/components/task-item";
@@ -18,7 +18,7 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
   const { selectedDate: date } = useSelectedDate();
   const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, loadTasks } = useTasks(date);
   const [editingTask, setEditingTask] = useState<UITask | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -114,13 +114,7 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
         </CardContent>
       </Card>
 
-      <TaskEditSheet
-        task={editingTask}
-        open={editingTask !== null}
-        onOpenChange={(o) => !o && setEditingTask(null)}
-        weeklyPriorities={weeklyPriorities}
-        onSave={updateTask}
-      />
+      <TaskEditSheet task={editingTask} open={editingTask !== null} onOpenChange={(o) => !o && setEditingTask(null)} weeklyPriorities={weeklyPriorities} onSave={updateTask} />
 
       <TaskDetailsSheet
         task={tasks.find((t) => t.id === selectedTaskId) ?? null}

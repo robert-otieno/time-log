@@ -8,7 +8,7 @@ import { getUserIdFromRequest } from "@/lib/get-authenticated-user";
 // Firestore `in` operator accepts at most 10 values
 const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
 
-type EventRow = { id: number; remaining: number; habit: string };
+type EventRow = { id: string; remaining: number; habit: string };
 
 export async function GET(req: Request) {
   // 0) Verify user auth
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
     const data = doc.data() as any;
     const hid = String(data.habitId);
     return {
-      id: Number(doc.id),
+      id: doc.id,
       remaining: data.remaining ?? 0,
       habit: habitNameById.get(hid) ?? "",
     };

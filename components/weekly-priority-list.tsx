@@ -15,12 +15,13 @@ import { getWeeklyPriorities, addWeeklyPriority, deleteWeeklyPriority, updateWee
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface Priority {
-  id: number;
+  id: string;
   title: string;
-  tag?: string;
-  level?: string;
+  tag?: string | null;
+  level?: string | null;
   progress?: number;
   completed?: boolean;
+  weekStart: string;
 }
 
 export default function WeeklyPriorityList() {
@@ -36,7 +37,7 @@ export default function WeeklyPriorityList() {
   const [newPriority, setNewPriority] = useState("");
   const [newPriorityLevel, setNewPriorityLevel] = useState("medium");
   const [filter, setFilter] = useState<"all" | "work" | "personal">("all");
-  const [editingPriorityId, setEditingPriorityId] = useState<number | null>(null);
+  const [editingPriorityId, setEditingPriorityId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingLevel, setEditingLevel] = useState("medium");
   const visible = priorities.filter((p) => filter === "all" || p.tag === filter);
@@ -59,12 +60,12 @@ export default function WeeklyPriorityList() {
     await loadPriorities();
   }
 
-  async function handleDeletePriority(id: number) {
+  async function handleDeletePriority(id: string) {
     await deleteWeeklyPriority(id);
     await loadPriorities();
   }
 
-  async function handleRenamePriority(id: number) {
+  async function handleRenamePriority(id: string) {
     if (!editingTitle.trim()) {
       setEditingPriorityId(null);
       return;

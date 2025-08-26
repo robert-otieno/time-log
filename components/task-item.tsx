@@ -17,29 +17,18 @@ import { tagOptions } from "@/lib/tasks";
 
 interface TaskItemProps {
   task: UITask;
-  onToggleTask: (id: number, done: boolean) => Promise<void>;
-  onDeleteTask: (id: number) => Promise<void>;
-  onAddSubtask: (taskId: number, title: string) => Promise<void>;
-  onToggleSubtask: (id: number, done: boolean) => Promise<void>;
-  onDeleteSubtask: (id: number) => Promise<void>;
+  onToggleTask: (id: string, done: boolean) => Promise<void>;
+  onDeleteTask: (id: string) => Promise<void>;
+  onAddSubtask: (taskId: string, title: string) => Promise<void>;
+  onToggleSubtask: (id: string, done: boolean) => Promise<void>;
+  onDeleteSubtask: (id: string) => Promise<void>;
   onEdit: (task: UITask) => void;
-  onSelect: (id: number) => void;
-  onUpdateTask: (id: number, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
-  weeklyPriorities: { id: number; title: string; level: string }[];
+  onSelect: (id: string) => void;
+  onUpdateTask: (id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
+  weeklyPriorities: { id: string; title: string; level: string }[];
 }
 
-export default function TaskItem({
-  task,
-  onToggleTask,
-  onDeleteTask,
-  onAddSubtask,
-  onToggleSubtask,
-  onDeleteSubtask,
-  onEdit,
-  onSelect,
-  onUpdateTask,
-  weeklyPriorities,
-}: TaskItemProps) {
+export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onEdit, onSelect, onUpdateTask, weeklyPriorities }: TaskItemProps) {
   const [open, setOpen] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [editingTitle, setEditingTitle] = useState(false);
@@ -105,21 +94,9 @@ export default function TaskItem({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               {editingTitle ? (
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  onBlur={handleTitleSave}
-                  onKeyDown={(e) => e.key === "Enter" && handleTitleSave()}
-                  className="h-7 w-auto text-sm"
-                  autoFocus
-                />
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={handleTitleSave} onKeyDown={(e) => e.key === "Enter" && handleTitleSave()} className="h-7 w-auto text-sm" autoFocus />
               ) : (
-                <span
-                  className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`}
-                  onDoubleClick={() => setEditingTitle(true)}
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && setEditingTitle(true)}
-                >
+                <span className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`} onDoubleClick={() => setEditingTitle(true)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setEditingTitle(true)}>
                   {task.title}
                 </span>
               )}
@@ -173,7 +150,7 @@ export default function TaskItem({
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {weeklyPriorities.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
+                      <SelectItem key={p.id} value={p.id}>
                         {p.title}
                       </SelectItem>
                     ))}
@@ -181,9 +158,7 @@ export default function TaskItem({
                 </Select>
               )}
 
-              {typeof task.count === "number" && (
-                <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">{task.count}</span>
-              )}
+              {typeof task.count === "number" && <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">{task.count}</span>}
             </div>
           </div>
 
@@ -223,13 +198,7 @@ export default function TaskItem({
               </li>
             ))}
             <li className="flex items-center gap-2">
-              <Input
-                placeholder="Add subtask"
-                value={newSubtask}
-                onChange={(e) => setNewSubtask(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()}
-                className="flex-1"
-              />
+              <Input placeholder="Add subtask" value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()} className="flex-1" />
               <Button size="icon" onClick={handleAddSubtask} aria-label="Add subtask">
                 <Plus className="h-4 w-4" />
               </Button>

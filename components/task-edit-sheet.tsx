@@ -12,8 +12,8 @@ interface TaskEditSheetProps {
   task: UITask | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  weeklyPriorities: { id: number; title: string; level: string }[];
-  onSave: (id: number, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
+  weeklyPriorities: { id: string; title: string; level: string }[];
+  onSave: (id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
 }
 
 export default function TaskEditSheet({ task, open, onOpenChange, weeklyPriorities, onSave }: TaskEditSheetProps) {
@@ -46,12 +46,7 @@ export default function TaskEditSheet({ task, open, onOpenChange, weeklyPrioriti
         <div className="flex flex-col gap-3 p-4">
           <Input placeholder="Title" value={values.title} onChange={(e) => setValues((prev) => ({ ...prev, title: e.target.value }))} />
           <Input type="time" value={values.deadline} onChange={(e) => setValues((prev) => ({ ...prev, deadline: e.target.value }))} aria-label="Deadline" />
-          <Input
-            type="time"
-            value={values.reminder}
-            onChange={(e) => setValues((prev) => ({ ...prev, reminder: e.target.value }))}
-            aria-label="Reminder time"
-          />
+          <Input type="time" value={values.reminder} onChange={(e) => setValues((prev) => ({ ...prev, reminder: e.target.value }))} aria-label="Reminder time" />
           <Select value={values.tag} onValueChange={(v) => setValues((prev) => ({ ...prev, tag: v }))}>
             <SelectTrigger className="h-9 w-full" aria-label="Select tag">
               <SelectValue placeholder="Tag" />
@@ -71,7 +66,7 @@ export default function TaskEditSheet({ task, open, onOpenChange, weeklyPrioriti
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
               {weeklyPriorities.map((p) => (
-                <SelectItem key={p.id} value={String(p.id)}>
+                <SelectItem key={p.id} value={p.id}>
                   {p.title}
                 </SelectItem>
               ))}
