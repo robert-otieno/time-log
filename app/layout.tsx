@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Weekly Tracker",
-  description: "Weekly priorities and rhythm tasks tracker",
+  title: "Visio Genesis - Activity Tracker",
+  description: "From Vision to Reality",
 };
 
 export default function RootLayout({
