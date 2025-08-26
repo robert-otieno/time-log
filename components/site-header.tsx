@@ -1,9 +1,9 @@
 "use client";
 
-import { SidebarIcon } from "lucide-react";
+import { Power, SidebarIcon } from "lucide-react";
 
 import { SearchForm } from "@/components/search-form";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -46,8 +46,8 @@ export function SiteHeader() {
           </Breadcrumb>
           <SearchForm className="w-full sm:ml-auto sm:w-auto" />
           {user && (
-            <Button variant="ghost" onClick={() => signOut(auth)} className="ml-2">
-              Sign out
+            <Button variant="ghost" size='icon' onClick={() => signOut(auth)} className="ml-2">
+              <Power />
             </Button>
           )}
         </div>

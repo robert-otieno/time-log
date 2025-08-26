@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { formatISODate } from "@/lib/date-utils";
+import { cookies } from "next/headers";
 
 import { collection, getDocs, query, where, documentId, doc } from "firebase/firestore";
 import { db } from "@/db";
-import { verifyIdToken } from "@/lib/firebase-admin";
+import { verifyToken } from "@/lib/verify-token";
 
 // Firestore `in` operator accepts at most 10 values
 const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
@@ -12,12 +13,13 @@ type EventRow = { id: number; remaining: number; habit: string };
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : authHeader || undefined;
-  const decoded = await verifyIdToken(token);
-  if (!decoded) {
+  const cookieToken = (await cookies()).get("token")?.value;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : cookieToken;
+  const decoded = await verifyToken(token);
+  if (!decoded?.user_id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const uid = decoded.uid;
+  const uid = decoded.user_id;
   const today = formatISODate(new Date());
 
   // 1) Load today's pending nudges for the current user

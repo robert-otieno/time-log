@@ -1,5 +1,6 @@
 "use client";
 
+import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { useEffect, useState } from "react";
 
 interface Nudge {
@@ -12,7 +13,7 @@ export default function NudgeBanner() {
   const [nudge, setNudge] = useState<Nudge | null>(null);
 
   useEffect(() => {
-    fetch("/api/nudges/pending")
+    fetchWithAuth("/api/nudges/pending")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -25,7 +26,7 @@ export default function NudgeBanner() {
   if (!nudge) return null;
 
   const handle = async (status: "acknowledged" | "snoozed") => {
-    await fetch(`/api/nudges/${nudge.id}`, {
+    await fetchWithAuth(`/api/nudges/${nudge.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
