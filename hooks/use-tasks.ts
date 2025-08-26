@@ -1,18 +1,9 @@
 import { useEffect, useState } from "react";
-import {
-  addDailyTask,
-  addDailySubtask,
-  deleteDailySubtask,
-  deleteDailyTask,
-  getTodayTasks,
-  getWeeklyPriorities,
-  toggleDailySubtask,
-  toggleDailyTask,
-  updateDailyTask,
-  TaskWithSubtasks,
-} from "@/app/actions";
+
 import { formatISODate } from "@/lib/date-utils";
 import { toast } from "sonner";
+import { addDailySubtask, addDailyTask, deleteDailySubtask, deleteDailyTask, getTodayTasks, TaskWithSubtasks, toggleDailySubtask, toggleDailyTask, updateDailyTask } from "@/app/actions/tasks";
+import { getWeeklyPriorities } from "@/app/actions";
 
 export type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; count?: any; priority?: any };
 
@@ -63,7 +54,7 @@ export function useTasks(date: string) {
       const deadlineISO = deadline && deadline.length <= 5 && !deadline.includes("T") ? `${date}T${deadline}` : deadline || null;
       const reminderISO = reminder ? `${date}T${reminder}` : null;
       const priorityId = priority && priority !== "none" ? Number(priority) : undefined;
-      const res = await addDailyTask(title, date, tag, deadlineISO, reminderISO, priorityId);
+      const res = await addDailyTask({ title, date, tag, deadlineISO, reminderISO, priorityId });
       const id = res.id;
       const now = Date.now();
       let dueLabel: string | undefined;
@@ -132,11 +123,10 @@ export function useTasks(date: string) {
     }
   }
 
-  async function addSubtask(taskId: number, title: string) {
+  async function addSubtask(taskId: string, title: string) {
     if (!title?.trim()) return;
     try {
-      const res = await addDailySubtask(taskId, title);
-      const id = res.id;
+      const res = await addDailySubtask({ taskId, title });
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: [...t.subtasks, { id, taskId, title, done: false }] } : t)));
     } catch (err: any) {
       console.error(err);
@@ -176,8 +166,7 @@ export function useTasks(date: string) {
   }
 
   async function updateTask(id: number, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) {
-    const deadlineISO =
-      values.deadline && values.deadline.length <= 5 && !values.deadline.includes("T") ? `${date}T${values.deadline}` : values.deadline || null;
+    const deadlineISO = values.deadline && values.deadline.length <= 5 && !values.deadline.includes("T") ? `${date}T${values.deadline}` : values.deadline || null;
     const reminderISO = values.reminder ? `${date}T${values.reminder}` : null;
     const priorityId = values.priority && values.priority !== "none" ? Number(values.priority) : null;
     await updateDailyTask(id, {

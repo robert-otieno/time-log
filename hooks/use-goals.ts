@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { addGoal, addHabit, deleteGoal, deleteHabit as deleteHabitAction, getGoalsWithHabits, toggleHabitCompletion, type GoalWithHabits } from "@/app/actions";
 import { toast } from "sonner";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
+import { addHabit, createGoal, deleteGoal, deleteHabit, getGoalsWithHabits, GoalWithHabits, toggleHabitCompletion } from "@/app/actions/goals";
 
 export function useGoals() {
   const [goals, setGoals] = useState<GoalWithHabits[]>([]);
@@ -26,19 +26,18 @@ export function useGoals() {
     }
   }
 
-  async function addNewGoal(category: string, title: string, deadline?: string | null) {
+  async function addNewGoal(category: string, title: string, targetDate?: string | null) {
     if (!category || !title.trim()) return;
     try {
-      const res = await addGoal(category, title, deadline);
-      const id = res.id;
-      setGoals((prev) => [...prev, { id, category, title, deadline: deadline ?? null, habits: [] }]);
+      const res = await createGoal({ category, title, targetDate });
+      setGoals((prev) => [...prev, { ...res, habits: [] }]);
     } catch (err) {
       console.error(err);
       toast.error("Failed to add goal");
     }
   }
 
-  async function removeGoal(id: number) {
+  async function removeGoal(id: string) {
     try {
       await deleteGoal(id);
       setGoals((prev) => prev.filter((g) => g.id !== id));
@@ -48,13 +47,11 @@ export function useGoals() {
     }
   }
 
-  async function addNewHabit(goalId: number, name: string) {
+  async function addNewHabit(goalId: string, name: string) {
     if (!name.trim()) return;
     try {
-      const res = await addHabit(goalId, name);
-      const id = res.id;
-      const scheduleMask = "MTWTF--";
-      const dueToday = isHabitDue(scheduleMask, new Date());
+      const res = await addHabit({ goalId, name });
+      const dueToday = isHabitDue(res.scheduleMask, new Date());
       setGoals((prev) =>
         prev.map((g) =>
           g.id === goalId
@@ -63,12 +60,7 @@ export function useGoals() {
                 habits: [
                   ...g.habits,
                   {
-                    id,
-                    goalId,
-                    name,
-                    type: "checkbox",
-                    target: 1,
-                    scheduleMask,
+                    ...res,
                     completions: [],
                     dueToday,
                   },
@@ -83,9 +75,9 @@ export function useGoals() {
     }
   }
 
-  async function removeHabit(habitId: number) {
+  async function removeHabit(habitId: string) {
     try {
-      await deleteHabitAction(habitId);
+      await deleteHabit(habitId);
       setGoals((prev) => prev.map((g) => ({ ...g, habits: g.habits.filter((h) => h.id !== habitId) })));
     } catch (err) {
       console.error(err);
@@ -93,7 +85,7 @@ export function useGoals() {
     }
   }
 
-  async function toggleHabit(habitId: number, date: string, value = 1) {
+  async function toggleHabit(habitId: string, date: string, value = 1) {
     try {
       await toggleHabitCompletion(habitId, date, value);
       setGoals((prev) =>
