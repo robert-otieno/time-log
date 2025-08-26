@@ -3,20 +3,20 @@
 import { Power, SidebarIcon } from "lucide-react";
 
 import { SearchForm } from "@/components/search-form";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
 import { CommandMenu } from "./command-menu";
 import { signOut } from "firebase/auth";
-// import { auth } from "@/db";
+import { clientAuth } from "@/lib/firebase-client";
 import { useRouter } from "next/navigation";
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
   const [open, setOpen] = useState(false);
-  const user = auth.currentUser;
+  const user = clientAuth.currentUser;
   const router = useRouter();
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export function SiteHeader() {
               variant="ghost"
               size="icon"
               onClick={async () => {
-                await signOut(auth);
+                await signOut(clientAuth);
                 document.cookie = "token=; path=/; max-age=0";
                 router.push("/login");
               }}

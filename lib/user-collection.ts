@@ -1,6 +1,5 @@
-import { db } from "@/db";
-import { doc, collection } from "firebase/firestore";
+import { adminDb } from "@/db";
 
 export function userCol(uid: string, col: string) {
-  return collection(doc(db, "users", uid), col);
+  return adminDb.collection("users").doc(uid).collection(col);
 }

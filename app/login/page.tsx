@@ -3,10 +3,10 @@
 import { useContext, useEffect } from "react";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
-import { auth } from "@/db";
 import { AuthContext } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { clientAuth } from "@/lib/firebase-client";
 
 export default function LoginPage() {
   const user = useContext(AuthContext);
@@ -23,8 +23,8 @@ export default function LoginPage() {
   const signIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      const token = await auth.currentUser?.getIdToken();
+      await signInWithPopup(clientAuth, provider);
+      const token = await clientAuth.currentUser?.getIdToken();
       if (token) {
         document.cookie = `token=${token}; Path=/; SameSite=Lax`;
       }

@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { adminDb } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -15,7 +15,7 @@ export async function createGoal({ category, title, description, targetDate }: C
 
   const id = crypto.randomUUID();
 
-  const ref = db.collection("users").doc(user.uid).collection("goals").doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection("goals").doc(id);
 
   const payload = {
     id,
@@ -76,7 +76,7 @@ export async function updateGoal(id: string, patch: GoalPatch) {
     throw new Error("No valid fields to update.");
   }
 
-  const ref = db.collection("users").doc(user.uid).collection("goals").doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection("goals").doc(id);
 
   await ref.update({
     ...payload,
@@ -119,7 +119,7 @@ export async function addHabit({ goalId, name, type = "checkbox", target = 1, sc
 
   // ensure the referenced goal exists (helps prevent orphans)
   if (verifyGoalExists) {
-    const goalRef = db.collection("users").doc(user.uid).collection("goals").doc(goalId);
+    const goalRef = adminDb.collection("users").doc(user.uid).collection("goals").doc(goalId);
     const goalSnap = await goalRef.get();
     if (!goalSnap.exists) {
       throw new Error("Goal not found. Make sure goalId is a valid UUID.");
@@ -127,7 +127,7 @@ export async function addHabit({ goalId, name, type = "checkbox", target = 1, sc
   }
 
   const id = crypto.randomUUID();
-  const ref = db.collection("users").doc(user.uid).collection(COL_HABITS).doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_HABITS).doc(id);
 
   const payload = {
     id,
@@ -158,7 +158,7 @@ export async function deleteHabit(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const habitRef = db.collection("users").doc(user.uid).collection(COL_HABITS).doc(id);
+  const habitRef = adminDb.collection("users").doc(user.uid).collection(COL_HABITS).doc(id);
 
   // Early exit if habit doesn’t exist (idempotent behavior)
   const habitSnap = await habitRef.get();
@@ -166,7 +166,7 @@ export async function deleteHabit(id: string) {
     return { deletedHabit: false, deletedCompletions: 0 };
   }
 
-  const completionsCol = db.collection("users").doc(user.uid).collection(COL_COMPLETIONS);
+  const completionsCol = adminDb.collection("users").doc(user.uid).collection(COL_COMPLETIONS);
 
   let deletedCompletions = 0;
 
@@ -179,7 +179,7 @@ export async function deleteHabit(id: string) {
 
     if (page.empty) break;
 
-    const batch = db.batch();
+    const batch = adminDb.batch();
     page.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
 
@@ -212,7 +212,7 @@ export async function toggleHabitCompletion(habitId: string, date: string, value
   // Stable doc id prevents duplicates for the same (habitId, date)
   const completionId = `${habitId}:${date}`;
 
-  const ref = db.collection("users").doc(user.uid).collection(COL_COMPLETIONS).doc(completionId);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_COMPLETIONS).doc(completionId);
 
   // Use set(..., {merge:true}) to upsert and keep createdAt if present
   await ref.set(
@@ -271,7 +271,7 @@ export async function getGoalsWithHabits(date: string): Promise<GoalWithHabits[]
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const userDoc = db.collection("users").doc(user.uid);
+  const userDoc = adminDb.collection("users").doc(user.uid);
 
   // 1) Fetch data in parallel
   const [goalsSnap, habitsSnap, compsSnap] = await Promise.all([
@@ -334,7 +334,7 @@ const COL_GOALS = "goals";
 // Batch helper
 async function commitInChunks(refs: FirebaseFirestore.DocumentReference[], chunkSize = 450) {
   for (let i = 0; i < refs.length; i += chunkSize) {
-    const batch = db.batch();
+    const batch = adminDb.batch();
     refs.slice(i, i + chunkSize).forEach((ref) => batch.delete(ref));
     await batch.commit();
   }
@@ -345,7 +345,7 @@ export async function deleteGoal(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const userDoc = db.collection("users").doc(user.uid);
+  const userDoc = adminDb.collection("users").doc(user.uid);
   const goalRef = userDoc.collection(COL_GOALS).doc(id);
 
   // 0) If goal doesn't exist, be idempotent
@@ -369,7 +369,7 @@ export async function deleteGoal(id: string) {
 
       if (page.empty) break;
 
-      const batch = db.batch();
+      const batch = adminDb.batch();
       page.docs.forEach((doc) => batch.delete(doc.ref));
       await batch.commit();
       deletedCompletions += page.size;

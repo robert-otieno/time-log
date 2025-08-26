@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { adminDb } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -120,7 +120,7 @@ function addDaysISO(isoDate: string, days: number): string {
 export async function getWeeklyPriorities(weekStart: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
-  const userDoc = db.collection("users").doc(user.uid);
+  const userDoc = adminDb.collection("users").doc(user.uid);
 
   // 1) priorities for the given week
   const priSnap = await userDoc.collection(COL_PRIORITIES).where("weekStart", "==", weekStart).get();
@@ -187,7 +187,7 @@ export async function addWeeklyPriority(title: string, weekStart: string, tag: s
   if (!user) throw new Error("Not authenticated");
 
   const id = crypto.randomUUID();
-  const ref = db.collection("users").doc(user.uid).collection(COL_PRIORITIES).doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_PRIORITIES).doc(id);
 
   const payload = {
     id, // persist id for convenience in UI
@@ -224,7 +224,7 @@ export async function updateWeeklyPriority(id: string, patch: WeeklyPriorityPatc
 
   if (Object.keys(payload).length === 0) throw new Error("No valid fields to update.");
 
-  const ref = db.collection("users").doc(user.uid).collection(COL_PRIORITIES).doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_PRIORITIES).doc(id);
   await ref.update({ ...payload, updatedAt: FieldValue.serverTimestamp() });
 
   const snap = await ref.get();
@@ -235,7 +235,7 @@ export async function deleteWeeklyPriority(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const userDoc = db.collection("users").doc(user.uid);
+  const userDoc = adminDb.collection("users").doc(user.uid);
   const ref = userDoc.collection(COL_PRIORITIES).doc(id);
 
   const snap = await ref.get();

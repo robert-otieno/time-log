@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { updateTaskDetails, type TaskWithSubtasks } from "@/app/actions";
+import { TaskWithSubtasks, updateTaskDetails } from "@/app/actions/tasks";
 
 interface TaskDetailsSheetProps {
   task: Pick<TaskWithSubtasks, "id" | "title" | "notes" | "link" | "fileRefs"> | null;

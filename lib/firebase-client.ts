@@ -1,6 +1,5 @@
-import { getAuth } from "firebase-admin/auth";
-import { initializeApp, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { initializeApp, getApps } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,10 +10,8 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Only init once in serverless envs
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
-const adminAuth = getAuth(app);
-const adminDb = getFirestore(app);
+const clientAuth = getAuth(app);
 
-export { adminAuth, adminDb };
+export { clientAuth };

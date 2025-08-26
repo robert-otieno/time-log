@@ -1,18 +1,21 @@
-import { getAuth } from "firebase-admin/auth";
-import { initializeApp, getApps } from "firebase-admin/app";
-
-// Ensure Firebase Admin is initialized only once
-if (!getApps().length) {
-  initializeApp();
-}
+import { adminAuth } from "@/db";
 
 export async function getUserIdFromRequest(req: Request): Promise<string | null> {
   const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) return null;
-
-  const token = authHeader.split(" ")[1];
+  let token: string | undefined;
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.split(" ")[1];
+  } else {
+    const cookieHeader = req.headers.get("cookie");
+    token = cookieHeader
+      ?.split(";")
+      .map((c) => c.trim())
+      .find((c) => c.startsWith("token="))
+      ?.split("=")[1];
+  }
+  if (!token) return null;
   try {
-    const decodedToken = await getAuth().verifyIdToken(token);
+    const decodedToken = await adminAuth.verifyIdToken(token);
     return decodedToken.uid;
   } catch {
     return null;

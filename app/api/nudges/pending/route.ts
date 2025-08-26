@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { formatISODate } from "@/lib/date-utils";
 
 import { collection, getDocs, query, where, documentId, doc } from "firebase/firestore";
-import { db } from "@/db";
+import { adminDb } from "@/db";
 import { getUserIdFromRequest } from "@/lib/get-authenticated-user";
 
 // Firestore `in` operator accepts at most 10 values
@@ -19,8 +19,9 @@ export async function GET(req: Request) {
   const today = formatISODate(new Date());
 
   // 1) Load today's pending nudges for the current user
-  const nudgesQ = query(collection(doc(db, "users", userId), "nudge_events"), where("date", "==", today), where("status", "==", "pending"));
-  const nudgesSnap = await getDocs(nudgesQ);
+  const nudgesRef = adminDb.collection("users").doc(userId).collection("nudge_events");
+  const nudgesQ = nudgesRef.where("date", "==", today).where("status", "==", "pending");
+  const nudgesSnap = await nudgesQ.get();
 
   if (nudgesSnap.empty) {
     return NextResponse.json<EventRow[]>([]);
@@ -33,8 +34,9 @@ export async function GET(req: Request) {
   const habitNameById = new Map<string, string>();
 
   for (const ids of chunk(habitIds, 10)) {
-    const habitsQ = query(collection(doc(db, "users", userId), "rhythm_tasks"), where(documentId(), "in", ids));
-    const habitsSnap = await getDocs(habitsQ);
+    const habitsRef = adminDb.collection("users").doc(userId).collection("rhythm_tasks");
+    const habitsQ = habitsRef.where(documentId(), "in", ids);
+    const habitsSnap = await habitsQ.get();
     habitsSnap.forEach((h) => {
       const name = (h.data() as any)?.name ?? "";
       habitNameById.set(h.id, name);

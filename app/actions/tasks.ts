@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { adminDb } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { FieldPath, FieldValue } from "firebase-admin/firestore";
 
@@ -52,7 +52,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const userDoc = db.collection("users").doc(user.uid);
+  const userDoc = adminDb.collection("users").doc(user.uid);
 
   // 1) Tasks for the day (order by createdAt if you like)
   const tasksSnap = await userDoc.collection(COL_TASKS).where("date", "==", date).get();
@@ -138,7 +138,7 @@ export async function getTaskDates(): Promise<string[]> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const userDoc = db.collection("users").doc(user.uid);
+  const userDoc = adminDb.collection("users").doc(user.uid);
 
   // Pull only tasks' dates; Firestore doesn't support 'distinct' server-side,
   // so we dedupe client-side. Ordering helps us emit latest-first.
@@ -173,7 +173,7 @@ export async function addDailyTask(input: AddDailyTaskInput) {
   if (!user) throw new Error("Not authenticated");
 
   const id = crypto.randomUUID();
-  const ref = db.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
 
   const weeklyPriorityId =
     input.weeklyPriorityId === undefined || input.weeklyPriorityId === null
@@ -207,7 +207,7 @@ export async function toggleDailyTask(id: string, done: boolean) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const ref = db.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
   await ref.update({ done, updatedAt: FieldValue.serverTimestamp() });
 }
 
@@ -215,7 +215,7 @@ export async function deleteDailyTask(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const userDoc = db.collection("users").doc(user.uid);
+  const userDoc = adminDb.collection("users").doc(user.uid);
   const taskRef = userDoc.collection(COL_TASKS).doc(id);
 
   // Idempotent: if task doesn't exist, just exit cleanly
@@ -231,7 +231,7 @@ export async function deleteDailyTask(id: string) {
 
     if (page.empty) break;
 
-    const batch = db.batch();
+    const batch = adminDb.batch();
     page.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
     deletedSubtasks += page.size;
@@ -256,12 +256,12 @@ export async function addDailySubtask({ taskId, title }: AddDailySubtaskInput) {
   if (!trimmed) throw new Error("Subtask title is required.");
 
   // (Optional) verify parent exists to avoid orphans
-  const parentRef = db.collection("users").doc(user.uid).collection(COL_TASKS).doc(taskId);
+  const parentRef = adminDb.collection("users").doc(user.uid).collection(COL_TASKS).doc(taskId);
   const parentSnap = await parentRef.get();
   if (!parentSnap.exists) throw new Error("Parent task not found.");
 
   const id = crypto.randomUUID();
-  const ref = db.collection("users").doc(user.uid).collection(COL_SUBTASKS).doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_SUBTASKS).doc(id);
 
   const payload = {
     id,
@@ -281,7 +281,7 @@ export async function toggleDailySubtask(id: string, done: boolean) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const ref = db.collection("users").doc(user.uid).collection(COL_SUBTASKS).doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_SUBTASKS).doc(id);
   await ref.update({ done, updatedAt: FieldValue.serverTimestamp() });
 }
 
@@ -323,7 +323,7 @@ export async function updateDailyTask(id: string, patch: DailyTaskPatch) {
 
   if (Object.keys(payload).length === 0) throw new Error("No valid fields to update.");
 
-  const ref = db.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
   await ref.update({ ...payload, updatedAt: FieldValue.serverTimestamp() });
 
   const snap = await ref.get();
@@ -347,7 +347,7 @@ export async function updateTaskDetails(id: string, patch: TaskDetailsPatch) {
 
   if (Object.keys(payload).length === 0) throw new Error("No valid fields to update.");
 
-  const ref = db.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
   await ref.update({ ...payload, updatedAt: FieldValue.serverTimestamp() });
 
   const snap = await ref.get();
@@ -358,7 +358,7 @@ export async function deleteDailySubtask(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const ref = db.collection("users").doc(user.uid).collection(COL_SUBTASKS).doc(id);
+  const ref = adminDb.collection("users").doc(user.uid).collection(COL_SUBTASKS).doc(id);
 
   // Idempotent behavior: ignore if already gone
   const snap = await ref.get();
