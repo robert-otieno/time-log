@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { tagOptions } from "@/lib/tasks";
+import { WeeklyPriority } from "@/lib/types/tasks";
 
 interface TaskFormProps {
   onAdd: (title: string, tag: string, deadline: string, reminder: string, priority: string) => Promise<void>;
-  weeklyPriorities: { id: string; title: string; level: string }[];
+  weeklyPriorities: WeeklyPriority[];
 }
 
 export default function TaskForm({ onAdd, weeklyPriorities }: TaskFormProps) {
