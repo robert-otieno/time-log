@@ -74,7 +74,7 @@ export default function TaskForm({ onAdd, weeklyPriorities }: TaskFormProps) {
         />
 
         <Select value={tag} onValueChange={(v) => setTag(v)}>
-          <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select tag">
+          <SelectTrigger className="h-9 rounded-md" aria-label="Select tag">
             <SelectValue placeholder="Select Tag" />
           </SelectTrigger>
           <SelectContent>
@@ -90,7 +90,7 @@ export default function TaskForm({ onAdd, weeklyPriorities }: TaskFormProps) {
         </Select>
 
         <Select value={priority} onValueChange={(v) => setPriority(v)}>
-          <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Link to priority">
+          <SelectTrigger className="h-9 rounded-md" aria-label="Link to priority">
             <SelectValue placeholder="Link to Priority" />
           </SelectTrigger>
           <SelectContent>

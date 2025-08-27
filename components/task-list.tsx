@@ -67,7 +67,7 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
           <CardDescription>{formatISODateString(date)}</CardDescription>
         </CardHeader>
 
-        <CardContent className={cn("grid gap-6 transition-all", focusMode ? "grid-cols-1" : "grid-cols-2")}>
+        <CardContent className={cn("grid gap-4 transition-all", focusMode ? "grid-cols-1" : "grid-cols-2")}>
           <Card className="border-0 p-0 shadow-none rounded-none bg-card/0">
             <CardHeader>
               <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} />
