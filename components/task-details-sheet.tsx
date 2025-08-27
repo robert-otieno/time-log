@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button";
 import { TaskWithSubtasks, updateTaskDetails } from "@/app/actions/tasks";
 
 interface TaskDetailsSheetProps {
-  task: Pick<TaskWithSubtasks, "id" | "title" | "notes" | "link" | "fileRefs"> | null;
+  task:
+    | (Pick<TaskWithSubtasks, "id" | "title" | "notes" | "link" | "fileRefs"> & {
+        createdAt?: Date | null;
+        updatedAt?: Date | null;
+      })
+    | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
@@ -57,6 +62,12 @@ export default function TaskDetailsSheet({ task, open, onOpenChange, onSaved }: 
       <SheetContent>
         <SheetHeader>
           <SheetTitle>{task?.title}</SheetTitle>
+          {task?.createdAt && (
+            <p className="text-xs text-muted-foreground">
+              Created {task.createdAt.toLocaleString()}
+              {task.updatedAt && ` • Updated ${task.updatedAt.toLocaleString()}`}
+            </p>
+          )}
         </SheetHeader>
         <div className="flex flex-col gap-4 px-4">
           <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />

@@ -1,5 +1,5 @@
 import { onAuthStateChanged, User } from "firebase/auth";
-import { clientAuth } from "@/lib//firebase-client";
+import { clientAuth } from "@/lib/firebase-client";
 
 export async function getUserIdFromRequest(): Promise<User | null> {
   return new Promise((resolve) => {

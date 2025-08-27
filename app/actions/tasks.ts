@@ -1,45 +1,8 @@
 import { getCurrentUser } from "@/lib/auth";
 import { firestore } from "@/lib/firebase-client";
+import { DailySubtask, DailyTask, TaskWithSubtasks, WeeklyPriority } from "@/lib/types/tasks";
 import { userCol } from "@/lib/user-collection";
-import { deleteDoc, doc, documentId, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where, writeBatch } from "firebase/firestore";
-
-type WeeklyPriority = {
-  id?: string;
-  title: string;
-  weekStart: string;
-  tag?: string | null;
-  level?: number | null;
-};
-
-type DailyTask = {
-  id: string;
-  title: string;
-  date: string;
-  tag: string;
-  deadline?: string | null;
-  reminderTime?: string | null;
-  notes?: string | null;
-  link?: string | null;
-  fileRefs?: string | null;
-  weeklyPriorityId?: string | null;
-  done: boolean;
-  createdAt?: Date | null;
-  updatedAt?: Date | null;
-};
-
-type DailySubtask = {
-  id: string;
-  taskId: string;
-  title: string;
-  done: boolean;
-  createdAt?: Date | null;
-  updatedAt?: Date | null;
-};
-
-export type TaskWithSubtasks = DailyTask & {
-  subtasks: DailySubtask[];
-  priority?: WeeklyPriority;
-};
+import { deleteDoc, doc, documentId, FieldValue, getDoc, getDocs, limit, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from "firebase/firestore";
 
 const COL_TASKS = "daily_tasks";
 const COL_SUBTASKS = "daily_subtasks";
@@ -54,8 +17,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
   const tasksSnap = await getDocs(query(userCol(user.uid, "daily_tasks"), where("date", "==", date)));
 
   const tasks: DailyTask[] = tasksSnap.docs.map((d) => ({
-    id: d.id,
-    ...(d.data() as any),
+    ...(d.data() as DailyTask),
   }));
   if (tasks.length === 0) return [];
 
@@ -67,8 +29,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
 
     subtasks.push(
       ...subSnap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as any),
+        ...(d.data() as DailySubtask),
       }))
     );
   }
@@ -79,7 +40,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
   for (const ids of chunk(priorityIds, 10)) {
     const priSnap = await getDocs(query(userCol(user.uid, COL_PRIORITIES), where(documentId(), "in", ids)));
     priSnap.docs.forEach((doc) => {
-      prioritiesById.set(doc.id, { id: doc.id, ...(doc.data() as any) });
+      prioritiesById.set(doc.id, { ...(doc.data() as WeeklyPriority) });
     });
   }
 
@@ -95,7 +56,7 @@ export async function getTaskDates(): Promise<string[]> {
   if (!user) throw new Error("Not authenticated");
 
   const snap = await getDocs(userCol(user.uid, COL_TASKS));
-  const dates = Array.from(new Set(snap.docs.map((d) => (d.data() as any).date)));
+  const dates = Array.from(new Set(snap.docs.map((d) => (d.data() as DailyTask).date)));
   return dates.sort().reverse();
 }
 
@@ -132,8 +93,8 @@ export async function addDailyTask(input: AddDailyTaskInput) {
     fileRefs: input.fileRefs ?? null,
     weeklyPriorityId,
     done: false,
-    createdAt: serverTimestamp() as any,
-    updatedAt: serverTimestamp() as any,
+    createdAt: serverTimestamp() as FieldValue,
+    updatedAt: serverTimestamp() as FieldValue,
   };
 
   await setDoc(ref, payload);
@@ -202,13 +163,13 @@ export async function addDailySubtask({ taskId, title }: AddDailySubtaskInput) {
     taskId,
     title: trimmed,
     done: false,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: serverTimestamp() as FieldValue,
+    updatedAt: serverTimestamp() as FieldValue,
   };
 
   await setDoc(ref, payload);
   const snap = await getDoc(ref);
-  return snap.data();
+  return snap.data() as DailySubtask;
 }
 
 export async function toggleDailySubtask(id: string, done: boolean) {
@@ -254,7 +215,7 @@ export async function updateDailyTask(id: string, patch: DailyTaskPatch) {
   await setDoc(ref, { ...payload, updatedAt: serverTimestamp() }, { merge: true });
 
   const snap = await getDoc(ref);
-  return snap.data();
+  return snap.data() as DailyTask;
 }
 
 type TaskDetailsPatch = {
@@ -278,7 +239,7 @@ export async function updateTaskDetails(id: string, patch: TaskDetailsPatch) {
   await setDoc(ref, { ...payload, updatedAt: serverTimestamp() }, { merge: true });
 
   const snap = await getDoc(ref);
-  return snap.data();
+  return snap.data() as DailyTask;
 }
 
 export async function deleteDailySubtask(id: string) {

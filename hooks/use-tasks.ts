@@ -1,15 +1,29 @@
 import { useEffect, useState } from "react";
+import { Timestamp } from "firebase/firestore";
 
 import { formatISODate } from "@/lib/date-utils";
 import { toast } from "sonner";
-import { addDailySubtask, addDailyTask, deleteDailySubtask, deleteDailyTask, getTodayTasks, TaskWithSubtasks, toggleDailySubtask, toggleDailyTask, updateDailyTask } from "@/app/actions/tasks";
+import { addDailySubtask, addDailyTask, deleteDailySubtask, deleteDailyTask, getTodayTasks, toggleDailySubtask, toggleDailyTask, updateDailyTask } from "@/app/actions/tasks";
 import { getWeeklyPriorities } from "@/app/actions";
+import type { TaskWithSubtasks, WeeklyPriority } from "@/lib/types/tasks";
 
-export type UITask = TaskWithSubtasks & { dueLabel?: string; hot?: boolean; count?: any; priority?: any };
-
+export type UITask = Omit<TaskWithSubtasks, "createdAt" | "updatedAt" | "subtasks"> & {
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+  subtasks: Array<
+    Omit<TaskWithSubtasks["subtasks"][number], "createdAt" | "updatedAt"> & {
+      createdAt?: Date | null;
+      updatedAt?: Date | null;
+    }
+  >;
+  dueLabel?: string;
+  hot?: boolean;
+  count?: number;
+  // priority?: any;
+};
 export function useTasks(date: string) {
   const [tasks, setTasks] = useState<UITask[]>([]);
-  const [weeklyPriorities, setWeeklyPriorities] = useState<{ id: string; title: string; level: string }[]>([]);
+  const [weeklyPriorities, setWeeklyPriorities] = useState<WeeklyPriority[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -28,6 +42,13 @@ export function useTasks(date: string) {
       const [res, priorities] = await Promise.all([getTodayTasks(date), getWeeklyPriorities(weekStart)]);
       const now = Date.now();
       const withMeta = res.map((t) => {
+        const createdAt = t.createdAt instanceof Timestamp ? t.createdAt.toDate() : null;
+        const updatedAt = t.updatedAt instanceof Timestamp ? t.updatedAt.toDate() : null;
+        const subtasks = t.subtasks.map((s) => ({
+          ...s,
+          createdAt: s.createdAt instanceof Timestamp ? s.createdAt.toDate() : null,
+          updatedAt: s.updatedAt instanceof Timestamp ? s.updatedAt.toDate() : null,
+        }));
         let dueLabel: string | undefined;
         let hot = false;
         if (t.deadline) {
@@ -36,10 +57,10 @@ export function useTasks(date: string) {
           const diff = deadline.getTime() - now;
           hot = diff > 0 && diff <= 24 * 60 * 60 * 1000 && !t.done;
         }
-        return { ...t, dueLabel, hot } as UITask;
+        return { ...t, createdAt, updatedAt, subtasks, dueLabel, hot } as UITask;
       });
       setTasks(withMeta);
-      setWeeklyPriorities(priorities.map((p: any) => ({ id: p.id, title: p.title, level: p.level })));
+      setWeeklyPriorities(priorities);
       setError(null);
     } catch (err: any) {
       console.error(err);
@@ -88,7 +109,7 @@ export function useTasks(date: string) {
           link: null,
           fileRefs: null,
           subtasks: [],
-          priority: priorityObj as any,
+          priority: priorityObj,
           dueLabel,
           hot,
         } as UITask,
@@ -134,6 +155,7 @@ export function useTasks(date: string) {
     if (!title?.trim()) return;
     try {
       const res = await addDailySubtask({ taskId, title });
+      // setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: [...t.subtasks, res] } : t)));
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: [...t.subtasks, { id: res!.id, taskId, title, done: false }] } : t)));
     } catch (err: any) {
       console.error(err);
@@ -202,7 +224,7 @@ export function useTasks(date: string) {
           deadline: deadlineISO,
           reminderTime: reminderISO,
           weeklyPriorityId: priorityId ?? undefined,
-          priority: priorityObj as any,
+          priority: priorityObj,
           dueLabel,
           hot,
         } as UITask;

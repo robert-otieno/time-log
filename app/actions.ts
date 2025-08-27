@@ -1,50 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
+import { DailyTask, WeeklyPriority } from "@/lib/types/tasks";
 import { userCol } from "@/lib/user-collection";
 import { deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
-
-// export interface RhythmTask {
-//   id: number;
-//   name: string;
-//   goalId?: number | null;
-//   type: string;
-//   target: number;
-//   scheduleMask: string;
-// }
-
-// /** Read all rhythm tasks (habits). */
-// export async function getRhythmTasks() {
-//   const user = await getCurrentUser();
-//   if (!user) throw new Error("Not authenticated");
-//   const snap = await getDocs(userCol(user.uid, "rhythm_tasks"));
-//   return snap.docs.map((d) => ({ id: Number(d.id), ...(d.data() as any) }));
-// }
-
-// /** Create a rhythm task (habit) with a generated ID. */
-// export async function addRhythmTask(name: string) {
-//   const id = genId();
-//   const user = await getCurrentUser();
-//   if (!user) throw new Error("Not authenticated");
-//   const ref = doc(userCol(user.uid, "rhythm_tasks"), docId(id)); // string ID
-//   await setDoc(ref, { name });
-//   return { id };
-// }
-
-type WeeklyPriority = {
-  id: string;
-  title: string;
-  weekStart: string;
-  tag?: string | null;
-  level?: string | null;
-  createdAt?: Date | null;
-  updatedAt?: Date | null;
-};
-
-type DailyTask = {
-  id: string;
-  weeklyPriorityId?: string | null;
-  date: string;
-  done: boolean;
-};
 
 type WeeklyPriorityPatch = Partial<{
   title: string;

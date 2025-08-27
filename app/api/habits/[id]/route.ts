@@ -1,12 +1,21 @@
-import 'server-only';
-import { NextResponse } from 'next/server';
-import { deleteHabit } from '@/app/actions/goals';
+import "server-only";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { deleteHabit } from "@/app/actions/goals";
+
+const paramsSchema = z.object({ id: z.string().min(1) });
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   try {
-    const result = await deleteHabit(params.id);
+    const parsed = paramsSchema.safeParse(params);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+    const result = await deleteHabit(parsed.data.id);
+
     return NextResponse.json(result);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e) {
+    console.error("DELETE /api/habits/[id]", e);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

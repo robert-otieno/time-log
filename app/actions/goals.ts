@@ -57,7 +57,7 @@ export async function createGoal({ category, title, description, targetDate }: C
     throw new Error("Goal creation failed (document missing after write).");
   }
 
-  return snap.data();
+  return snap.data() as Goal;
 }
 
 export async function updateGoal(id: string, patch: GoalPatch) {
@@ -91,7 +91,7 @@ export async function updateGoal(id: string, patch: GoalPatch) {
 
   const snap = await getDoc(ref);
   if (!snap.exists) throw new Error("Goal not found after update.");
-  return snap.data();
+  return snap.data() as Goal;
 }
 
 export async function addHabit({ goalId, name, type = "checkbox", target = 1, scheduleMask = "MTWTF--", verifyGoalExists = true }: AddHabitInput) {
@@ -135,7 +135,7 @@ export async function addHabit({ goalId, name, type = "checkbox", target = 1, sc
   await setDoc(ref, payload);
 
   const snap = await getDoc(ref);
-  return snap.data()!;
+  return snap.data() as Habit;
 }
 
 export async function deleteHabit(id: string) {
@@ -198,7 +198,7 @@ export async function toggleHabitCompletion(habitId: string, date: string, value
   );
 
   const snap = await getDoc(ref);
-  return snap.data();
+  return snap.data() as HabitCompletion | undefined;
 }
 
 export async function getGoalsWithHabits(date: string): Promise<GoalWithHabits[]> {
@@ -208,18 +208,15 @@ export async function getGoalsWithHabits(date: string): Promise<GoalWithHabits[]
   const [goalsSnap, habitsSnap, compsSnap] = await Promise.all([getDocs(userCol(user.uid, COL_GOALS)), getDocs(userCol(user.uid, COL_HABITS)), getDocs(query(userCol(user.uid, COL_COMPLETIONS), where("date", "==", date)))]);
 
   const goals: Goal[] = goalsSnap.docs.map((d) => ({
-    id: d.id,
-    ...(d.data() as any),
+    ...(d.data() as Goal),
   }));
 
   const habits: Habit[] = habitsSnap.docs.map((d) => ({
-    id: d.id,
-    ...(d.data() as any),
+    ...(d.data() as Habit),
   }));
 
   const completions: HabitCompletion[] = compsSnap.docs.map((d) => ({
-    id: d.id,
-    ...(d.data() as any),
+    ...(d.data() as HabitCompletion),
   }));
 
   const compsByHabit = new Map<string, Array<Pick<HabitCompletion, "date" | "value">>>();

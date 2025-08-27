@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { tagOptions } from "@/lib/tasks";
+import { WeeklyPriority } from "@/lib/types/tasks";
 
 interface TaskItemProps {
   task: UITask;
@@ -25,7 +26,7 @@ interface TaskItemProps {
   onEdit: (task: UITask) => void;
   onSelect: (id: string) => void;
   onUpdateTask: (id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
-  weeklyPriorities: { id: string; title: string; level: string }[];
+  weeklyPriorities: WeeklyPriority[];
 }
 
 export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onEdit, onSelect, onUpdateTask, weeklyPriorities }: TaskItemProps) {
