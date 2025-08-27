@@ -13,8 +13,8 @@ import { formatISODate } from "@/lib/date-utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { tagOptions } from "@/lib/tasks";
 import { WeeklyPriority } from "@/lib/types/tasks";
+import { Tag } from "@/hooks/use-tags";
 
 interface TaskItemProps {
   task: UITask;
@@ -27,9 +27,22 @@ interface TaskItemProps {
   onSelect: (id: string) => void;
   onUpdateTask: (id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
   weeklyPriorities: WeeklyPriority[];
+  tags: Tag[];
 }
 
-export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onEdit, onSelect, onUpdateTask, weeklyPriorities }: TaskItemProps) {
+export default function TaskItem({
+  task,
+  onToggleTask,
+  onDeleteTask,
+  onAddSubtask,
+  onToggleSubtask,
+  onDeleteSubtask,
+  onEdit,
+  onSelect,
+  onUpdateTask,
+  weeklyPriorities,
+  tags,
+}: TaskItemProps) {
   const [open, setOpen] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [editingTitle, setEditingTitle] = useState(false);
@@ -95,9 +108,21 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               {editingTitle ? (
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={handleTitleSave} onKeyDown={(e) => e.key === "Enter" && handleTitleSave()} className="h-7 w-auto text-sm" autoFocus />
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={handleTitleSave}
+                  onKeyDown={(e) => e.key === "Enter" && handleTitleSave()}
+                  className="h-7 w-auto text-sm"
+                  autoFocus
+                />
               ) : (
-                <span className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`} onDoubleClick={() => setEditingTitle(true)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setEditingTitle(true)}>
+                <span
+                  className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`}
+                  onDoubleClick={() => setEditingTitle(true)}
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && setEditingTitle(true)}
+                >
                   {task.title}
                 </span>
               )}
@@ -135,9 +160,9 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
                   <SelectValue placeholder="Tag" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tagOptions.map((t) => (
-                    <SelectItem key={t} value={t.toLowerCase()}>
-                      {t}
+                  {tags.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -159,7 +184,9 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
                 </Select>
               )}
 
-              {typeof task.count === "number" && <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">{task.count}</span>}
+              {typeof task.count === "number" && (
+                <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">{task.count}</span>
+              )}
             </div>
           </div>
 
@@ -199,7 +226,13 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
               </li>
             ))}
             <li className="flex items-center gap-2">
-              <Input placeholder="Add subtask" value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()} className="flex-1" />
+              <Input
+                placeholder="Add subtask"
+                value={newSubtask}
+                onChange={(e) => setNewSubtask(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()}
+                className="flex-1"
+              />
               <Button size="icon" onClick={handleAddSubtask} aria-label="Add subtask">
                 <Plus className="h-4 w-4" />
               </Button>

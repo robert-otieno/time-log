@@ -11,12 +11,13 @@ import WeeklyPriorityList from "@/components/weekly-priority-list";
 import Goals from "@/components/goals";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { useTasks, UITask } from "@/hooks/use-tasks";
-import { tagOptions } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
+import { useTags } from "@/hooks/use-tags";
 
 export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
   const { selectedDate: date } = useSelectedDate();
   const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, loadTasks } = useTasks(date);
+  const { tags } = useTags();
   const [editingTask, setEditingTask] = useState<UITask | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -48,15 +49,16 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
   }, [tasks]);
 
   const groupedTasks = tasks.reduce<Record<string, UITask[]>>((groups, task) => {
-    const tag = task.tag || "Other";
+    const tag = task.tag || "other";
     (groups[tag] = groups[tag] || []).push(task);
     return groups;
   }, {});
 
+  const tagOrder = tags.map((t) => t.id);
   const orderedGroups = Object.entries(groupedTasks).sort((a, b) => {
-    const idxA = tagOptions.indexOf(a[0]);
-    const idxB = tagOptions.indexOf(b[0]);
-    return (idxA === -1 ? tagOptions.length : idxA) - (idxB === -1 ? tagOptions.length : idxB);
+    const idxA = tagOrder.indexOf(a[0]);
+    const idxB = tagOrder.indexOf(b[0]);
+    return (idxA === -1 ? tagOrder.length : idxA) - (idxB === -1 ? tagOrder.length : idxB);
   });
 
   return (
@@ -70,7 +72,7 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
         <CardContent className={cn("grid gap-4 transition-all", focusMode ? "grid-cols-1" : "grid-cols-2")}>
           <Card className="border-0 p-0 shadow-none rounded-none bg-card/0">
             <CardHeader>
-              <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} />
+              <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} tags={tags} />
               <CardTitle>Daily Tasks</CardTitle>
             </CardHeader>
 
@@ -96,6 +98,7 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
                           onSelect={(id) => setSelectedTaskId(id)}
                           onUpdateTask={updateTask}
                           weeklyPriorities={weeklyPriorities}
+                          tags={tags}
                         />
                       ))}
                     </ul>
@@ -114,7 +117,14 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
         </CardContent>
       </Card>
 
-      <TaskEditSheet task={editingTask} open={editingTask !== null} onOpenChange={(o) => !o && setEditingTask(null)} weeklyPriorities={weeklyPriorities} onSave={updateTask} />
+      <TaskEditSheet
+        task={editingTask}
+        open={editingTask !== null}
+        onOpenChange={(o) => !o && setEditingTask(null)}
+        weeklyPriorities={weeklyPriorities}
+        onSave={updateTask}
+        tags={tags}
+      />
 
       <TaskDetailsSheet
         task={tasks.find((t) => t.id === selectedTaskId) ?? null}

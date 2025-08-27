@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { UITask } from "@/hooks/use-tasks";
-import { tagOptions } from "@/lib/tasks";
+import { Tag } from "@/hooks/use-tags";
 
 interface TaskEditSheetProps {
   task: UITask | null;
@@ -14,9 +14,10 @@ interface TaskEditSheetProps {
   onOpenChange: (open: boolean) => void;
   weeklyPriorities: { id: string; title: string; level: string }[];
   onSave: (id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
+  tags: Tag[];
 }
 
-export default function TaskEditSheet({ task, open, onOpenChange, weeklyPriorities, onSave }: TaskEditSheetProps) {
+export default function TaskEditSheet({ task, open, onOpenChange, weeklyPriorities, onSave, tags }: TaskEditSheetProps) {
   const [values, setValues] = useState({ title: "", tag: "", deadline: "", reminder: "", priority: "" });
 
   useEffect(() => {
@@ -46,15 +47,20 @@ export default function TaskEditSheet({ task, open, onOpenChange, weeklyPrioriti
         <div className="flex flex-col gap-3 p-4">
           <Input placeholder="Title" value={values.title} onChange={(e) => setValues((prev) => ({ ...prev, title: e.target.value }))} />
           <Input type="time" value={values.deadline} onChange={(e) => setValues((prev) => ({ ...prev, deadline: e.target.value }))} aria-label="Deadline" />
-          <Input type="time" value={values.reminder} onChange={(e) => setValues((prev) => ({ ...prev, reminder: e.target.value }))} aria-label="Reminder time" />
+          <Input
+            type="time"
+            value={values.reminder}
+            onChange={(e) => setValues((prev) => ({ ...prev, reminder: e.target.value }))}
+            aria-label="Reminder time"
+          />
           <Select value={values.tag} onValueChange={(v) => setValues((prev) => ({ ...prev, tag: v }))}>
             <SelectTrigger className="h-9 w-full" aria-label="Select tag">
               <SelectValue placeholder="Tag" />
             </SelectTrigger>
             <SelectContent>
-              {tagOptions.map((tag) => (
-                <SelectItem key={tag} value={tag.toLowerCase()}>
-                  {tag}
+              {tags.map((tag) => (
+                <SelectItem key={tag.id} value={tag.id}>
+                  {tag.name}
                 </SelectItem>
               ))}
             </SelectContent>
