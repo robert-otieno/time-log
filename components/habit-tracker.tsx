@@ -1,16 +1,20 @@
 "use client";
 
-import { Checkbox } from "@/components/ui/checkbox";
-import type { HabitWithCompletions } from "@/app/actions";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { formatISODate } from "@/lib/date-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Habit, HabitCompletion } from "@/lib/types/goals";
+
+type HabitWithCompletions = Habit & {
+  completions: HabitCompletion[];
+  dueToday: boolean;
+};
 
 interface HabitTrackerProps {
   habit: HabitWithCompletions;
-  onToggle: (habitId: number, date: string, value?: number) => void;
+  onToggle: (habitId: string, date: string, value?: number) => void;
   days?: number;
 }
 
@@ -53,11 +57,7 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
                   aria-label={val >= habit.target ? `Completed ${habit.name} on ${date}` : `Not completed ${habit.name} on ${date}`}
                   aria-pressed={val >= habit.target}
                   onClick={() => onToggle(habit.id, date)}
-                  className={cn(
-                    "h-3 w-3 rounded-full border",
-                    val >= habit.target && "bg-primary",
-                    due && val < habit.target && "animate-pulse border-primary"
-                  )}
+                  className={cn("h-3 w-3 rounded-full border", val >= habit.target && "bg-primary", due && val < habit.target && "animate-pulse border-primary")}
                 />
               </li>
             );
@@ -69,16 +69,10 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
             const val = completionMap.get(date) ?? 0;
             const due = date === today && habit.dueToday;
             let display = `${val}/${habit.target}`;
-            if (habit.type === "timer") display = `${val}m/${habit.target}m`;
-            if (habit.type === "pomodoro") display = `🍅${val}/${habit.target}`;
+            // if (habit.type === "timer") display = `${val}m/${habit.target}m`;
+            // if (habit.type === "pomodoro") display = `🍅${val}/${habit.target}`;
             return (
-              <Button
-                key={date}
-                variant="outline"
-                size="sm"
-                className={cn("h-6", due && val < habit.target ? "animate-pulse" : "")}
-                onClick={() => onToggle(habit.id, date, 1)}
-              >
+              <Button key={date} variant="outline" size="sm" className={cn("h-6", due && val < habit.target ? "animate-pulse" : "")} onClick={() => onToggle(habit.id, date, 1)}>
                 {display}
               </Button>
             );

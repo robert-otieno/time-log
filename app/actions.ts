@@ -1,54 +1,6 @@
-"use server";
-
-import { adminDb } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
-import { FieldValue } from "firebase-admin/firestore";
-
-// import { db } from "@/db";
-// import { getCurrentUser } from "@/lib/auth";
-// import { formatISODate } from "@/lib/date-utils";
-// import { userCol } from "@/lib/user-collection";
-// import { FieldValue } from "firebase-admin/firestore";
-// import { query, where, getDocs, setDoc, doc, updateDoc, writeBatch, deleteDoc, addDoc } from "firebase/firestore";
-
-// export interface WeeklyPriority {
-//   id: number;
-//   title: string;
-//   weekStart: string;
-//   tag: string;
-//   level: string;
-// }
-
-// export interface DailyTask {
-//   id: number;
-//   title: string;
-//   date: string;
-//   tag: string;
-//   deadline?: string | null;
-//   reminderTime?: string | null;
-//   notes?: string | null;
-//   link?: string | null;
-//   fileRefs?: string | null;
-//   weeklyPriorityId?: number | null;
-//   done: boolean;
-// }
-// export interface DailySubtask {
-//   id: number;
-//   taskId: number;
-//   title: string;
-//   done: boolean;
-// }
-
-// export type TaskWithSubtasks = DailyTask & {
-//   subtasks: DailySubtask[];
-//   priority?: WeeklyPriority;
-// };
-// export interface Goal {
-//   id: number;
-//   category: string;
-//   title: string;
-//   deadline?: string | null;
-// }
+import { userCol } from "@/lib/user-collection";
+import { deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 
 // export interface RhythmTask {
 //   id: number;
@@ -57,20 +9,6 @@ import { FieldValue } from "firebase-admin/firestore";
 //   type: string;
 //   target: number;
 //   scheduleMask: string;
-// }
-
-// export type HabitCompletion = { date: string; value: number };
-
-// export type HabitWithCompletions = RhythmTask & {
-//   completions: HabitCompletion[];
-// };
-
-// export type GoalWithHabits = Goal & {
-//   habits: HabitWithCompletions[];
-// };
-
-// function docId(id: number) {
-//   return id.toString();
 // }
 
 // /** Read all rhythm tasks (habits). */
@@ -92,21 +30,28 @@ import { FieldValue } from "firebase-admin/firestore";
 // }
 
 type WeeklyPriority = {
-  id: string; // doc id (UUID)
+  id: string;
   title: string;
-  weekStart: string; // "YYYY-MM-DD" (Monday or your chosen start)
+  weekStart: string;
   tag?: string | null;
-  level?: string | null; // keep as string since your API passes string
-  createdAt?: FirebaseFirestore.Timestamp;
-  updatedAt?: FirebaseFirestore.Timestamp;
+  level?: string | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
 };
 
 type DailyTask = {
-  id: string; // UUID
-  weeklyPriorityId?: string | number | null; // string (new) or number (legacy)
-  date: string; // "YYYY-MM-DD"
+  id: string;
+  weeklyPriorityId?: string | null;
+  date: string;
   done: boolean;
 };
+
+type WeeklyPriorityPatch = Partial<{
+  title: string;
+  weekStart: string;
+  tag: string | null;
+  level: string | null;
+}>;
 
 const COL_PRIORITIES = "weekly_priorities";
 const COL_TASKS = "daily_tasks";
@@ -120,10 +65,9 @@ function addDaysISO(isoDate: string, days: number): string {
 export async function getWeeklyPriorities(weekStart: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
-  const userDoc = adminDb.collection("users").doc(user.uid);
 
-  // 1) priorities for the given week
-  const priSnap = await userDoc.collection(COL_PRIORITIES).where("weekStart", "==", weekStart).get();
+  const priQ = query(userCol(user.uid, COL_PRIORITIES), where("weekStart", "==", weekStart));
+  const priSnap = await getDocs(priQ);
 
   const priorities: WeeklyPriority[] = priSnap.docs.map((d) => ({
     id: d.id,
@@ -132,16 +76,15 @@ export async function getWeeklyPriorities(weekStart: string) {
 
   if (priorities.length === 0) return [];
 
-  // 2) tasks within weekStart..weekEnd (inclusive)
   const weekEnd = addDaysISO(weekStart, 6);
-  const tasksSnap = await userDoc.collection(COL_TASKS).where("date", ">=", weekStart).where("date", "<=", weekEnd).get();
+  const tasksQ = query(userCol(user.uid, COL_TASKS), where("date", ">=", weekStart), where("date", "<=", weekEnd));
+  const tasksSnap = await getDocs(tasksQ);
 
   const tasks: DailyTask[] = tasksSnap.docs.map((d) => ({
     id: d.id,
     ...(d.data() as any),
   }));
 
-  // 3) compute progress per priority
   const byStringId = new Map<string, DailyTask[]>();
   const byNumericId = new Map<number, DailyTask[]>();
 
@@ -159,16 +102,7 @@ export async function getWeeklyPriorities(weekStart: string) {
   }
 
   return priorities.map((p) => {
-    // Prefer new string linking; fall back to legacy numeric (if your old docs had `id` field stored numerically)
-    const related = (byStringId.get(p.id) ?? []).concat(
-      // If your legacy weekly_priorities docs stored a numeric `id` field, you can recover it here:
-      // tasks linked by number will only match if such a field exists on the priority doc’s data.
-      // Comment the following block out once legacy is gone.
-      (() => {
-        const numericId = (p as any).id as number | undefined; // legacy numeric id on the doc data
-        return typeof numericId === "number" ? byNumericId.get(numericId) ?? [] : [];
-      })()
-    );
+    const related = tasks.filter((t) => t.weeklyPriorityId === p.id);
 
     const total = related.length;
     const completed = related.filter((t) => t.done).length;
@@ -187,29 +121,21 @@ export async function addWeeklyPriority(title: string, weekStart: string, tag: s
   if (!user) throw new Error("Not authenticated");
 
   const id = crypto.randomUUID();
-  const ref = adminDb.collection("users").doc(user.uid).collection(COL_PRIORITIES).doc(id);
+  const ref = doc(userCol(user.uid, COL_PRIORITIES), id);
 
   const payload = {
-    id, // persist id for convenience in UI
+    id,
     title: title.trim(),
     weekStart,
     tag: tag?.trim() ?? null,
     level: level?.trim() ?? null,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
 
-  await ref.set(payload);
-  const snap = await ref.get();
-  return snap.data() as WeeklyPriority;
+  await setDoc(ref, payload);
+  return payload;
 }
-
-type WeeklyPriorityPatch = Partial<{
-  title: string;
-  weekStart: string; // if you allow moving it to a different week
-  tag: string | null;
-  level: string | null;
-}>;
 
 export async function updateWeeklyPriority(id: string, patch: WeeklyPriorityPatch) {
   const user = await getCurrentUser();
@@ -224,10 +150,10 @@ export async function updateWeeklyPriority(id: string, patch: WeeklyPriorityPatc
 
   if (Object.keys(payload).length === 0) throw new Error("No valid fields to update.");
 
-  const ref = adminDb.collection("users").doc(user.uid).collection(COL_PRIORITIES).doc(id);
-  await ref.update({ ...payload, updatedAt: FieldValue.serverTimestamp() });
+  const ref = doc(userCol(user.uid, COL_PRIORITIES), id);
+  await updateDoc(ref, { ...payload, updatedAt: serverTimestamp() });
 
-  const snap = await ref.get();
+  const snap = await getDoc(ref);
   return snap.data() as WeeklyPriority;
 }
 
@@ -235,10 +161,10 @@ export async function deleteWeeklyPriority(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const userDoc = adminDb.collection("users").doc(user.uid);
-  const ref = userDoc.collection(COL_PRIORITIES).doc(id);
+  const ref = doc(userCol(user.uid, COL_PRIORITIES), id);
 
-  const snap = await ref.get();
+  // const snap = await ref.get();
+  const snap = await getDoc(ref);
   if (!snap.exists) return { deleted: false };
 
   // OPTIONAL: clear references on tasks (uncomment if desired)
@@ -256,6 +182,6 @@ export async function deleteWeeklyPriority(id: string) {
   //   await batch.commit();
   // }
 
-  await ref.delete();
+  await deleteDoc(ref);
   return { deleted: true };
 }

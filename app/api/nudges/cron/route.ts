@@ -1,53 +1,54 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/db";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
-import { collection, doc, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, documentId, getDocs, query, where } from "firebase/firestore";
 import { getUserIdFromRequest } from "@/lib/get-authenticated-user";
+import { firestore } from "@/lib/firebase-client";
 
 const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
 
 export async function GET(req: Request) {
-  const userId = await getUserIdFromRequest(req);
+  const user = await getUserIdFromRequest();
 
-  if (!userId) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const today = formatISODate(new Date());
 
-  // 1) Load all habits for the current user
-  const ref = adminDb.collection("users").doc(userId).collection("rhythm_tasks");
-  const habitsSnap = await ref.get();
-  const allHabits = habitsSnap.docs.map((d) => ({ id: Number(d.id), ...(d.data() as any) }));
+  const habitsRef = collection(firestore, "users", user.uid, "habits");
+  const habitsSnap = await getDocs(habitsRef);
+  const allHabits = habitsSnap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as any),
+  }));
 
-  // 2) Keep only habits due today (by schedule mask)
   const dueHabits = allHabits.filter((h) => isHabitDue(h.scheduleMask));
+  if (dueHabits.length === 0) {
+    return NextResponse.json({ created: [] });
+  }
 
-  // 3) Fetch today's completions in batches of 10 habitIds
-  const habitIds = dueHabits.map((h) => h.id);
-  const completionsByHabit = new Map<number, number>();
+  const completionDocIds = dueHabits.map((h) => `${h.id}:${today}`);
+  const completionsRef = collection(firestore, "users", user.uid, "habit_completions");
 
-  for (const ids of chunk(habitIds, 10)) {
-    // If you store habitId as a number in completions:
-    const compsRef = adminDb.collection("users").doc(userId).collection("habit_completions");
-    const compsQ = compsRef.where("habitId", "in", ids).where("date", "==", today);
-    const compsSnap = await compsQ.get();
+  const valueByHabitId = new Map<string, number>();
+  for (const ids of chunk(completionDocIds, 10)) {
+    const compsSnap = await getDocs(query(completionsRef, where(documentId(), "in", ids)));
     compsSnap.forEach((doc) => {
-      const c = doc.data() as { habitId: number; date: string; value: number };
-      completionsByHabit.set(c.habitId, c.value ?? 0);
+      const habitId = doc.id.split(":")[0]!;
+      const val = (doc.data() as any)?.value ?? 0;
+      valueByHabitId.set(habitId, Number(val) || 0);
     });
   }
 
-  // 4) Build remaining list
-  const created: { habitId: number; remaining: number }[] = [];
-  for (const h of dueHabits) {
-    const current = completionsByHabit.get(h.id) ?? 0;
-    const remaining = Math.max(0, (h.target ?? 1) - current);
-    if (remaining > 0) {
-      created.push({ habitId: h.id, remaining });
-    }
-  }
+  const created = dueHabits
+    .map((h) => {
+      const current = valueByHabitId.get(h.id) ?? 0;
+      const target = h.target ?? 1;
+      const remaining = Math.max(0, target - current);
+      return { habitId: h.id, remaining };
+    })
+    .filter((r) => r.remaining > 0);
 
   return NextResponse.json({ created });
 }

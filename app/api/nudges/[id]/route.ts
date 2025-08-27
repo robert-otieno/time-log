@@ -1,11 +1,12 @@
-import { adminDb } from "@/db";
+import { firestore } from "@/lib/firebase-client";
 import { getUserIdFromRequest } from "@/lib/get-authenticated-user";
+import { doc, updateDoc } from "firebase/firestore";
 import { NextResponse } from "next/server";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const userId = await getUserIdFromRequest(req);
+  const user = await getUserIdFromRequest();
 
-  if (!userId) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -15,8 +16,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  const ref = adminDb.collection("users").doc(userId).collection("nudge_events").doc(params.id);
-  await ref.update({ status });
+  const ref = doc(firestore, "users", user.uid, "nudge_events", params.id);
+  await updateDoc(ref, { status });
 
   return NextResponse.json({ success: true });
 }

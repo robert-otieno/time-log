@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
-import { addHabit, createGoal, deleteGoal, deleteHabit, getGoalsWithHabits, GoalWithHabits, toggleHabitCompletion } from "@/app/actions/goals";
+import { GoalWithHabits } from "@/lib/types/goals";
+import { addHabit, createGoal, deleteGoal, deleteHabit, getGoalsWithHabits, toggleHabitCompletion } from "@/app/actions/goals";
 
 export function useGoals() {
   const [goals, setGoals] = useState<GoalWithHabits[]>([]);
@@ -64,7 +65,7 @@ export function useGoals() {
                     completions: [],
                     dueToday,
                   },
-                ],
+                ] as any,
               }
             : g
         )

@@ -22,7 +22,7 @@ export default function Goals() {
   const [newCategory, setNewCategory] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [goalDeadline, setGoalDeadline] = useState<Date | undefined>();
-  const [habitInputs, setHabitInputs] = useState<Record<number, string>>({});
+  const [habitInputs, setHabitInputs] = useState<Record<string, string>>({});
   const { selectedDate } = useSelectedDate();
   const recentDates = Array.from({ length: 7 }, (_, idx) => {
     const d = new Date(selectedDate);
@@ -41,7 +41,7 @@ export default function Goals() {
     setGoalDeadline(undefined);
   }
 
-  function handleAddHabit(goalId: number) {
+  function handleAddHabit(goalId: string) {
     const name = habitInputs[goalId];
     addHabit(goalId, name);
     setHabitInputs((prev) => ({ ...prev, [goalId]: "" }));
@@ -109,11 +109,11 @@ export default function Goals() {
             let progress = 0;
             let paceLabel = "";
 
-            if (goal.deadline) {
-              const deadline = new Date(goal.deadline);
+            if (goal.targetDate) {
+              const targetDate = new Date(goal.targetDate);
               const completionDates = allCompletions.map((c) => new Date(c.date));
               const earliest = completionDates.length > 0 ? new Date(Math.min(...completionDates.map((d) => d.getTime()))) : today;
-              const totalDays = Math.max(1, Math.ceil((deadline.getTime() - earliest.getTime()) / 86400000) + 1);
+              const totalDays = Math.max(1, Math.ceil((targetDate.getTime() - earliest.getTime()) / 86400000) + 1);
               const daysPassed = Math.min(totalDays, Math.max(0, Math.ceil((today.getTime() - earliest.getTime()) / 86400000) + 1));
               const target = goal.habits.reduce((sum, h) => sum + h.target * totalDays, 0);
               progress = target > 0 ? (totalCompleted / target) * 100 : 0;
@@ -130,15 +130,7 @@ export default function Goals() {
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2">
                       <CircularProgress value={progress} size={50} strokeWidth={4} />
-                      {goal.deadline && (
-                        <Badge
-                          className={`font-normal ${
-                            paceLabel === "On pace" ? "bg-emerald-600/10 text-emerald-600" : "bg-red-600/10 text-red-600"
-                          } shadow-none rounded-full`}
-                        >
-                          {paceLabel}
-                        </Badge>
-                      )}
+                      {goal.targetDate && <Badge className={`font-normal ${paceLabel === "On pace" ? "bg-emerald-600/10 text-emerald-600" : "bg-red-600/10 text-red-600"} shadow-none rounded-full`}>{paceLabel}</Badge>}
                     </div>
                     <span className="font-medium text-sm">{goal.title}</span>
                     <Badge variant="secondary" className="text-sm capitalize">
@@ -161,13 +153,7 @@ export default function Goals() {
                   ))}
 
                   <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="New habit"
-                      value={habitInputs[goal.id] ?? ""}
-                      onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))}
-                      onKeyDown={(e) => e.key === "Enter" && handleAddHabit(goal.id)}
-                      className="flex-1 h-8"
-                    />
+                    <Input placeholder="New habit" value={habitInputs[goal.id] ?? ""} onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && handleAddHabit(goal.id)} className="flex-1 h-8" />
                     <Button size="sm" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)}>
                       <Plus className="h-4 w-4" />
                     </Button>

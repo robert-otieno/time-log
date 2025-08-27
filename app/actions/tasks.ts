@@ -1,8 +1,7 @@
-"use server";
-
-import { adminDb } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
-import { FieldPath, FieldValue } from "firebase-admin/firestore";
+import { firestore } from "@/lib/firebase-client";
+import { userCol } from "@/lib/user-collection";
+import { deleteDoc, doc, documentId, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where, writeBatch } from "firebase/firestore";
 
 type WeeklyPriority = {
   id?: string;
@@ -22,10 +21,10 @@ type DailyTask = {
   notes?: string | null;
   link?: string | null;
   fileRefs?: string | null;
-  weeklyPriorityId?: string | number | null;
+  weeklyPriorityId?: string | null;
   done: boolean;
-  createdAt?: FirebaseFirestore.Timestamp;
-  updatedAt?: FirebaseFirestore.Timestamp;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
 };
 
 type DailySubtask = {
@@ -33,8 +32,8 @@ type DailySubtask = {
   taskId: string;
   title: string;
   done: boolean;
-  createdAt?: FirebaseFirestore.Timestamp;
-  updatedAt?: FirebaseFirestore.Timestamp;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
 };
 
 export type TaskWithSubtasks = DailyTask & {
@@ -52,24 +51,19 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const userDoc = adminDb.collection("users").doc(user.uid);
-
-  // 1) Tasks for the day (order by createdAt if you like)
-  const tasksSnap = await userDoc.collection(COL_TASKS).where("date", "==", date).get();
+  const tasksSnap = await getDocs(query(userCol(user.uid, "daily_tasks"), where("date", "==", date)));
 
   const tasks: DailyTask[] = tasksSnap.docs.map((d) => ({
     id: d.id,
     ...(d.data() as any),
   }));
-
   if (tasks.length === 0) return [];
 
   const taskIds = tasks.map((t) => t.id);
 
-  // 2) Subtasks (batched 'in' queries)
   let subtasks: DailySubtask[] = [];
   for (const ids of chunk(taskIds, 10)) {
-    const subSnap = await userDoc.collection(COL_SUBTASKS).where("taskId", "in", ids).get();
+    const subSnap = await getDocs(query(userCol(user.uid, COL_SUBTASKS), where("taskId", "in", ids)));
 
     subtasks.push(
       ...subSnap.docs.map((d) => ({
@@ -79,90 +73,39 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
     );
   }
 
-  // 3) Weekly Priorities (recommended: store weeklyPriorityId as the PRIORITY DOC ID)
-  //    We'll do a best-effort: first try to collect string doc IDs; if you still have numeric legacy values,
-  //    we also build a lookup by numeric 'id' field.
-  const rawPriIds = Array.from(new Set(tasks.map((t) => t.weeklyPriorityId).filter((v): v is string | number => v !== undefined && v !== null)));
+  const priorityIds = Array.from(new Set(tasks.map((t) => t.weeklyPriorityId).filter((v): v is string => typeof v === "string" && v.length > 0)));
 
-  const stringPriIds = rawPriIds.filter((v): v is string => typeof v === "string");
-  const numberPriIds = rawPriIds.filter((v): v is number => typeof v === "number");
-
-  // Lookup maps
-  const prioritiesByDocId = new Map<string, WeeklyPriority>();
-  const prioritiesByNumericId = new Map<number, WeeklyPriority>();
-
-  // 3a) Fetch by documentId() for string IDs (fast & canonical)
-  for (const ids of chunk(stringPriIds, 10)) {
-    const priSnap = await userDoc.collection(COL_PRIORITIES).where(FieldPath.documentId(), "in", ids).get();
-
+  const prioritiesById = new Map<string, WeeklyPriority>();
+  for (const ids of chunk(priorityIds, 10)) {
+    const priSnap = await getDocs(query(userCol(user.uid, COL_PRIORITIES), where(documentId(), "in", ids)));
     priSnap.docs.forEach((doc) => {
-      const data = { id: doc.id, ...(doc.data() as any) } as WeeklyPriority;
-      prioritiesByDocId.set(doc.id, data);
+      prioritiesById.set(doc.id, { id: doc.id, ...(doc.data() as any) });
     });
   }
 
-  // 3b) Legacy path: fetch by numeric `id` field if you still have those
-  for (const ids of chunk(numberPriIds, 10)) {
-    const priSnap = await userDoc
-      .collection(COL_PRIORITIES)
-      .where("id", "in", ids) // requires that your weekly_priorities docs have a numeric 'id' field stored
-      .get();
-
-    priSnap.docs.forEach((doc) => {
-      const data = { id: doc.id, ...(doc.data() as any) } as WeeklyPriority & { id?: string };
-      const n = (doc.data() as any).id as number | undefined;
-      if (typeof n === "number") prioritiesByNumericId.set(n, data);
-    });
-  }
-
-  // 4) Assemble (O(1) lookups)
-  return tasks.map((t) => {
-    const st = subtasks.filter((s) => s.taskId === t.id);
-    let priority: WeeklyPriority | undefined;
-
-    if (typeof t.weeklyPriorityId === "string") {
-      priority = prioritiesByDocId.get(t.weeklyPriorityId);
-    } else if (typeof t.weeklyPriorityId === "number") {
-      priority = prioritiesByNumericId.get(t.weeklyPriorityId);
-    }
-
-    return {
-      ...t,
-      subtasks: st,
-      priority,
-    };
-  });
+  return tasks.map((t) => ({
+    ...t,
+    subtasks: subtasks.filter((s) => s.taskId === t.id),
+    priority: t.weeklyPriorityId ? prioritiesById.get(t.weeklyPriorityId) : undefined,
+  }));
 }
 
 export async function getTaskDates(): Promise<string[]> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const userDoc = adminDb.collection("users").doc(user.uid);
-
-  // Pull only tasks' dates; Firestore doesn't support 'distinct' server-side,
-  // so we dedupe client-side. Ordering helps us emit latest-first.
-  const snap = await userDoc.collection("daily_tasks").orderBy("date", "desc").get();
-
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const d of snap.docs) {
-    const date = (d.data() as any).date as string | undefined;
-    if (date && !seen.has(date)) {
-      seen.add(date);
-      out.push(date);
-    }
-  }
-  return out; // already latest-first due to orderBy("date","desc")
+  const snap = await getDocs(userCol(user.uid, COL_TASKS));
+  const dates = Array.from(new Set(snap.docs.map((d) => (d.data() as any).date)));
+  return dates.sort().reverse();
 }
 
 type AddDailyTaskInput = {
   title: string;
-  date: string; // "YYYY-MM-DD"
+  date: string;
   tag?: string;
   deadline?: string | null;
   reminderTime?: string | null;
-  weeklyPriorityId?: string | number | null; // accept legacy numeric for now
+  weeklyPriorityId?: string | null;
   notes?: string | null;
   link?: string | null;
   fileRefs?: string | null;
@@ -173,14 +116,9 @@ export async function addDailyTask(input: AddDailyTaskInput) {
   if (!user) throw new Error("Not authenticated");
 
   const id = crypto.randomUUID();
-  const ref = adminDb.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
+  const ref = doc(userCol(user.uid, COL_TASKS), id);
 
-  const weeklyPriorityId =
-    input.weeklyPriorityId === undefined || input.weeklyPriorityId === null
-      ? null
-      : typeof input.weeklyPriorityId === "number"
-      ? input.weeklyPriorityId // legacy numeric kept as-is for now
-      : String(input.weeklyPriorityId); // string doc id
+  const weeklyPriorityId = input.weeklyPriorityId ?? null;
 
   const payload: DailyTask = {
     id,
@@ -194,12 +132,12 @@ export async function addDailyTask(input: AddDailyTaskInput) {
     fileRefs: input.fileRefs ?? null,
     weeklyPriorityId,
     done: false,
-    createdAt: FieldValue.serverTimestamp() as any,
-    updatedAt: FieldValue.serverTimestamp() as any,
+    createdAt: serverTimestamp() as any,
+    updatedAt: serverTimestamp() as any,
   };
 
-  await ref.set(payload);
-  const snap = await ref.get();
+  await setDoc(ref, payload);
+  const snap = await getDoc(ref);
   return snap.data() as DailyTask;
 }
 
@@ -207,44 +145,41 @@ export async function toggleDailyTask(id: string, done: boolean) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const ref = adminDb.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
-  await ref.update({ done, updatedAt: FieldValue.serverTimestamp() });
+  const ref = doc(userCol(user.uid, COL_TASKS), id);
+  await setDoc(ref, { done, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 export async function deleteDailyTask(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const userDoc = adminDb.collection("users").doc(user.uid);
-  const taskRef = userDoc.collection(COL_TASKS).doc(id);
+  const taskRef = doc(userCol(user.uid, COL_TASKS), id);
+  const taskSnap = await getDoc(taskRef);
 
-  // Idempotent: if task doesn't exist, just exit cleanly
-  const taskSnap = await taskRef.get();
   if (!taskSnap.exists) return { deletedTask: false, deletedSubtasks: 0 };
 
-  // Page through subtasks by FK (taskId = parent task doc id)
   let deletedSubtasks = 0;
   const pageSize = 450;
 
   while (true) {
-    const page = await userDoc.collection(COL_SUBTASKS).where("taskId", "==", id).limit(pageSize).get();
+    const q = query(userCol(user.uid, COL_SUBTASKS), where("taskId", "==", id), limit(pageSize));
+    const page = await getDocs(q);
 
     if (page.empty) break;
 
-    const batch = adminDb.batch();
+    const batch = writeBatch(firestore);
     page.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
     deletedSubtasks += page.size;
   }
 
-  // Delete the task last
-  await taskRef.delete();
+  await deleteDoc(taskRef);
 
   return { deletedTask: true, deletedSubtasks };
 }
 
 type AddDailySubtaskInput = {
-  taskId: string; // parent task's DOC ID (UUID)
+  taskId: string;
   title: string;
 };
 
@@ -255,25 +190,24 @@ export async function addDailySubtask({ taskId, title }: AddDailySubtaskInput) {
   const trimmed = title?.trim();
   if (!trimmed) throw new Error("Subtask title is required.");
 
-  // (Optional) verify parent exists to avoid orphans
-  const parentRef = adminDb.collection("users").doc(user.uid).collection(COL_TASKS).doc(taskId);
-  const parentSnap = await parentRef.get();
+  const parentRef = doc(userCol(user.uid, COL_TASKS), taskId);
+  const parentSnap = await getDoc(parentRef);
   if (!parentSnap.exists) throw new Error("Parent task not found.");
 
   const id = crypto.randomUUID();
-  const ref = adminDb.collection("users").doc(user.uid).collection(COL_SUBTASKS).doc(id);
+  const ref = doc(userCol(user.uid, COL_SUBTASKS), id);
 
   const payload = {
     id,
-    taskId, // FK = parent task doc id
+    taskId,
     title: trimmed,
     done: false,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
 
-  await ref.set(payload);
-  const snap = await ref.get();
+  await setDoc(ref, payload);
+  const snap = await getDoc(ref);
   return snap.data();
 }
 
@@ -281,19 +215,17 @@ export async function toggleDailySubtask(id: string, done: boolean) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const ref = adminDb.collection("users").doc(user.uid).collection(COL_SUBTASKS).doc(id);
-  await ref.update({ done, updatedAt: FieldValue.serverTimestamp() });
+  const ref = doc(userCol(user.uid, COL_SUBTASKS), id);
+  await setDoc(ref, { done, updatedAt: serverTimestamp() }, { merge: true });
 }
 
-// Update only the fields you actually support mutating here.
-// Add more keys as your UI needs them (e.g., tag, date, deadline, reminderTime, weeklyPriorityId).
 type DailyTaskPatch = Partial<{
   title: string;
   tag: string;
-  date: string; // "YYYY-MM-DD"
-  deadline: string | null; // "" becomes null
-  reminderTime: string | null; // "" becomes null
-  weeklyPriorityId: string | number | null; // supports legacy numeric
+  date: string;
+  deadline: string | null;
+  reminderTime: string | null;
+  weeklyPriorityId: string | number | null;
   done: boolean;
 }>;
 
@@ -311,22 +243,17 @@ export async function updateDailyTask(id: string, patch: DailyTaskPatch) {
   if (patch.reminderTime !== undefined) payload.reminderTime = patch.reminderTime === "" ? null : patch.reminderTime;
 
   if (patch.weeklyPriorityId !== undefined) {
-    payload.weeklyPriorityId =
-      patch.weeklyPriorityId === null
-        ? null
-        : typeof patch.weeklyPriorityId === "number"
-        ? patch.weeklyPriorityId // legacy numeric still accepted
-        : String(patch.weeklyPriorityId);
+    payload.weeklyPriorityId = patch.weeklyPriorityId ?? null;
   }
 
   if (typeof patch.done === "boolean") payload.done = patch.done;
 
   if (Object.keys(payload).length === 0) throw new Error("No valid fields to update.");
 
-  const ref = adminDb.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
-  await ref.update({ ...payload, updatedAt: FieldValue.serverTimestamp() });
+  const ref = doc(userCol(user.uid, COL_TASKS), id);
+  await setDoc(ref, { ...payload, updatedAt: serverTimestamp() }, { merge: true });
 
-  const snap = await ref.get();
+  const snap = await getDoc(ref);
   return snap.data();
 }
 
@@ -347,10 +274,10 @@ export async function updateTaskDetails(id: string, patch: TaskDetailsPatch) {
 
   if (Object.keys(payload).length === 0) throw new Error("No valid fields to update.");
 
-  const ref = adminDb.collection("users").doc(user.uid).collection(COL_TASKS).doc(id);
-  await ref.update({ ...payload, updatedAt: FieldValue.serverTimestamp() });
+  const ref = doc(userCol(user.uid, COL_TASKS), id);
+  await setDoc(ref, { ...payload, updatedAt: serverTimestamp() }, { merge: true });
 
-  const snap = await ref.get();
+  const snap = await getDoc(ref);
   return snap.data();
 }
 
@@ -358,12 +285,11 @@ export async function deleteDailySubtask(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const ref = adminDb.collection("users").doc(user.uid).collection(COL_SUBTASKS).doc(id);
+  const ref = doc(userCol(user.uid, COL_SUBTASKS), id);
+  const snap = await getDoc(ref);
 
-  // Idempotent behavior: ignore if already gone
-  const snap = await ref.get();
   if (!snap.exists) return { deleted: false };
 
-  await ref.delete();
+  await deleteDoc(ref);
   return { deleted: true };
 }
