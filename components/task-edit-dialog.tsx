@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,10 +17,9 @@ interface TaskEditDialogProps {
   onSave: (id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
   tags: Tag[];
   onTagsUpdated: () => Promise<void>;
-  trigger: ReactNode;
 }
 
-export default function TaskEditDialog({ task, open, onOpenChange, weeklyPriorities, onSave, tags, onTagsUpdated, trigger }: TaskEditDialogProps) {
+export default function TaskEditDialog({ task, open, onOpenChange, weeklyPriorities, onSave, tags, onTagsUpdated }: TaskEditDialogProps) {
   const [values, setValues] = useState({ title: "", tag: "", deadline: "", reminder: "", priority: "" });
 
   useEffect(() => {
@@ -43,7 +42,6 @@ export default function TaskEditDialog({ task, open, onOpenChange, weeklyPriorit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>

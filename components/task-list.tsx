@@ -5,14 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { formatISODateString } from "@/lib/date-utils";
 import TaskForm from "@/components/task-form";
 import TaskItem from "@/components/task-item";
-import TaskEditDialog from "@/components/task-edit-dialog";
-import TaskDetailsDialog from "@/components/task-details-dialog";
 import WeeklyPriorityList from "@/components/weekly-priority-list";
 import Goals from "@/components/goals";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { useTasks, UITask } from "@/hooks/use-tasks";
 import { cn } from "@/lib/utils";
 import { useTags } from "@/hooks/use-tags";
+import TaskDetailsDialog from "@/components/task-details-dialog";
+import TaskEditDialog from "@/components/task-edit-dialog";
 
 export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
   const { selectedDate: date } = useSelectedDate();
@@ -117,7 +117,7 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
         </CardContent>
       </Card>
 
-      {/* <TaskEditDialog
+      <TaskEditDialog
         task={editingTask}
         open={editingTask !== null}
         onOpenChange={(o) => !o && setEditingTask(null)}
@@ -125,9 +125,10 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
         onSave={updateTask}
         tags={tags}
         onTagsUpdated={loadTags}
-      /> */}
+      />
 
-      {/* <TaskDetailsSheet
+      {/* 
+      <TaskDetailsDialog
         task={tasks.find((t) => t.id === selectedTaskId) ?? null}
         open={selectedTaskId !== null}
         onOpenChange={(o) => !o && setSelectedTaskId(null)}

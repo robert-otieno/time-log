@@ -15,8 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { WeeklyPriority } from "@/lib/types/tasks";
 import { Tag } from "@/hooks/use-tags";
-import TaskEditDialog from "@/components/task-edit-dialog";
-import TaskDetailsDialog from "@/components/task-details-dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface TaskItemProps {
   task: UITask;
@@ -193,9 +193,9 @@ export default function TaskItem({
           </div>
 
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
+            {/* <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
               <GripVertical className="h-4 w-4" />
-            </Button>
+            </Button> */}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -204,8 +204,8 @@ export default function TaskItem({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <TaskEditDialog trigger={<DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>} />
-                <TaskDetailsDialog trigger={<DropdownMenuItem onClick={() => onSelect(task.id)}>Details</DropdownMenuItem>} />
+                <DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onSelect(task.id)}>Details</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onDeleteTask(task.id)} className="text-destructive">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete

@@ -113,7 +113,7 @@ export default function WeeklyPriorityList() {
             )}
 
             {visible.map((p: Priority) => (
-              <li key={p.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3">
+              <li key={p.id} className="flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
                   {editingPriorityId === p.id ? (
                     <div className="flex items-center gap-2">
@@ -180,9 +180,9 @@ export default function WeeklyPriorityList() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
+                  {/* <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
                     <GripVertical className="h-4 w-4" />
-                  </Button>
+                  </Button> */}
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -200,7 +200,7 @@ export default function WeeklyPriorityList() {
                       >
                         Rename
                       </DropdownMenuItem>{" "}
-                      <DropdownMenuItem disabled>Add subtask (coming soon)</DropdownMenuItem>
+                      {/* <DropdownMenuItem disabled>Add subtask (coming soon)</DropdownMenuItem> */}
                       <DropdownMenuItem onClick={() => handleDeletePriority(p.id)} className="text-destructive">
                         Delete
                       </DropdownMenuItem>
