@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { useState, useEffect, ReactNode } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { TaskWithSubtasks, updateTaskDetails } from "@/app/actions/tasks";
+import { updateTaskDetails } from "@/app/actions/tasks";
+import { TaskWithSubtasks } from "@/lib/types/tasks";
 
-interface TaskDetailsSheetProps {
+interface TaskDetailsDialogProps {
   task:
     | (Pick<TaskWithSubtasks, "id" | "title" | "notes" | "link" | "fileRefs"> & {
         createdAt?: Date | null;
@@ -17,9 +18,10 @@ interface TaskDetailsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  trigger: ReactNode;
 }
 
-export default function TaskDetailsSheet({ task, open, onOpenChange, onSaved }: TaskDetailsSheetProps) {
+export default function TaskDetailsDialog({ task, open, onOpenChange, onSaved, trigger }: TaskDetailsDialogProps) {
   const [notes, setNotes] = useState("");
   const [link, setLink] = useState("");
   const [fileRefs, setFileRefs] = useState<string[]>([]);
@@ -55,20 +57,22 @@ export default function TaskDetailsSheet({ task, open, onOpenChange, onSaved }: 
       fileRefs: fileRefs.length ? JSON.stringify(fileRefs) : null,
     });
     onSaved();
+    onOpenChange(false);
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>{task?.title}</SheetTitle>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{task?.title}</DialogTitle>
           {task?.createdAt && (
-            <p className="text-xs text-muted-foreground">
+            <DialogDescription className="text-xs">
               Created {task.createdAt.toLocaleString()}
               {task.updatedAt && ` • Updated ${task.updatedAt.toLocaleString()}`}
-            </p>
+            </DialogDescription>
           )}
-        </SheetHeader>
+        </DialogHeader>
         <div className="flex flex-col gap-4 px-4">
           <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           <Input placeholder="Link" value={link} onChange={(e) => setLink(e.target.value)} />
@@ -101,10 +105,10 @@ export default function TaskDetailsSheet({ task, open, onOpenChange, onSaved }: 
             )}
           </div>
         </div>
-        <SheetFooter>
+        <DialogFooter>
           <Button onClick={handleSave}>Save</Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

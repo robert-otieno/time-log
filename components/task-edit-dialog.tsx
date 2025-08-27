@@ -1,23 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ReactNode, useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { UITask } from "@/hooks/use-tasks";
 import { Tag } from "@/hooks/use-tags";
+import TagManager from "./tag-manager";
 
-interface TaskEditSheetProps {
+interface TaskEditDialogProps {
   task: UITask | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   weeklyPriorities: { id: string; title: string; level: string }[];
   onSave: (id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
   tags: Tag[];
+  onTagsUpdated: () => Promise<void>;
+  trigger: ReactNode;
 }
 
-export default function TaskEditSheet({ task, open, onOpenChange, weeklyPriorities, onSave, tags }: TaskEditSheetProps) {
+export default function TaskEditDialog({ task, open, onOpenChange, weeklyPriorities, onSave, tags, onTagsUpdated, trigger }: TaskEditDialogProps) {
   const [values, setValues] = useState({ title: "", tag: "", deadline: "", reminder: "", priority: "" });
 
   useEffect(() => {
@@ -39,12 +42,13 @@ export default function TaskEditSheet({ task, open, onOpenChange, weeklyPrioriti
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Edit Task</SheetTitle>
-        </SheetHeader>
-        <div className="flex flex-col gap-3 p-4">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Task</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
           <Input placeholder="Title" value={values.title} onChange={(e) => setValues((prev) => ({ ...prev, title: e.target.value }))} />
           <Input type="time" value={values.deadline} onChange={(e) => setValues((prev) => ({ ...prev, deadline: e.target.value }))} aria-label="Deadline" />
           <Input
@@ -53,18 +57,23 @@ export default function TaskEditSheet({ task, open, onOpenChange, weeklyPrioriti
             onChange={(e) => setValues((prev) => ({ ...prev, reminder: e.target.value }))}
             aria-label="Reminder time"
           />
-          <Select value={values.tag} onValueChange={(v) => setValues((prev) => ({ ...prev, tag: v }))}>
-            <SelectTrigger className="h-9 w-full" aria-label="Select tag">
-              <SelectValue placeholder="Tag" />
-            </SelectTrigger>
-            <SelectContent>
-              {tags.map((tag) => (
-                <SelectItem key={tag.id} value={tag.id}>
-                  {tag.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+          <div className="flex gap-2">
+            <Select value={values.tag} onValueChange={(v) => setValues((prev) => ({ ...prev, tag: v }))}>
+              <SelectTrigger className="h-9 w-full" aria-label="Select tag">
+                <SelectValue placeholder="Tag" />
+              </SelectTrigger>
+              <SelectContent>
+                {tags.map((tag) => (
+                  <SelectItem key={tag.id} value={tag.id}>
+                    {tag.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <TagManager onTagsUpdated={onTagsUpdated} />
+          </div>
+
           <Select value={values.priority} onValueChange={(v) => setValues((prev) => ({ ...prev, priority: v }))}>
             <SelectTrigger className="h-9 w-full" aria-label="Select priority">
               <SelectValue placeholder="Priority" />
@@ -79,10 +88,10 @@ export default function TaskEditSheet({ task, open, onOpenChange, weeklyPrioriti
             </SelectContent>
           </Select>
         </div>
-        <SheetFooter>
+        <DialogFooter>
           <Button onClick={handleSave}>Save</Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

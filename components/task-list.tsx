@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { formatISODateString } from "@/lib/date-utils";
 import TaskForm from "@/components/task-form";
 import TaskItem from "@/components/task-item";
-import TaskEditSheet from "@/components/task-edit-sheet";
-import TaskDetailsSheet from "@/components/task-details-sheet";
+import TaskEditDialog from "@/components/task-edit-dialog";
+import TaskDetailsDialog from "@/components/task-details-dialog";
 import WeeklyPriorityList from "@/components/weekly-priority-list";
 import Goals from "@/components/goals";
 import { useSelectedDate } from "@/hooks/use-selected-date";
@@ -17,7 +17,7 @@ import { useTags } from "@/hooks/use-tags";
 export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
   const { selectedDate: date } = useSelectedDate();
   const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, loadTasks } = useTasks(date);
-  const { tags } = useTags();
+  const { tags, loadTags } = useTags();
   const [editingTask, setEditingTask] = useState<UITask | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -72,14 +72,14 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
         <CardContent className={cn("grid gap-4 transition-all", focusMode ? "grid-cols-1" : "grid-cols-2")}>
           <Card className="border-0 p-0 shadow-none rounded-none bg-card/0">
             <CardHeader>
-              <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} tags={tags} />
+              <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} tags={tags} onTagsUpdated={loadTags} />
               <CardTitle>Daily Tasks</CardTitle>
             </CardHeader>
 
             <CardContent>
               {tasks.length === 0 ? (
                 <ul className="divide-y">
-                  <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “STEAM Bingo Card – GBDCEI” or “Newsletter Q2 outline.”</li>
+                  <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “Newsletter Q2 outline.”</li>
                 </ul>
               ) : (
                 orderedGroups.map(([tag, tagTasks]) => (
@@ -117,16 +117,17 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
         </CardContent>
       </Card>
 
-      <TaskEditSheet
+      {/* <TaskEditDialog
         task={editingTask}
         open={editingTask !== null}
         onOpenChange={(o) => !o && setEditingTask(null)}
         weeklyPriorities={weeklyPriorities}
         onSave={updateTask}
         tags={tags}
-      />
+        onTagsUpdated={loadTags}
+      /> */}
 
-      <TaskDetailsSheet
+      {/* <TaskDetailsSheet
         task={tasks.find((t) => t.id === selectedTaskId) ?? null}
         open={selectedTaskId !== null}
         onOpenChange={(o) => !o && setSelectedTaskId(null)}
@@ -134,7 +135,7 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
           await loadTasks();
           setSelectedTaskId(null);
         }}
-      />
+      /> */}
     </>
   );
 }

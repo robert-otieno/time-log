@@ -15,6 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { WeeklyPriority } from "@/lib/types/tasks";
 import { Tag } from "@/hooks/use-tags";
+import TaskEditDialog from "@/components/task-edit-dialog";
+import TaskDetailsDialog from "@/components/task-details-dialog";
 
 interface TaskItemProps {
   task: UITask;
@@ -202,9 +204,8 @@ export default function TaskItem({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onSelect(task.id)}>Details</DropdownMenuItem>
-                <DropdownMenuItem disabled>Duplicate (coming soon)</DropdownMenuItem>
+                <TaskEditDialog trigger={<DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>} />
+                <TaskDetailsDialog trigger={<DropdownMenuItem onClick={() => onSelect(task.id)}>Details</DropdownMenuItem>} />
                 <DropdownMenuItem onClick={() => onDeleteTask(task.id)} className="text-destructive">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete

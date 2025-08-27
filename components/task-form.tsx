@@ -7,14 +7,16 @@ import { Plus } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WeeklyPriority } from "@/lib/types/tasks";
 import { Tag } from "@/hooks/use-tags";
+import TagManager from "./tag-manager";
 
 interface TaskFormProps {
   onAdd: (title: string, tag: string, deadline: string, reminder: string, priority: string) => Promise<void>;
   weeklyPriorities: WeeklyPriority[];
   tags: Tag[];
+  onTagsUpdated: () => Promise<void>;
 }
 
-export default function TaskForm({ onAdd, weeklyPriorities, tags }: TaskFormProps) {
+export default function TaskForm({ onAdd, weeklyPriorities, tags, onTagsUpdated }: TaskFormProps) {
   const [title, setTitle] = useState("");
   const [tag, setTag] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -90,6 +92,7 @@ export default function TaskForm({ onAdd, weeklyPriorities, tags }: TaskFormProp
             </SelectGroup>
           </SelectContent>
         </Select>
+        <TagManager onTagsUpdated={onTagsUpdated} />
 
         <Select value={priority} onValueChange={(v) => setPriority(v)}>
           <SelectTrigger className="h-9 rounded-md" aria-label="Link to priority">
