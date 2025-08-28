@@ -17,19 +17,7 @@ import TaskEditDialog from "@/components/task-edit-dialog";
 
 export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
   const { selectedDate: date, setSelectedDate } = useSelectedDate();
-  const {
-    tasks,
-    weeklyPriorities,
-    addTask,
-    toggleTask,
-    deleteTask,
-    addSubtask,
-    toggleSubtask,
-    deleteSubtask,
-    updateTask,
-    loadTasks,
-    moveIncompleteToToday,
-  } = useTasks(date);
+  const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, loadTasks, moveIncompleteToToday } = useTasks(date);
   const today = formatISODate(new Date());
   const { tags, loadTags } = useTags();
   const [editingTask, setEditingTask] = useState<UITask | null>(null);
@@ -83,67 +71,71 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
           <CardDescription>{formatISODateString(date)}</CardDescription>
         </CardHeader>
 
-        <CardContent className={cn("grid gap-4 transition-all", focusMode ? "grid-cols-1" : "grid-cols-2")}>
-          <Card className="border-0 p-0 shadow-none rounded-none bg-card/0">
-            <CardHeader>
-              <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} tags={tags} onTagsUpdated={loadTags} />
-              <div className="flex items-center justify-between">
-                <CardTitle>Daily Tasks</CardTitle>
-                {date !== today && tasks.some((t) => !t.done) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={async () => {
-                      const moved = await moveIncompleteToToday();
-                      if (moved > 0) {
-                        setSelectedDate(today);
-                      }
-                    }}
-                  >
-                    Move incomplete to today
-                  </Button>
+        <CardContent className={cn(focusMode ? "grid-cols-1" : "grid-cols-2")}>
+          <Card className="grid grid-cols-1 md:grid-cols-2 gap-2 border-0 p-0 shadow-none rounded-none bg-card/0">
+            <div>
+              <CardHeader>
+                <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} tags={tags} onTagsUpdated={loadTags} />
+                <div className="flex items-center justify-between">
+                  <CardTitle>Daily Tasks</CardTitle>
+                  {date !== today && tasks.some((t) => !t.done) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        const moved = await moveIncompleteToToday();
+                        if (moved > 0) {
+                          setSelectedDate(today);
+                        }
+                      }}
+                    >
+                      Move incomplete to today
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                {tasks.length === 0 ? (
+                  <ul className="divide-y">
+                    <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “Newsletter Q2 outline.”</li>
+                  </ul>
+                ) : (
+                  orderedGroups.map(([tag, tagTasks]) => (
+                    <div key={tag}>
+                      <ul>
+                        {tagTasks.map((task) => (
+                          <TaskItem
+                            key={task.id}
+                            task={task}
+                            onToggleTask={toggleTask}
+                            onDeleteTask={deleteTask}
+                            onAddSubtask={addSubtask}
+                            onToggleSubtask={toggleSubtask}
+                            onDeleteSubtask={deleteSubtask}
+                            onEdit={(t) => setEditingTask(t)}
+                            onSelect={(id) => setSelectedTaskId(id)}
+                            onUpdateTask={updateTask}
+                            weeklyPriorities={weeklyPriorities}
+                            tags={tags}
+                          />
+                        ))}
+                      </ul>
+                    </div>
+                  ))
                 )}
-              </div>
-            </CardHeader>
-
-            <CardContent>
-              {tasks.length === 0 ? (
-                <ul className="divide-y">
-                  <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “Newsletter Q2 outline.”</li>
-                </ul>
-              ) : (
-                orderedGroups.map(([tag, tagTasks]) => (
-                  <div key={tag}>
-                    <ul>
-                      {tagTasks.map((task) => (
-                        <TaskItem
-                          key={task.id}
-                          task={task}
-                          onToggleTask={toggleTask}
-                          onDeleteTask={deleteTask}
-                          onAddSubtask={addSubtask}
-                          onToggleSubtask={toggleSubtask}
-                          onDeleteSubtask={deleteSubtask}
-                          onEdit={(t) => setEditingTask(t)}
-                          onSelect={(id) => setSelectedTaskId(id)}
-                          onUpdateTask={updateTask}
-                          weeklyPriorities={weeklyPriorities}
-                          tags={tags}
-                        />
-                      ))}
-                    </ul>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          {!focusMode && (
-            <div className="space-y-6">
-              <Goals />
-              <WeeklyPriorityList />
+              </CardContent>
             </div>
-          )}
+
+            <div>
+              {!focusMode && (
+                <div className="space-y-6">
+                  <Goals />
+                  <WeeklyPriorityList />
+                </div>
+              )}
+            </div>
+          </Card>
         </CardContent>
       </Card>
 

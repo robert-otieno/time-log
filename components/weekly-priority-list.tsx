@@ -82,7 +82,7 @@ export default function WeeklyPriorityList() {
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <CardTitle>{`Priorities: Week - ${weekRange}`}</CardTitle>
-          <CardDescription className="mb-4">Set your weekly priorities to focus on what matters most.</CardDescription>
+          <CardDescription className="mb-3">Set your weekly priorities to focus on what matters most.</CardDescription>
 
           <div className="flex gap-2">
             <Input placeholder="New priority… e.g., ‘Submit thesis draft’" value={newPriority} onChange={(e) => setNewPriority(e.target.value)} />
@@ -104,10 +104,10 @@ export default function WeeklyPriorityList() {
           </div>
         </CardHeader>
 
-        <CardContent className="pt-2">
+        <CardContent>
           <ul className="divide-y">
             {visible.length === 0 && (
-              <li className="py-6 text-sm text-muted-foreground">
+              <li className="text-xs text-muted-foreground">
                 No priorities yet. Try “Wedding planning,” “Identify photography venue,” or “Chapter 1–2 thesis.”
               </li>
             )}

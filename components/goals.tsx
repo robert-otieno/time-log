@@ -50,11 +50,11 @@ export default function Goals() {
   }
 
   return (
-    <section id="goals" className="space-y-6">
+    <section id="goals" className="space-y-4">
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <CardTitle>Goals</CardTitle>
-          <CardDescription className="mb-4">Make your goals specific, measurable, achievable, and relevant</CardDescription>
+          <CardDescription className="mb-3">Make your goals specific, measurable, achievable, and relevant</CardDescription>
 
           <div className="flex gap-2">
             <Select value={newCategory} onValueChange={setNewCategory}>
@@ -129,10 +129,10 @@ export default function Goals() {
             const paceBadgeClass = (paceLabel: string) => (paceLabel === "On pace" ? "bg-emerald-600/10 text-emerald-600" : "bg-red-600/10 text-red-600");
 
             return (
-              <div key={goal.id} className="mb-3">
+              <div key={goal.id}>
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <CircularProgress value={progress} size={50} strokeWidth={4} />
+                    <CircularProgress value={progress} size={45} strokeWidth={4} />
 
                     {goal.targetDate && (
                       <Badge className={`rounded-full shadow-none font-normal ${paceBadgeClass(paceLabel)}`} aria-label={`Pace status: ${paceLabel}`}>
@@ -152,7 +152,7 @@ export default function Goals() {
                   </Button>
                 </div>
 
-                <div className="space-y-1">
+                <div>
                   <Collapsible open={addHabitOpen} onOpenChange={setAddHabitOpen}>
                     <div className="mb-2 flex items-center gap-2">
                       <CollapsibleTrigger asChild>
