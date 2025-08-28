@@ -5,14 +5,16 @@ import { deleteGoal } from "@/app/actions/goals";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const parsed = paramsSchema.safeParse(params);
+    const { id } = await ctx.params;
+
+    const parsed = paramsSchema.safeParse({ id });
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
-    const result = await deleteGoal(parsed.data.id);
 
+    const result = await deleteGoal(parsed.data.id);
     return NextResponse.json(result);
   } catch (e) {
     console.error("DELETE /api/goals/[id]", e);

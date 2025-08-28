@@ -9,9 +9,11 @@ const bodySchema = z.object({
   value: z.number().optional(),
 });
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const parsedParams = paramsSchema.safeParse(params);
+    const { id } = await ctx.params;
+
+    const parsedParams = paramsSchema.safeParse({ id });
     if (!parsedParams.success) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
@@ -21,6 +23,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!parsedBody.success) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
+
     const result = await toggleHabitCompletion(parsedParams.data.id, parsedBody.data.date, parsedBody.data.value);
 
     return NextResponse.json(result);
