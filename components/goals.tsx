@@ -26,14 +26,6 @@ export default function Goals() {
   const [goalDeadline, setGoalDeadline] = useState<Date | undefined>();
   const [habitInputs, setHabitInputs] = useState<Record<string, string>>({});
   const { selectedDate } = useSelectedDate();
-  const recentDates = Array.from({ length: 7 }, (_, idx) => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() - (6 - idx));
-    return {
-      date: formatISODate(d),
-      label: d.toLocaleDateString(undefined, { weekday: "short" }),
-    };
-  });
 
   function handleAddGoal() {
     const deadline = goalDeadline ? formatISODate(goalDeadline) : null;
@@ -53,12 +45,12 @@ export default function Goals() {
     <section id="goals" className="space-y-4">
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>Goals</CardTitle>
-          <CardDescription className="mb-3">Make your goals specific, measurable, achievable, and relevant</CardDescription>
+          <CardTitle className="text-sm">Goals</CardTitle>
+          <CardDescription className="text-xs sm:text-sm mb-3">Make your goals specific, measurable, achievable, and relevant</CardDescription>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col md:flex-row gap-2">
             <Select value={newCategory} onValueChange={setNewCategory}>
-              <SelectTrigger className="h-9 w-[180px] rounded-md" aria-label="Select category">
+              <SelectTrigger className="w-full rounded-md" aria-label="Select category">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -75,10 +67,10 @@ export default function Goals() {
 
             <Input placeholder="Goal" className="w-full" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
 
-            <div className="flex flex-col gap-3">
+            <div className="flex gap-2">
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-1">
+                  <Button variant="outline" className="flex-1 gap-1">
                     <CalendarDays />
                     {goalDeadline ? formatISODate(goalDeadline) : "Set Deadline"}
                   </Button>
@@ -95,11 +87,11 @@ export default function Goals() {
                   />
                 </PopoverContent>
               </Popover>
-            </div>
 
-            <Button size="icon" aria-label="Add goals" onClick={handleAddGoal}>
-              <Plus />
-            </Button>
+              <Button size="icon" aria-label="Add goals" onClick={handleAddGoal}>
+                <Plus />
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -131,20 +123,21 @@ export default function Goals() {
             return (
               <div key={goal.id}>
                 <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex gap-1">
                     <CircularProgress value={progress} size={45} strokeWidth={4} />
-
-                    {goal.targetDate && (
-                      <Badge className={`rounded-full shadow-none font-normal ${paceBadgeClass(paceLabel)}`} aria-label={`Pace status: ${paceLabel}`}>
-                        {paceLabel}
-                      </Badge>
-                    )}
-
-                    <span className="text-sm font-medium">{goal.title}</span>
-
-                    <Badge variant="secondary" className="text-xs capitalize">
-                      {goal.category}
-                    </Badge>
+                    <div className="space-y-2 sm:flex sm:items-center sm:gap-2 sm:space-y-0">
+                      <div className="text-sm font-medium">{goal.title}</div>
+                      <div className="flex gap-2">
+                        {goal.targetDate && (
+                          <Badge className={`rounded-full shadow-none font-normal ${paceBadgeClass(paceLabel)}`} aria-label={`Pace status: ${paceLabel}`}>
+                            {paceLabel}
+                          </Badge>
+                        )}
+                        <Badge variant="secondary" className="text-xs capitalize">
+                          {goal.category}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
 
                   <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)} className="hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring">
