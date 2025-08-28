@@ -122,7 +122,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
               )}
 
               {/* <Select defaultValue={task.tag ?? ""} onValueChange={handleTagChange}>
-                <SelectTrigger size="sm" className="h-7 min-w-[120px] capitalize border-0" aria-label="Select tag">
+                <SelectTrigger size="sm" className="h-7 min-w-[120px] capitalize" aria-label="Select tag">
                   <SelectValue placeholder="Tag" />
                 </SelectTrigger>
                 <SelectContent>

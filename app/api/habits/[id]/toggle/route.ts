@@ -9,8 +9,7 @@ const bodySchema = z.object({
   value: z.number().optional(),
 });
 
-export async function POST(req: Request, context: { params: { id: string } }) {
-  const { params } = context;
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const parsedParams = paramsSchema.safeParse(params);
     if (!parsedParams.success) {

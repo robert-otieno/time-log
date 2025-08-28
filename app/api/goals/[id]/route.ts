@@ -5,8 +5,7 @@ import { deleteGoal } from "@/app/actions/goals";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
 
-export async function DELETE(_req: Request, context: { params: { id: string } }) {
-  const { params } = context;
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   try {
     const parsed = paramsSchema.safeParse(params);
     if (!parsed.success) {
