@@ -40,7 +40,7 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col md:flex-row gap-2">
       <span className="flex items-center gap-1 text-sm">
         {habit.name}
         <Badge variant="secondary">🔥{streak}</Badge>
