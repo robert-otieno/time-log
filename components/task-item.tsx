@@ -32,19 +32,7 @@ interface TaskItemProps {
   tags: Tag[];
 }
 
-export default function TaskItem({
-  task,
-  onToggleTask,
-  onDeleteTask,
-  onAddSubtask,
-  onToggleSubtask,
-  onDeleteSubtask,
-  onEdit,
-  onSelect,
-  onUpdateTask,
-  weeklyPriorities,
-  tags,
-}: TaskItemProps) {
+export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onEdit, onSelect, onUpdateTask, weeklyPriorities, tags }: TaskItemProps) {
   const [open, setOpen] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [editingTitle, setEditingTitle] = useState(false);
@@ -110,21 +98,9 @@ export default function TaskItem({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               {editingTitle ? (
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  onBlur={handleTitleSave}
-                  onKeyDown={(e) => e.key === "Enter" && handleTitleSave()}
-                  className="h-7 w-auto text-sm"
-                  autoFocus
-                />
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={handleTitleSave} onKeyDown={(e) => e.key === "Enter" && handleTitleSave()} className="h-7 w-auto text-sm" autoFocus />
               ) : (
-                <span
-                  className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`}
-                  onDoubleClick={() => setEditingTitle(true)}
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && setEditingTitle(true)}
-                >
+                <span className={`truncate ${task.done ? "line-through text-muted-foreground text-sm" : "font-medium text-sm"}`} onDoubleClick={() => setEditingTitle(true)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setEditingTitle(true)}>
                   {task.title}
                 </span>
               )}
@@ -145,19 +121,7 @@ export default function TaskItem({
                 </Badge>
               )}
 
-              <Popover open={dueOpen} onOpenChange={setDueOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7 gap-1">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    {task.dueLabel ?? "Set due"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={task.deadline ? new Date(task.deadline) : undefined} onSelect={handleDueSelect} captionLayout="dropdown" />
-                </PopoverContent>
-              </Popover>
-
-              <Select defaultValue={task.tag ?? ""} onValueChange={handleTagChange}>
+              {/* <Select defaultValue={task.tag ?? ""} onValueChange={handleTagChange}>
                 <SelectTrigger size="sm" className="h-7 min-w-[120px] capitalize border-0" aria-label="Select tag">
                   <SelectValue placeholder="Tag" />
                 </SelectTrigger>
@@ -168,7 +132,10 @@ export default function TaskItem({
                     </SelectItem>
                   ))}
                 </SelectContent>
-              </Select>
+              </Select> */}
+              {task.tag && (
+                <Badge className="capitalize">{tags.find((t) => t.id === task.tag)?.name ?? task.tag}</Badge>
+              )}
 
               {task.priority && (
                 <Select defaultValue={defaults.priority} onValueChange={handlePriorityChange}>
@@ -186,17 +153,22 @@ export default function TaskItem({
                 </Select>
               )}
 
-              {typeof task.count === "number" && (
-                <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">{task.count}</span>
-              )}
+              {typeof task.count === "number" && <span className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs">{task.count}</span>}
             </div>
           </div>
 
           <div className="flex items-center gap-1">
-            {/* <Button variant="ghost" size="icon" className="h-8 w-8 cursor-grab" title="Drag to sort">
-              <GripVertical className="h-4 w-4" />
-            </Button> */}
-
+            <Popover open={dueOpen} onOpenChange={setDueOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 gap-1">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {task.dueLabel ?? "Due date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={task.deadline ? new Date(task.deadline) : undefined} onSelect={handleDueSelect} captionLayout="dropdown" />
+              </PopoverContent>
+            </Popover>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Task actions">
@@ -227,13 +199,7 @@ export default function TaskItem({
               </li>
             ))}
             <li className="flex items-center gap-2">
-              <Input
-                placeholder="Add subtask"
-                value={newSubtask}
-                onChange={(e) => setNewSubtask(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()}
-                className="flex-1"
-              />
+              <Input placeholder="Add subtask" value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()} className="flex-1" />
               <Button size="icon" onClick={handleAddSubtask} aria-label="Add subtask">
                 <Plus className="h-4 w-4" />
               </Button>

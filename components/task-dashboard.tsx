@@ -37,7 +37,7 @@ export default function TaskDashboard() {
         <SiteHeader />
         <div className="flex flex-1 transition-all duration-300">
           {!focusMode && <AppSidebar />}
-          <SidebarInset className="transition-all duration-300">
+          <SidebarInset className="container mx-auto transition-all duration-300 ">
             <TaskList focusMode={focusMode} />
           </SidebarInset>
         </div>

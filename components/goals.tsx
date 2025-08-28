@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { formatISODate } from "@/lib/date-utils";
 import { useState } from "react";
 import { useGoals } from "@/hooks/use-goals";
@@ -15,10 +15,12 @@ import HabitTracker from "@/components/habit-tracker";
 import { Badge } from "@/components/ui/badge";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import CircularProgress from "./progress-07";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 
 export default function Goals() {
   const { goals, addGoal, deleteGoal, addHabit, deleteHabit, toggleHabit } = useGoals();
   const [open, setOpen] = useState(false);
+  const [addHabitOpen, setAddHabitOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [goalDeadline, setGoalDeadline] = useState<Date | undefined>();
@@ -124,40 +126,70 @@ export default function Goals() {
               progress = target > 0 ? (totalCompleted / target) * 100 : 0;
             }
 
+            const paceBadgeClass = (paceLabel: string) => (paceLabel === "On pace" ? "bg-emerald-600/10 text-emerald-600" : "bg-red-600/10 text-red-600");
+
             return (
-              <div key={goal.id}>
+              <div key={goal.id} className="mb-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <CircularProgress value={progress} size={50} strokeWidth={4} />
-                      {goal.targetDate && <Badge className={`font-normal ${paceLabel === "On pace" ? "bg-emerald-600/10 text-emerald-600" : "bg-red-600/10 text-red-600"} shadow-none rounded-full`}>{paceLabel}</Badge>}
-                    </div>
-                    <span className="font-medium text-sm">{goal.title}</span>
-                    <Badge variant="secondary" className="text-sm capitalize">
+                  <div className="flex items-center gap-3">
+                    <CircularProgress value={progress} size={50} strokeWidth={4} />
+
+                    {goal.targetDate && (
+                      <Badge className={`rounded-full shadow-none font-normal ${paceBadgeClass(paceLabel)}`} aria-label={`Pace status: ${paceLabel}`}>
+                        {paceLabel}
+                      </Badge>
+                    )}
+
+                    <span className="text-sm font-medium">{goal.title}</span>
+
+                    <Badge variant="secondary" className="text-xs capitalize">
                       {goal.category}
                     </Badge>
                   </div>
-                  <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)}>
+
+                  <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)} className="hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
 
-                <div className="ml-4 space-y-1">
-                  {goal.habits.map((habit) => (
-                    <div key={habit.id} className="flex items-center justify-between gap-2">
-                      <HabitTracker habit={habit} onToggle={toggleHabit} />
-                      <Button variant="ghost" size="icon" aria-label="Delete habit" onClick={() => deleteHabit(habit.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                <div className="space-y-1">
+                  <Collapsible open={addHabitOpen} onOpenChange={setAddHabitOpen}>
+                    <div className="mb-2 flex items-center gap-2">
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="p-0 transition-transform data-[state=open]:rotate-90 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Toggle habits">
+                          <ChevronRight />
+                        </Button>
+                      </CollapsibleTrigger>
 
-                  <div className="flex items-center gap-2">
-                    <Input placeholder="New habit" value={habitInputs[goal.id] ?? ""} onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && handleAddHabit(goal.id)} className="flex-1 h-8" />
-                    <Button size="sm" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      <div className="flex w-full flex-col gap-1">
+                        {goal.habits.map((habit) => (
+                          <div key={habit.id} className="flex items-center justify-between gap-2 rounded-md">
+                            <HabitTracker habit={habit} onToggle={toggleHabit} />
+
+                            <Button variant="ghost" size="icon" aria-label="Delete habit" onClick={() => deleteHabit(habit.id)} className="hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <CollapsibleContent
+                      className="
+          overflow-hidden
+          transition-all
+          data-[state=closed]:animate-none data-[state=closed]:opacity-0 data-[state=closed]:max-h-0
+          data-[state=open]:opacity-100 data-[state=open]:max-h-32
+        "
+                    >
+                      <div className="flex items-center gap-2">
+                        <Input placeholder="New habit" value={habitInputs[goal.id] ?? ""} onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && handleAddHabit(goal.id)} className="h-8 flex-1 rounded-md" aria-label="New habit name" />
+                        <Button size="sm" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)} className="focus-visible:ring-2 focus-visible:ring-ring">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               </div>
             );
