@@ -64,7 +64,7 @@ export default function TaskForm({ onAdd, weeklyPriorities, tags, onTagsUpdated 
 
   return (
     <div className="mb-4">
-      <div className="flex gap-2">
+      <div className="flex flex-col xl:flex-row gap-2">
         <Input
           placeholder="New task… e.g., 'Draft copy @work #priority:1 ^2024-05-01 !09:00'"
           value={title}
@@ -78,7 +78,7 @@ export default function TaskForm({ onAdd, weeklyPriorities, tags, onTagsUpdated 
         />
 
         <Select value={tag} onValueChange={(v) => setTag(v)}>
-          <SelectTrigger className="h-9 rounded-md" aria-label="Select tag">
+          <SelectTrigger className="w-auto rounded-md" aria-label="Select tag">
             <SelectValue placeholder="Select Tag" />
           </SelectTrigger>
           <SelectContent>
@@ -94,23 +94,25 @@ export default function TaskForm({ onAdd, weeklyPriorities, tags, onTagsUpdated 
         </Select>
         <TagManager onTagsUpdated={onTagsUpdated} />
 
-        <Select value={priority} onValueChange={(v) => setPriority(v)}>
-          <SelectTrigger className="h-9 rounded-md" aria-label="Link to priority">
-            <SelectValue placeholder="Link to Priority" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            {weeklyPriorities.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select value={priority} onValueChange={(v) => setPriority(v)}>
+            <SelectTrigger className="flex-1 rounded-md" aria-label="Link to priority">
+              <SelectValue placeholder="Link to Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {weeklyPriorities.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Button size="icon" onClick={handleAdd} aria-label="Add task">
-          <Plus />
-        </Button>
+          <Button size="icon" onClick={handleAdd} aria-label="Add task">
+            <Plus />
+          </Button>
+        </div>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">Tokens: @tag #priority:&lt;level&gt; ^YYYY-MM-DD !HH:MM</p>
     </div>
