@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatISODateString } from "@/lib/date-utils";
+import { Button } from "@/components/ui/button";
+import { formatISODateString, formatISODate } from "@/lib/date-utils";
 import TaskForm from "@/components/task-form";
 import TaskItem from "@/components/task-item";
 import WeeklyPriorityList from "@/components/weekly-priority-list";
@@ -15,8 +16,21 @@ import TaskDetailsDialog from "@/components/task-details-dialog";
 import TaskEditDialog from "@/components/task-edit-dialog";
 
 export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
-  const { selectedDate: date } = useSelectedDate();
-  const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, loadTasks } = useTasks(date);
+  const { selectedDate: date, setSelectedDate } = useSelectedDate();
+  const {
+    tasks,
+    weeklyPriorities,
+    addTask,
+    toggleTask,
+    deleteTask,
+    addSubtask,
+    toggleSubtask,
+    deleteSubtask,
+    updateTask,
+    loadTasks,
+    moveIncompleteToToday,
+  } = useTasks(date);
+  const today = formatISODate(new Date());
   const { tags, loadTags } = useTags();
   const [editingTask, setEditingTask] = useState<UITask | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -73,7 +87,23 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
           <Card className="border-0 p-0 shadow-none rounded-none bg-card/0">
             <CardHeader>
               <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} tags={tags} onTagsUpdated={loadTags} />
-              <CardTitle>Daily Tasks</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Daily Tasks</CardTitle>
+                {date !== today && tasks.some((t) => !t.done) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      const moved = await moveIncompleteToToday();
+                      if (moved > 0) {
+                        setSelectedDate(today);
+                      }
+                    }}
+                  >
+                    Move incomplete to today
+                  </Button>
+                )}
+              </div>
             </CardHeader>
 
             <CardContent>

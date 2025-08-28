@@ -3,7 +3,17 @@ import { Timestamp } from "firebase/firestore";
 
 import { formatISODate } from "@/lib/date-utils";
 import { toast } from "sonner";
-import { addDailySubtask, addDailyTask, deleteDailySubtask, deleteDailyTask, getTodayTasks, toggleDailySubtask, toggleDailyTask, updateDailyTask } from "@/app/actions/tasks";
+import {
+  addDailySubtask,
+  addDailyTask,
+  deleteDailySubtask,
+  deleteDailyTask,
+  getTodayTasks,
+  toggleDailySubtask,
+  toggleDailyTask,
+  updateDailyTask,
+  moveIncompleteTasksToToday,
+} from "@/app/actions/tasks";
 import { getWeeklyPriorities } from "@/app/actions";
 import type { TaskWithSubtasks, WeeklyPriority } from "@/lib/types/tasks";
 
@@ -194,6 +204,21 @@ export function useTasks(date: string) {
     }
   }
 
+  async function moveIncompleteToToday() {
+    try {
+      const moved = await moveIncompleteTasksToToday(date);
+      if (moved > 0) {
+        setTasks((prev) => prev.filter((t) => t.done));
+        toast.success(`Moved ${moved} task${moved === 1 ? "" : "s"} to today`);
+      }
+      return moved;
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to move tasks");
+      return 0;
+    }
+  }
+
   async function updateTask(id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) {
     const deadlineISO = values.deadline && values.deadline.length <= 5 && !values.deadline.includes("T") ? `${date}T${values.deadline}` : values.deadline || null;
     const reminderISO = values.reminder ? `${date}T${values.reminder}` : null;
@@ -244,5 +269,6 @@ export function useTasks(date: string) {
     toggleSubtask,
     deleteSubtask,
     updateTask,
+    moveIncompleteToToday,
   };
 }

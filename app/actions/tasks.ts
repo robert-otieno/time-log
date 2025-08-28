@@ -3,6 +3,7 @@ import { firestore } from "@/lib/firebase-client";
 import { DailySubtask, DailyTask, TaskWithSubtasks, WeeklyPriority } from "@/lib/types/tasks";
 import { userCol } from "@/lib/user-collection";
 import { deleteDoc, doc, documentId, FieldValue, getDoc, getDocs, limit, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from "firebase/firestore";
+import { formatISODate } from "@/lib/date-utils";
 
 const COL_TASKS = "daily_tasks";
 const COL_SUBTASKS = "daily_subtasks";
@@ -253,4 +254,23 @@ export async function deleteDailySubtask(id: string) {
 
   await deleteDoc(ref);
   return { deleted: true };
+}
+
+export async function moveIncompleteTasksToToday(fromDate: string): Promise<number> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const toDate = formatISODate(new Date());
+  const q = query(userCol(user.uid, COL_TASKS), where("date", "==", fromDate), where("done", "==", false));
+  const snap = await getDocs(q);
+  if (snap.empty) return 0;
+
+  const batch = writeBatch(firestore);
+  snap.docs.forEach((docSnap) => {
+    const ref = doc(userCol(user.uid, COL_TASKS), docSnap.id);
+    batch.set(ref, { date: toDate, updatedAt: serverTimestamp() }, { merge: true });
+  });
+
+  await batch.commit();
+  return snap.size;
 }
