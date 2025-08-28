@@ -206,7 +206,8 @@ export function useTasks(date: string) {
 
   async function moveIncompleteToToday() {
     try {
-      const moved = await moveIncompleteTasksToToday(date);
+      const target = formatISODate(new Date());
+      const moved = await moveIncompleteTasksToToday(date, target);
       if (moved > 0) {
         setTasks((prev) => prev.filter((t) => t.done));
         toast.success(`Moved ${moved} task${moved === 1 ? "" : "s"} to today`);

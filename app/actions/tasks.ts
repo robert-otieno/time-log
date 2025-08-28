@@ -256,21 +256,28 @@ export async function deleteDailySubtask(id: string) {
   return { deleted: true };
 }
 
-export async function moveIncompleteTasksToToday(fromDate: string): Promise<number> {
+export async function moveIncompleteTasksToToday(fromDate: string, toDate?: string): Promise<number> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const toDate = formatISODate(new Date());
+  // Use client-provided target date when available to avoid server timezone drift
+  const targetDate = toDate ?? formatISODate(new Date());
   const q = query(userCol(user.uid, COL_TASKS), where("date", "==", fromDate), where("done", "==", false));
   const snap = await getDocs(q);
   if (snap.empty) return 0;
 
-  const batch = writeBatch(firestore);
-  snap.docs.forEach((docSnap) => {
-    const ref = doc(userCol(user.uid, COL_TASKS), docSnap.id);
-    batch.set(ref, { date: toDate, updatedAt: serverTimestamp() }, { merge: true });
-  });
-
-  await batch.commit();
-  return snap.size;
+  // Firestore batch limit is 500 operations; chunk updates to stay under limit
+  const updatesPerBatch = 450;
+  let processed = 0;
+  for (let i = 0; i < snap.docs.length; i += updatesPerBatch) {
+    const batch = writeBatch(firestore);
+    const slice = snap.docs.slice(i, i + updatesPerBatch);
+    slice.forEach((docSnap) => {
+      const ref = doc(userCol(user.uid, COL_TASKS), docSnap.id);
+      batch.set(ref, { date: targetDate, updatedAt: serverTimestamp() }, { merge: true });
+    });
+    await batch.commit();
+    processed += slice.length;
+  }
+  return processed;
 }
