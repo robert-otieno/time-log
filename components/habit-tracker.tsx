@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Habit, HabitCompletion } from "@/lib/types/goals";
 
 type HabitWithCompletions = Habit & {
-  completions: HabitCompletion[];
+  completions: Array<Pick<HabitCompletion, "date" | "value">>;
   dueToday: boolean;
 };
 

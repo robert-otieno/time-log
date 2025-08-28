@@ -30,6 +30,7 @@ export type GoalWithHabits = Goal & {
   habits: Array<
     Habit & {
       completions: Array<Pick<HabitCompletion, "date" | "value">>;
+      dueToday: boolean;
     }
   >;
 };

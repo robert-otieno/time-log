@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { firestore } from "@/lib/firebase-client";
 import type { Goal, Habit, HabitCompletion, GoalWithHabits } from "@/lib/types/goals";
 import { userCol } from "@/lib/user-collection";
+import { isHabitDue } from "@/lib/habit-schedule";
 import { deleteDoc, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 
 const COL_GOALS = "goals";
@@ -235,10 +236,12 @@ export async function getGoalsWithHabits(date: string): Promise<GoalWithHabits[]
 
   const result: GoalWithHabits[] = goals.map((g) => {
     const hs = habitsByGoal.get(g.id) ?? [];
-    const hsWithComps = hs.map((h) => ({
-      ...h,
-      completions: compsByHabit.get(h.id) ?? [],
-    }));
+    const hsWithComps = hs.map((h) => {
+      const completions = compsByHabit.get(h.id) ?? [];
+      const todayVal = completions[0]?.value ?? 0;
+      const dueToday = isHabitDue(h.scheduleMask, new Date(date)) && todayVal < h.target;
+      return { ...h, completions, dueToday };
+    });
     return { ...g, habits: hsWithComps };
   });
 
