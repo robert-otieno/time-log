@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -18,10 +18,9 @@ interface TaskDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
-  trigger: ReactNode;
 }
 
-export default function TaskDetailsDialog({ task, open, onOpenChange, onSaved, trigger }: TaskDetailsDialogProps) {
+export default function TaskDetailsDialog({ task, open, onOpenChange, onSaved }: TaskDetailsDialogProps) {
   const [notes, setNotes] = useState("");
   const [link, setLink] = useState("");
   const [fileRefs, setFileRefs] = useState<string[]>([]);
@@ -56,13 +55,12 @@ export default function TaskDetailsDialog({ task, open, onOpenChange, onSaved, t
       link: link || null,
       fileRefs: fileRefs.length ? JSON.stringify(fileRefs) : null,
     });
-    onSaved();
     onOpenChange(false);
+    onSaved();
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{task?.title}</DialogTitle>

@@ -120,23 +120,26 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
       <TaskEditDialog
         task={editingTask}
         open={editingTask !== null}
-        onOpenChange={(o) => !o && setEditingTask(null)}
+        onOpenChange={(o) => {
+          if (!o) setEditingTask(null);
+        }}
         weeklyPriorities={weeklyPriorities}
         onSave={updateTask}
         tags={tags}
         onTagsUpdated={loadTags}
       />
 
-      {/* 
       <TaskDetailsDialog
         task={tasks.find((t) => t.id === selectedTaskId) ?? null}
         open={selectedTaskId !== null}
-        onOpenChange={(o) => !o && setSelectedTaskId(null)}
+        onOpenChange={(o) => {
+          if (!o) setSelectedTaskId(null);
+        }}
         onSaved={async () => {
           await loadTasks();
           setSelectedTaskId(null);
         }}
-      /> */}
+      />
     </>
   );
 }
