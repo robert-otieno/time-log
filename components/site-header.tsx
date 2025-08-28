@@ -41,7 +41,9 @@ export function SiteHeader() {
           <Breadcrumb className="hidden sm:block">
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage>Activity Tracker</BreadcrumbPage>
+                <BreadcrumbPage className="text-sm leading-tight">
+                  <span className="truncate font-medium">Visio Genesis</span> - <span className="truncate text-xs">Activity Tracker</span>
+                </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

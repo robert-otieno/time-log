@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatISODateString, formatISODate } from "@/lib/date-utils";
@@ -12,16 +12,12 @@ import { useSelectedDate } from "@/hooks/use-selected-date";
 import { useTasks, UITask } from "@/hooks/use-tasks";
 import { cn } from "@/lib/utils";
 import { useTags } from "@/hooks/use-tags";
-import TaskDetailsDialog from "@/components/task-details-dialog";
-import TaskEditDialog from "@/components/task-edit-dialog";
 
 export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
   const { selectedDate: date, setSelectedDate } = useSelectedDate();
-  const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, loadTasks, moveIncompleteToToday } = useTasks(date);
+  const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, moveIncompleteToToday } = useTasks(date);
   const today = formatISODate(new Date());
   const { tags, loadTags } = useTags();
-  const [editingTask, setEditingTask] = useState<UITask | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -105,20 +101,7 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
                     <div key={tag}>
                       <ul>
                         {tagTasks.map((task) => (
-                          <TaskItem
-                            key={task.id}
-                            task={task}
-                            onToggleTask={toggleTask}
-                            onDeleteTask={deleteTask}
-                            onAddSubtask={addSubtask}
-                            onToggleSubtask={toggleSubtask}
-                            onDeleteSubtask={deleteSubtask}
-                            onEdit={(t) => setEditingTask(t)}
-                            onSelect={(id) => setSelectedTaskId(id)}
-                            onUpdateTask={updateTask}
-                            weeklyPriorities={weeklyPriorities}
-                            tags={tags}
-                          />
+                          <TaskItem key={task.id} task={task} onToggleTask={toggleTask} onDeleteTask={deleteTask} onAddSubtask={addSubtask} onToggleSubtask={toggleSubtask} onDeleteSubtask={deleteSubtask} onUpdateTask={updateTask} weeklyPriorities={weeklyPriorities} tags={tags} />
                         ))}
                       </ul>
                     </div>
@@ -138,30 +121,6 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
           </Card>
         </CardContent>
       </Card>
-
-      <TaskEditDialog
-        task={editingTask}
-        open={editingTask !== null}
-        onOpenChange={(o) => {
-          if (!o) setEditingTask(null);
-        }}
-        weeklyPriorities={weeklyPriorities}
-        onSave={updateTask}
-        tags={tags}
-        onTagsUpdated={loadTags}
-      />
-
-      <TaskDetailsDialog
-        task={tasks.find((t) => t.id === selectedTaskId) ?? null}
-        open={selectedTaskId !== null}
-        onOpenChange={(o) => {
-          if (!o) setSelectedTaskId(null);
-        }}
-        onSaved={async () => {
-          await loadTasks();
-          setSelectedTaskId(null);
-        }}
-      />
     </>
   );
 }
