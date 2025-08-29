@@ -44,15 +44,30 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
   const [reminder, setReminder] = useState(task.reminderTime ? task.reminderTime.split("T")[1]?.slice(0, 5) ?? "" : "");
   const [priority, setPriority] = useState(task.weeklyPriorityId ? String(task.weeklyPriorityId) : "none");
   const [notes, setNotes] = useState(task.notes ?? "");
-  const [link, setLink] = useState(task.link ?? "");
-  const [fileRefs, setFileRefs] = useState<string[]>(() => {
+
+  const initialLinks = (() => {
+    try {
+      return task.linkRefs ? JSON.parse(task.linkRefs) : [];
+    } catch {
+      return [];
+    }
+  })();
+  const [links, setLinks] = useState<string[]>(initialLinks);
+
+  const initialFiles = (() => {
     try {
       return task.fileRefs ? JSON.parse(task.fileRefs) : [];
     } catch {
       return [];
     }
-  });
+  })();
+  const [fileRefs, setFileRefs] = useState<string[]>(initialFiles);
   const [newRef, setNewRef] = useState("");
+
+  const [showNotes, setShowNotes] = useState(Boolean(task.notes));
+  const [showLinks, setShowLinks] = useState(initialLinks.length > 0);
+  const [showFiles, setShowFiles] = useState(initialFiles.length > 0);
+  const [showSubtaskInput, setShowSubtaskInput] = useState(false);
 
   useEffect(() => {
     setTitle(task.title);
@@ -61,12 +76,24 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
     setReminder(task.reminderTime ? task.reminderTime.split("T")[1]?.slice(0, 5) ?? "" : "");
     setPriority(task.weeklyPriorityId ? String(task.weeklyPriorityId) : "none");
     setNotes(task.notes ?? "");
-    setLink(task.link ?? "");
+    setShowNotes(Boolean(task.notes));
     try {
-      setFileRefs(task.fileRefs ? JSON.parse(task.fileRefs) : []);
+      const parsedLinks = task.linkRefs ? JSON.parse(task.linkRefs) : [];
+      setLinks(parsedLinks);
+      setShowLinks(parsedLinks.length > 0);
+    } catch {
+      setLinks([]);
+      setShowLinks(false);
+    }
+    try {
+      const parsedFiles = task.fileRefs ? JSON.parse(task.fileRefs) : [];
+      setFileRefs(parsedFiles);
+      setShowFiles(parsedFiles.length > 0);
     } catch {
       setFileRefs([]);
+      setShowFiles(false);
     }
+    setShowSubtaskInput(false);
   }, [task]);
 
   const saveCore = async (changes: Partial<{ title: string; tag: string; deadline: string; reminder: string; priority: string }>) => {
@@ -76,6 +103,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
   const handleAddSubtask = async () => {
     await onAddSubtask(task.id, newSubtask);
     setNewSubtask("");
+    setShowSubtaskInput(false);
   };
 
   const handleTitleSave = async () => {
@@ -115,12 +143,34 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
     await saveCore({ reminder });
   };
 
-  const handleLinkBlur = async () => {
-    await updateTaskDetails(task.id, { link: link || null });
-  };
-
   const handleNotesBlur = async () => {
     await updateTaskDetails(task.id, { notes: notes || null });
+  };
+
+  const saveLinks = async (items: string[]) => {
+    await updateTaskDetails(task.id, {
+      linkRefs: items.length ? JSON.stringify(items) : null,
+    });
+  };
+
+  const handleLinkChange = (idx: number, value: string) => {
+    setLinks((prev) => prev.map((l, i) => (i === idx ? value : l)));
+  };
+
+  const handleLinksBlur = async () => {
+    const cleaned = links.map((l) => l.trim()).filter(Boolean);
+    setLinks(cleaned);
+    await saveLinks(cleaned);
+  };
+
+  const addLinkField = () => {
+    setLinks((prev) => [...prev, ""]);
+  };
+
+  const removeLinkField = async (idx: number) => {
+    const updated = links.filter((_, i) => i !== idx);
+    setLinks(updated);
+    await saveLinks(updated);
   };
 
   const addRef = async () => {
@@ -164,9 +214,9 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
                   {task.title}
                 </span>
               )}
-              {link && (
+              {links.length > 0 && (
                 <Button asChild variant="ghost" size="icon" className="h-7 w-7" title="Open link">
-                  <a href={link} target="_blank" rel="noreferrer">
+                  <a href={links[0]} target="_blank" rel="noreferrer">
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 </Button>
@@ -245,10 +295,67 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
 
         <CollapsibleContent>
           <div className="mt-2 ml-12 space-y-4">
-            <div className="space-y-3">
-              <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={handleNotesBlur} />
-              <Input placeholder="Link" value={link} onChange={(e) => setLink(e.target.value)} onBlur={handleLinkBlur} />
+            <div className="flex flex-wrap gap-2">
+              {!showNotes && (
+                <Button variant="outline" size="sm" onClick={() => setShowNotes(true)}>
+                  + Notes
+                </Button>
+              )}
+              {!showLinks && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowLinks(true);
+                    if (links.length === 0) setLinks([""]);
+                  }}
+                >
+                  + Link
+                </Button>
+              )}
+              {!showFiles && (
+                <Button variant="outline" size="sm" onClick={() => setShowFiles(true)}>
+                  + File
+                </Button>
+              )}
+              {!showSubtaskInput && (
+                <Button variant="outline" size="sm" onClick={() => setShowSubtaskInput(true)}>
+                  + Add Subtask
+                </Button>
+              )}
+            </div>
 
+            {showNotes && (
+              <Textarea
+                placeholder="Notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                onBlur={handleNotesBlur}
+              />
+            )}
+
+            {showLinks && (
+              <div className="space-y-2">
+                {links.map((lnk, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <Input
+                      placeholder="Link"
+                      value={lnk}
+                      onChange={(e) => handleLinkChange(idx, e.target.value)}
+                      onBlur={handleLinksBlur}
+                    />
+                    <Button variant="ghost" size="sm" onClick={() => removeLinkField(idx)}>
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="ghost" size="sm" onClick={addLinkField}>
+                  Add Link
+                </Button>
+              </div>
+            )}
+
+            {showFiles && (
               <div>
                 <div className="flex gap-2">
                   <Input
@@ -277,41 +384,49 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
                   </ul>
                 )}
               </div>
+            )}
 
-              <Select value={tag} onValueChange={handleTagChange}>
-                <SelectTrigger className="h-9 w-full" aria-label="Select tag">
-                  <SelectValue placeholder="Tag" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tags.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <Select value={tag} onValueChange={handleTagChange}>
+              <SelectTrigger className="h-9 w-full" aria-label="Select tag">
+                <SelectValue placeholder="Tag" />
+              </SelectTrigger>
+              <SelectContent>
+                {tags.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="time-picker" className="px-1">
-                  Reminder
-                </Label>
-                <Input id="time-picker" step="1" type="time" value={reminder} onChange={(e) => setReminder(e.target.value)} onBlur={handleReminderBlur} className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none" />
-              </div>
-
-              <Select value={priority} onValueChange={handlePriorityChange}>
-                <SelectTrigger className="h-9 w-full" aria-label="Select priority">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {weeklyPriorities.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-col gap-3">
+              <Label htmlFor="time-picker" className="px-1">
+                Reminder
+              </Label>
+              <Input
+                id="time-picker"
+                step="1"
+                type="time"
+                value={reminder}
+                onChange={(e) => setReminder(e.target.value)}
+                onBlur={handleReminderBlur}
+                className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+              />
             </div>
+
+            <Select value={priority} onValueChange={handlePriorityChange}>
+              <SelectTrigger className="h-9 w-full" aria-label="Select priority">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {weeklyPriorities.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <ul className="space-y-2">
               {task.subtasks.map((sub: any) => (
@@ -323,12 +438,20 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
                   </Button>
                 </li>
               ))}
-              <li className="flex items-center gap-2">
-                <Input placeholder="Add subtask" value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()} className="flex-1" />
-                <Button size="icon" onClick={handleAddSubtask} aria-label="Add subtask">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </li>
+              {showSubtaskInput && (
+                <li className="flex items-center gap-2">
+                  <Input
+                    placeholder="Add subtask"
+                    value={newSubtask}
+                    onChange={(e) => setNewSubtask(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()}
+                    className="flex-1"
+                  />
+                  <Button size="icon" onClick={handleAddSubtask} aria-label="Add subtask">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </li>
+              )}
             </ul>
           </div>
         </CollapsibleContent>

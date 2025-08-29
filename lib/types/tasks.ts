@@ -20,7 +20,7 @@ export interface DailyTask {
   deadline?: string | null;
   reminderTime?: string | null;
   notes?: string | null;
-  link?: string | null;
+  linkRefs?: string | null;
   fileRefs?: string | null;
   weeklyPriorityId?: string | null;
   done: boolean;

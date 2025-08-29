@@ -10,7 +10,7 @@ import { TaskWithSubtasks } from "@/lib/types/tasks";
 
 interface TaskDetailsDialogProps {
   task:
-    | (Pick<TaskWithSubtasks, "id" | "title" | "notes" | "link" | "fileRefs"> & {
+    | (Pick<TaskWithSubtasks, "id" | "title" | "notes" | "linkRefs" | "fileRefs"> & {
         createdAt?: Date | null;
         updatedAt?: Date | null;
       })
@@ -22,14 +22,18 @@ interface TaskDetailsDialogProps {
 
 export default function TaskDetailsDialog({ task, open, onOpenChange, onSaved }: TaskDetailsDialogProps) {
   const [notes, setNotes] = useState("");
-  const [link, setLink] = useState("");
+  const [links, setLinks] = useState<string[]>([]);
   const [fileRefs, setFileRefs] = useState<string[]>([]);
   const [newRef, setNewRef] = useState("");
 
   useEffect(() => {
     if (task) {
       setNotes(task.notes ?? "");
-      setLink(task.link ?? "");
+      try {
+        setLinks(task.linkRefs ? JSON.parse(task.linkRefs) : []);
+      } catch {
+        setLinks([]);
+      }
       try {
         setFileRefs(task.fileRefs ? JSON.parse(task.fileRefs) : []);
       } catch {
@@ -37,6 +41,18 @@ export default function TaskDetailsDialog({ task, open, onOpenChange, onSaved }:
       }
     }
   }, [task]);
+
+  function addLink() {
+    setLinks((prev) => [...prev, ""]);
+  }
+
+  function removeLink(idx: number) {
+    setLinks((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function handleLinkChange(idx: number, value: string) {
+    setLinks((prev) => prev.map((l, i) => (i === idx ? value : l)));
+  }
 
   function addRef() {
     if (!newRef.trim()) return;
@@ -52,7 +68,7 @@ export default function TaskDetailsDialog({ task, open, onOpenChange, onSaved }:
     if (!task) return;
     await updateTaskDetails(task.id, {
       notes: notes || null,
-      link: link || null,
+      linkRefs: links.filter((l) => l.trim()).length ? JSON.stringify(links.filter((l) => l.trim())) : null,
       fileRefs: fileRefs.length ? JSON.stringify(fileRefs) : null,
     });
     onOpenChange(false);
@@ -73,7 +89,19 @@ export default function TaskDetailsDialog({ task, open, onOpenChange, onSaved }:
         </DialogHeader>
         <div className="flex flex-col gap-4 px-4">
           <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-          <Input placeholder="Link" value={link} onChange={(e) => setLink(e.target.value)} />
+          <div>
+            {links.map((l, idx) => (
+              <div key={idx} className="mb-2 flex gap-2">
+                <Input value={l} onChange={(e) => handleLinkChange(idx, e.target.value)} />
+                <Button variant="ghost" size="sm" onClick={() => removeLink(idx)}>
+                  Remove
+                </Button>
+              </div>
+            ))}
+            <Button variant="ghost" size="sm" onClick={addLink}>
+              Add Link
+            </Button>
+          </div>
           <div>
             <div className="flex gap-2">
               <Input

@@ -69,7 +69,7 @@ type AddDailyTaskInput = {
   reminderTime?: string | null;
   weeklyPriorityId?: string | null;
   notes?: string | null;
-  link?: string | null;
+  linkRefs?: string | null;
   fileRefs?: string | null;
 };
 
@@ -90,7 +90,7 @@ export async function addDailyTask(input: AddDailyTaskInput) {
     deadline: input.deadline ?? null,
     reminderTime: input.reminderTime ?? null,
     notes: input.notes ?? null,
-    link: input.link ?? null,
+    linkRefs: input.linkRefs ?? null,
     fileRefs: input.fileRefs ?? null,
     weeklyPriorityId,
     done: false,
@@ -221,7 +221,7 @@ export async function updateDailyTask(id: string, patch: DailyTaskPatch) {
 
 type TaskDetailsPatch = {
   notes?: string | null; // "" -> null
-  link?: string | null; // "" -> null
+  linkRefs?: string | null; // "" -> null
   fileRefs?: string | null; // "" -> null
 };
 
@@ -231,7 +231,7 @@ export async function updateTaskDetails(id: string, patch: TaskDetailsPatch) {
 
   const payload: Record<string, unknown> = {};
   if (patch.notes !== undefined) payload.notes = patch.notes === "" ? null : patch.notes;
-  if (patch.link !== undefined) payload.link = patch.link === "" ? null : patch.link;
+  if (patch.linkRefs !== undefined) payload.linkRefs = patch.linkRefs === "" ? null : patch.linkRefs;
   if (patch.fileRefs !== undefined) payload.fileRefs = patch.fileRefs === "" ? null : patch.fileRefs;
 
   if (Object.keys(payload).length === 0) throw new Error("No valid fields to update.");

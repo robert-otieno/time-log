@@ -116,7 +116,7 @@ export function useTasks(date: string) {
           weeklyPriorityId: priorityId,
           done: false,
           notes: null,
-          link: null,
+          linkRefs: null,
           fileRefs: null,
           subtasks: [],
           priority: priorityObj,
