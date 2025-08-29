@@ -12,6 +12,7 @@ import { CommandMenu } from "./command-menu";
 import { signOut } from "firebase/auth";
 import { clientAuth } from "@/lib/firebase-client";
 import { useRouter } from "next/navigation";
+import ThemeSwitch from "@/components/theme-switch";
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
@@ -48,6 +49,7 @@ export function SiteHeader() {
             </BreadcrumbList>
           </Breadcrumb>
           <SearchForm className="w-full sm:ml-auto sm:w-auto" />
+          <ThemeSwitch />
           {user && (
             <Button
               variant="ghost"

@@ -2,7 +2,6 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import NudgeBanner from "@/components/nudge-banner";
-import ThemeSwitch from "@/components/theme-switch";
 import { Geist, Geist_Mono } from "next/font/google";
 import { FocusModeProvider } from "@/hooks/use-focus-mode";
 import { SelectedDateProvider } from "@/hooks/use-selected-date";
@@ -39,7 +38,6 @@ export default function RootLayout({
               <SelectedDateProvider>
                 <FocusModeProvider>
                   <NudgeBanner />
-                  <ThemeSwitch />
                   {children}
                 </FocusModeProvider>
               </SelectedDateProvider>
