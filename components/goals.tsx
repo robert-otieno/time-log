@@ -10,7 +10,8 @@ import { CalendarDays, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { formatISODate } from "@/lib/date-utils";
 import { useState } from "react";
 import { useGoals } from "@/hooks/use-goals";
-import { categories } from "@/lib/tasks";
+import { useCategories } from "@/hooks/use-categories";
+import CategoryManager from "@/components/category-manager";
 import HabitTracker from "@/components/habit-tracker";
 import { Badge } from "@/components/ui/badge";
 import { useSelectedDate } from "@/hooks/use-selected-date";
@@ -26,10 +27,12 @@ export default function Goals() {
   const [goalDeadline, setGoalDeadline] = useState<Date | undefined>();
   const [habitInputs, setHabitInputs] = useState<Record<string, string>>({});
   const { selectedDate } = useSelectedDate();
+  const { categories, loadCategories } = useCategories();
 
   function handleAddGoal() {
     const deadline = goalDeadline ? formatISODate(goalDeadline) : null;
-    addGoal(newCategory, newTitle, deadline);
+    const categoryName = categories.find((c) => c.id === newCategory)?.name ?? "";
+    addGoal(categoryName, newTitle, deadline);
     setNewCategory("");
     setNewTitle("");
     setGoalDeadline(undefined);
@@ -57,13 +60,14 @@ export default function Goals() {
                 <SelectGroup>
                   <SelectLabel>Category</SelectLabel>
                   {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat.toLowerCase()}>
-                      {cat}
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
                     </SelectItem>
                   ))}
                 </SelectGroup>
               </SelectContent>
             </Select>
+            <CategoryManager onCategoriesUpdated={loadCategories} />
 
             <Input placeholder="Goal" className="w-full" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
 
