@@ -7,13 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronRight, ExternalLink, Flame, MoreVertical, Plus, Trash2, CalendarDays, ChevronDownIcon } from "lucide-react";
+import { ChevronRight, ExternalLink, Flame, MoreVertical, Plus, Trash2, CalendarDays, ChevronDownIcon, AlarmClockPlus } from "lucide-react";
 import type { UITask } from "@/hooks/use-tasks";
 import { formatISODate } from "@/lib/date-utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { WeeklyPriority } from "@/lib/types/tasks";
+import { badgeVariants } from "@/components/ui/badge";
 import { Tag } from "@/hooks/use-tags";
 import { Textarea } from "@/components/ui/textarea";
 import { updateTaskDetails } from "@/app/actions/tasks";
@@ -294,16 +295,17 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
         </div>
 
         <CollapsibleContent>
-          <div className="mt-2 ml-12 space-y-4">
+          <div className="mt-2 ml-12 space-y-2">
             <div className="flex flex-wrap gap-2">
               {!showNotes && (
-                <Button variant="outline" size="sm" onClick={() => setShowNotes(true)}>
+                <Button className="font-normal text-xs" variant="link" size="sm" onClick={() => setShowNotes(true)}>
                   + Notes
                 </Button>
               )}
               {!showLinks && (
                 <Button
-                  variant="outline"
+                  className="font-normal text-xs"
+                  variant="link"
                   size="sm"
                   onClick={() => {
                     setShowLinks(true);
@@ -314,43 +316,31 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
                 </Button>
               )}
               {!showFiles && (
-                <Button variant="outline" size="sm" onClick={() => setShowFiles(true)}>
+                <Button className="font-normal text-xs" variant="link" size="sm" onClick={() => setShowFiles(true)}>
                   + File
                 </Button>
               )}
               {!showSubtaskInput && (
-                <Button variant="outline" size="sm" onClick={() => setShowSubtaskInput(true)}>
+                <Button className="font-normal text-xs" variant="link" size="sm" onClick={() => setShowSubtaskInput(true)}>
                   + Add Subtask
                 </Button>
               )}
             </div>
 
-            {showNotes && (
-              <Textarea
-                placeholder="Notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                onBlur={handleNotesBlur}
-              />
-            )}
+            {showNotes && <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={handleNotesBlur} />}
 
             {showLinks && (
               <div className="space-y-2">
                 {links.map((lnk, idx) => (
                   <div key={idx} className="flex gap-2">
-                    <Input
-                      placeholder="Link"
-                      value={lnk}
-                      onChange={(e) => handleLinkChange(idx, e.target.value)}
-                      onBlur={handleLinksBlur}
-                    />
+                    <Input placeholder="Link" value={lnk} onChange={(e) => handleLinkChange(idx, e.target.value)} onBlur={handleLinksBlur} />
                     <Button variant="ghost" size="sm" onClick={() => removeLinkField(idx)}>
                       Remove
                     </Button>
                   </div>
                 ))}
-                <Button variant="ghost" size="sm" onClick={addLinkField}>
-                  Add Link
+                <Button className="font-normal text-xs" variant="link" size="sm" onClick={addLinkField}>
+                  + Add Link
                 </Button>
               </div>
             )}
@@ -386,47 +376,46 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
               </div>
             )}
 
-            <Select value={tag} onValueChange={handleTagChange}>
-              <SelectTrigger className="h-9 w-full" aria-label="Select tag">
-                <SelectValue placeholder="Tag" />
-              </SelectTrigger>
-              <SelectContent>
-                {tags.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-3">
+              <Label className="px-1">Tag</Label>
+              <Select value={tag} onValueChange={handleTagChange}>
+                <SelectTrigger className="h-9 w-full" aria-label="Select tag">
+                  <SelectValue placeholder="Tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tags.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
               <Label htmlFor="time-picker" className="px-1">
                 Reminder
               </Label>
-              <Input
-                id="time-picker"
-                step="1"
-                type="time"
-                value={reminder}
-                onChange={(e) => setReminder(e.target.value)}
-                onBlur={handleReminderBlur}
-                className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-              />
+              <AlarmClockPlus />
+              <Input id="time-picker" step="1" type="time" value={reminder} onChange={(e) => setReminder(e.target.value)} onBlur={handleReminderBlur} className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none" />
             </div>
 
-            <Select value={priority} onValueChange={handlePriorityChange}>
-              <SelectTrigger className="h-9 w-full" aria-label="Select priority">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {weeklyPriorities.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-3">
+              <Label className="px-1">Priority</Label>
+              <Select value={priority} onValueChange={handlePriorityChange}>
+                <SelectTrigger className="h-9 w-full" aria-label="Select priority">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {weeklyPriorities.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <ul className="space-y-2">
               {task.subtasks.map((sub: any) => (
@@ -440,13 +429,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
               ))}
               {showSubtaskInput && (
                 <li className="flex items-center gap-2">
-                  <Input
-                    placeholder="Add subtask"
-                    value={newSubtask}
-                    onChange={(e) => setNewSubtask(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()}
-                    className="flex-1"
-                  />
+                  <Input placeholder="Add subtask" value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()} className="flex-1" />
                   <Button size="icon" onClick={handleAddSubtask} aria-label="Add subtask">
                     <Plus className="h-4 w-4" />
                   </Button>
