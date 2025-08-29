@@ -376,47 +376,47 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
               </div>
             )}
 
-            <div className="flex gap-3">
-              <Label className="px-1">Tag</Label>
-              <Select value={tag} onValueChange={handleTagChange}>
-                <SelectTrigger className="h-9 w-full" aria-label="Select tag">
-                  <SelectValue placeholder="Tag" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tags.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="flex flex-col md:flex-row gap-2">
+              <div className="space-y-2">
+                <Label className="px-1">Tag</Label>
+                <Select value={tag} onValueChange={handleTagChange}>
+                  <SelectTrigger className="h-9 w-full" aria-label="Select tag">
+                    <SelectValue placeholder="Tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tags.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex items-center gap-3">
-              <Label htmlFor="time-picker" className="px-1">
-                Reminder
-              </Label>
-              <AlarmClockPlus />
-              <Input id="time-picker" step="1" type="time" value={reminder} onChange={(e) => setReminder(e.target.value)} onBlur={handleReminderBlur} className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none" />
-            </div>
+              <div className="space-y-2">
+                <Label className="px-1">Priority</Label>
+                <Select value={priority} onValueChange={handlePriorityChange}>
+                  <SelectTrigger className="h-9 w-full" aria-label="Select priority">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {weeklyPriorities.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex gap-3">
-              <Label className="px-1">Priority</Label>
-              <Select value={priority} onValueChange={handlePriorityChange}>
-                <SelectTrigger className="h-9 w-full" aria-label="Select priority">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {weeklyPriorities.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label htmlFor="time-picker" className="px-1">
+                  Reminder
+                </Label>
+                <Input id="time-picker" step="1" type="time" value={reminder} onChange={(e) => setReminder(e.target.value)} onBlur={handleReminderBlur} className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none" />
+              </div>
             </div>
-
             <ul className="space-y-2">
               {task.subtasks.map((sub: any) => (
                 <li key={sub.id} className="flex items-center gap-2 text-sm">
