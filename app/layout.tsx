@@ -2,11 +2,13 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import NudgeBanner from "@/components/nudge-banner";
+import ThemeSwitch from "@/components/theme-switch";
 import { Geist, Geist_Mono } from "next/font/google";
 import { FocusModeProvider } from "@/hooks/use-focus-mode";
 import { SelectedDateProvider } from "@/hooks/use-selected-date";
 import { AuthProvider } from "@/components/auth-provider";
 import AuthGuard from "@/components/auth-guard";
+import { ThemeProvider } from "next-themes";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,17 +33,20 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-          <AuthGuard>
-            <SelectedDateProvider>
-              <FocusModeProvider>
-                <NudgeBanner />
-                {children}
-              </FocusModeProvider>
-            </SelectedDateProvider>
-          </AuthGuard>
-        </AuthProvider>
-        <Toaster />
+        <ThemeProvider attribute="class" defaultTheme="system">
+          <AuthProvider>
+            <AuthGuard>
+              <SelectedDateProvider>
+                <FocusModeProvider>
+                  <NudgeBanner />
+                  <ThemeSwitch />
+                  {children}
+                </FocusModeProvider>
+              </SelectedDateProvider>
+            </AuthGuard>
+          </AuthProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
