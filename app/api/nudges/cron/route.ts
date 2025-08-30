@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
-import { collection, doc, documentId, getDocs, query, where } from "firebase/firestore";
+import { collection, documentId, getDocs, query, where } from "firebase/firestore";
 import { getUserIdFromRequest } from "@/lib/get-authenticated-user";
 import { firestore } from "@/lib/firebase-client";
 
-const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
+const chunk = <T>(arr: T[], size = 10): T[][] =>
+  Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+    arr.slice(i * size, i * size + size),
+  );
 
-export async function GET(req: Request) {
+export async function POST(req: Request) {
   try {
+    const authHeader = req.headers.get("authorization");
+    const expected = process.env.CRON_SECRET;
+    if (expected && authHeader !== `Bearer ${expected}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const user = await getUserIdFromRequest();
 
     if (!user) {
@@ -53,7 +62,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ created });
   } catch (e) {
-    console.error("GET /api/nudges/cron", e);
+    console.error("POST /api/nudges/cron", e);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
