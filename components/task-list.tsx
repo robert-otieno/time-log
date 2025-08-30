@@ -67,8 +67,8 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
           <CardDescription>{formatISODateString(date)}</CardDescription>
         </CardHeader>
 
-        <CardContent className={cn(focusMode ? "grid-cols-1" : "grid-cols-2")}>
-          <Card className="grid grid-cols-1 md:grid-cols-2 gap-2 border-0 p-0 shadow-none rounded-none bg-card/0">
+        <CardContent className={`p-0 , ${cn(focusMode ? "grid-cols-1" : "grid-cols-2")}`}>
+          <Card className="grid grid-cols-1 md:grid-cols-2 border-0 p-0 shadow-none rounded-none bg-card/0">
             <div>
               <CardHeader>
                 <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} tags={tags} onTagsUpdated={loadTags} />

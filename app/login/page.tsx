@@ -39,7 +39,7 @@ export default function LoginPage() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-2">
-            <h1 className="text-xl font-bold">Welcome to Visio Genesis</h1>
+            <h1 className="text-xs xl:text-xl font-bold">Welcome to Visio Genesis</h1>
           </div>
           <div className="grid gap-4">
             <Button variant="outline" onClick={signIn} type="button" className="w-full">

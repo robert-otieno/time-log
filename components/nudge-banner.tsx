@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 interface Nudge {
-  id: number;
+  id: string;
   habit: string;
   remaining: number;
 }
@@ -25,7 +25,7 @@ export default function NudgeBanner() {
   if (!nudge) return null;
 
   const handle = async (status: "acknowledged" | "snoozed") => {
-    await fetch(`/api/nudges/${nudge.id}`, {
+    await fetch(`/api/nudges/${encodeURIComponent(nudge.id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),

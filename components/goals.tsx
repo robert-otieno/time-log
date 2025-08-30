@@ -48,8 +48,8 @@ export default function Goals() {
     <section id="goals" className="space-y-4">
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-sm">Goals</CardTitle>
-          <CardDescription className="text-xs sm:text-sm mb-3">Make your goals specific, measurable, achievable, and relevant</CardDescription>
+          <CardTitle className="text-xs xl:text-sm">Goals</CardTitle>
+          <CardDescription className="text-xs xl:text-sm mb-3">Make your goals specific, measurable, achievable, and relevant</CardDescription>
 
           <div className="flex flex-col md:flex-row gap-2">
             <Select value={newCategory} onValueChange={setNewCategory}>
@@ -130,7 +130,7 @@ export default function Goals() {
                   <div className="flex gap-1">
                     <CircularProgress value={progress} size={45} strokeWidth={4} />
                     <div className="space-y-2 sm:flex sm:items-center sm:gap-2 sm:space-y-0">
-                      <div className="text-sm font-medium">{goal.title}</div>
+                      <div className="text-xs xl:text-sm font-medium">{goal.title}</div>
                       <div className="flex gap-2">
                         {goal.targetDate && (
                           <Badge className={`rounded-full shadow-none font-normal ${paceBadgeClass(paceLabel)}`} aria-label={`Pace status: ${paceLabel}`}>

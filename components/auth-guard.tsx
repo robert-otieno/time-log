@@ -19,7 +19,7 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
 
   if (user === undefined || (user === null && !isLoginRoute)) {
     return (
-      <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 p-6 text-xs xl:text-sm text-muted-foreground">
         <Loader className="h-4 w-4 animate-spin" />
         <span>Verifying your session…</span>
       </div>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
-import { collection, documentId, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, documentId, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { getUserIdFromRequest } from "@/lib/get-authenticated-user";
 import { firestore } from "@/lib/firebase-client";
 
@@ -60,8 +60,25 @@ export async function POST(req: Request) {
       })
       .filter((r) => r.remaining > 0);
 
-    return NextResponse.json({ created });
-  } catch (e) {
+const nudgesRef = collection(firestore, "users", user.uid, "nudge_events");
+    const createdIds: string[] = [];
+
+    for (const { habitId, remaining } of created) {
+      const id = `${habitId}:${today}`;
+      const nudgeDocRef = doc(nudgesRef, id);
+      const existing = await getDoc(nudgeDocRef);
+      if (existing.exists()) continue;
+
+      await setDoc(nudgeDocRef, {
+        habitId,
+        date: today,
+        remaining,
+        status: "pending",
+      });
+      createdIds.push(id);
+    }
+
+    return NextResponse.json({ created: createdIds });  } catch (e) {
     console.error("POST /api/nudges/cron", e);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

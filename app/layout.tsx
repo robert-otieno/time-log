@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} text-xs antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system">
           <AuthProvider>
             <AuthGuard>
