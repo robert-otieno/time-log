@@ -93,13 +93,13 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
 
               <CardContent>
                 {tasks.length === 0 ? (
-                  <ul className="divide-y">
+                  <ul>
                     <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “Newsletter Q2 outline.”</li>
                   </ul>
                 ) : (
                   orderedGroups.map(([tag, tagTasks]) => (
                     <div key={tag}>
-                      <ul>
+                      <ul className="divide-y">
                         {tagTasks.map((task) => (
                           <TaskItem key={task.id} task={task} onToggleTask={toggleTask} onDeleteTask={deleteTask} onAddSubtask={addSubtask} onToggleSubtask={toggleSubtask} onDeleteSubtask={deleteSubtask} onUpdateTask={updateTask} weeklyPriorities={weeklyPriorities} tags={tags} />
                         ))}

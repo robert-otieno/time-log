@@ -40,7 +40,7 @@ export default function CategoryManager({ onCategoriesUpdated }: CategoryManager
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="h-9">
+        <Button variant="ghost" size={"sm"} className="text-xs font-medium w-full">
           Add category
         </Button>
       </DialogTrigger>

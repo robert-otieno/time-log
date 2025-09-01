@@ -213,7 +213,7 @@ export default function WeeklyPriorityList() {
 
           {/* Subtle helper */}
           <div className="mt-3">
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs overflow-auto">
               Tip: Use the menu to manage priorities. Drag handle to reorder.
             </Badge>
           </div>

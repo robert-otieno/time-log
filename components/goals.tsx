@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { formatISODate } from "@/lib/date-utils";
@@ -65,9 +65,10 @@ export default function Goals() {
                     </SelectItem>
                   ))}
                 </SelectGroup>
+                <SelectSeparator />
+                <CategoryManager onCategoriesUpdated={loadCategories} />
               </SelectContent>
             </Select>
-            <CategoryManager onCategoriesUpdated={loadCategories} />
 
             <Input placeholder="Goal" className="w-full" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
 

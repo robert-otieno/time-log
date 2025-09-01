@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WeeklyPriority } from "@/lib/types/tasks";
 import { Tag } from "@/hooks/use-tags";
 import TagManager from "./tag-manager";
@@ -89,10 +89,11 @@ export default function TaskForm({ onAdd, weeklyPriorities, tags, onTagsUpdated 
                   {t.name}
                 </SelectItem>
               ))}
+              <SelectSeparator />
+              <TagManager onTagsUpdated={onTagsUpdated} />
             </SelectGroup>
           </SelectContent>
         </Select>
-        <TagManager onTagsUpdated={onTagsUpdated} />
 
         <div className="flex gap-2">
           <Select value={priority} onValueChange={(v) => setPriority(v)}>

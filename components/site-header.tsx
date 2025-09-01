@@ -43,7 +43,7 @@ export function SiteHeader() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbPage className="text-sm leading-tight">
-                  <span className="truncate font-medium">Visio Genesis</span> - <span className="truncate text-xs">Activity Tracker</span>
+                  <span className="truncate font-medium">Visio Genesis</span> - <span className="truncate text-xs">Notebook</span>
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
