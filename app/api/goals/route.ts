@@ -4,7 +4,8 @@ import { z } from "zod";
 import { createGoal, getGoalsWithHabits } from "@/app/actions/goals";
 
 const getGoalsSchema = z.object({
-  date: z.string().min(1),
+  start: z.string().min(1),
+  end: z.string().min(1),
 });
 
 const createGoalSchema = z.object({
@@ -21,7 +22,7 @@ export async function GET(req: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
-    const goals = await getGoalsWithHabits(parsed.data.date);
+    const goals = await getGoalsWithHabits(parsed.data.start, parsed.data.end);
 
     return NextResponse.json(goals);
   } catch (e) {

@@ -4,20 +4,25 @@ import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
 import { GoalWithHabits } from "@/lib/types/goals";
 import { addHabit, createGoal, deleteGoal, deleteHabit, getGoalsWithHabits, toggleHabitCompletion } from "@/app/actions/goals";
+import { useSelectedDate } from "@/hooks/use-selected-date";
 
 export function useGoals() {
   const [goals, setGoals] = useState<GoalWithHabits[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { selectedDate } = useSelectedDate();
 
   useEffect(() => {
     loadGoals();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedDate]);
 
   async function loadGoals() {
     try {
-      const today = formatISODate(new Date());
-      const res = await getGoalsWithHabits(today);
+      const end = selectedDate;
+      const startDate = new Date(selectedDate);
+      startDate.setDate(startDate.getDate() - 6);
+      const start = formatISODate(startDate);
+      const res = await getGoalsWithHabits(start, end);
       setGoals(res);
       setError(null);
     } catch (err) {
