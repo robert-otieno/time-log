@@ -17,7 +17,6 @@ export interface DailyTask {
   title: string;
   date: string;
   tag: string;
-  position: number;
   deadline?: string | null;
   reminderTime?: string | null;
   notes?: string | null;

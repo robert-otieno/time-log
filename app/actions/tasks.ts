@@ -2,7 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { firestore } from "@/lib/firebase-client";
 import { DailySubtask, DailyTask, TaskWithSubtasks, WeeklyPriority } from "@/lib/types/tasks";
 import { userCol } from "@/lib/user-collection";
-import { deleteDoc, doc, documentId, FieldValue, getDoc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from "firebase/firestore";
+import { deleteDoc, doc, documentId, FieldValue, getDoc, getDocs, limit, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from "firebase/firestore";
 import { formatISODate } from "@/lib/date-utils";
 
 const COL_TASKS = "daily_tasks";
@@ -15,7 +15,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const tasksSnap = await getDocs(query(userCol(user.uid, "daily_tasks"), where("date", "==", date), orderBy("position")));
+  const tasksSnap = await getDocs(query(userCol(user.uid, "daily_tasks"), where("date", "==", date)));
 
   const tasks: DailyTask[] = tasksSnap.docs.map((d) => ({
     ...(d.data() as DailyTask),
@@ -82,17 +82,11 @@ export async function addDailyTask(input: AddDailyTaskInput) {
 
   const weeklyPriorityId = input.weeklyPriorityId ?? null;
 
-    const posSnap = await getDocs(
-    query(userCol(user.uid, COL_TASKS), where("date", "==", input.date), orderBy("position", "desc"), limit(1))
-  );
-  const position = posSnap.empty ? 0 : ((posSnap.docs[0].data() as DailyTask).position ?? 0) + 1;
-
   const payload: DailyTask = {
     id,
     title: input.title.trim(),
     date: input.date,
     tag: (input.tag ?? "work").trim(),
-    position,
     deadline: input.deadline ?? null,
     reminderTime: input.reminderTime ?? null,
     notes: input.notes ?? null,
@@ -223,18 +217,6 @@ export async function updateDailyTask(id: string, patch: DailyTaskPatch) {
 
   const snap = await getDoc(ref);
   return snap.data() as DailyTask;
-}
-
-export async function reorderDailyTasks(updates: { id: string; position: number }[]) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const batch = writeBatch(firestore);
-  updates.forEach(({ id, position }) => {
-    const ref = doc(userCol(user.uid, COL_TASKS), id);
-    batch.set(ref, { position, updatedAt: serverTimestamp() }, { merge: true });
-  });
-  await batch.commit();
 }
 
 type TaskDetailsPatch = {
