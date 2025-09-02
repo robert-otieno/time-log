@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import CircularProgress from "./progress-07";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { Progress } from "./ui/progress";
 
 export default function Goals() {
   const { goals, addGoal, deleteGoal, addHabit, deleteHabit, toggleHabit } = useGoals();
@@ -51,32 +52,40 @@ export default function Goals() {
           <CardTitle className="text-xs xl:text-sm">Goals</CardTitle>
           <CardDescription className="text-xs xl:text-sm mb-3">Make your goals specific, measurable, achievable, and relevant</CardDescription>
 
-          <div className="flex flex-col md:flex-row gap-2">
-            <Select value={newCategory} onValueChange={setNewCategory}>
-              <SelectTrigger className="w-full rounded-md" aria-label="Select category">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Category</SelectLabel>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectSeparator />
-                <CategoryManager onCategoriesUpdated={loadCategories} />
-              </SelectContent>
-            </Select>
+          {/* Add form: compact command-row */}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col md:flex-row items-center gap-2">
+              <Select value={newCategory} onValueChange={setNewCategory}>
+                <SelectTrigger className="w-full border-0 bg-muted/60 shadow-none" aria-label="Select category">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Category</SelectLabel>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectSeparator />
+                  <div className="px-2 py-1 text-xs text-muted-foreground">Manage categories in settings</div>
+                  <CategoryManager onCategoriesUpdated={loadCategories} />
+                </SelectContent>
+              </Select>
 
-            <Input placeholder="Goal" className="w-full" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+              <Input
+                placeholder="Goal (e.g., Get 10,000 emails/week)"
+                className="w-full"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddGoal()}
+              />
 
-            <div className="flex gap-2">
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="flex-1 gap-1">
-                    <CalendarDays />
+                  <Button variant="outline" className="gap-1">
+                    <CalendarDays className="h-4 w-4" />
                     {goalDeadline ? formatISODate(goalDeadline) : "Set Deadline"}
                   </Button>
                 </PopoverTrigger>
@@ -93,8 +102,8 @@ export default function Goals() {
                 </PopoverContent>
               </Popover>
 
-              <Button size="icon" aria-label="Add goals" onClick={handleAddGoal}>
-                <Plus />
+              <Button size="sm" aria-label="Add goals" onClick={handleAddGoal}>
+                <Plus className="h-4 w-4" /> Add
               </Button>
             </div>
           </div>
@@ -114,10 +123,13 @@ export default function Goals() {
               const earliest = completionDates.length > 0 ? new Date(Math.min(...completionDates.map((d) => d.getTime()))) : today;
               const totalDays = Math.max(1, Math.ceil((targetDate.getTime() - earliest.getTime()) / 86400000) + 1);
               const daysPassed = Math.min(totalDays, Math.max(0, Math.ceil((today.getTime() - earliest.getTime()) / 86400000) + 1));
+              
               const target = goal.habits.reduce((sum, h) => sum + h.target * totalDays, 0);
-              progress = target > 0 ? (totalCompleted / target) * 100 : 0;
               const expected = goal.habits.reduce((sum, h) => sum + h.target * daysPassed, 0) / target;
-              paceLabel = progress / 100 >= expected ? "On pace" : "Behind";
+
+              progress = target > 0 ? (totalCompleted / target) * 100 : 0;
+              const pctExpected = target > 0 ? expected / target : 0;
+              paceLabel = progress / 100 >= pctExpected ? "On pace" : "Behind";
             } else {
               const target = goal.habits.reduce((sum, h) => sum + h.target * 7, 0);
               progress = target > 0 ? (totalCompleted / target) * 100 : 0;
@@ -126,69 +138,72 @@ export default function Goals() {
             const paceBadgeClass = (paceLabel: string) => (paceLabel === "On pace" ? "bg-emerald-600/10 text-emerald-600" : "bg-red-600/10 text-red-600");
 
             return (
-              <div key={goal.id}>
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex gap-1">
-                    <CircularProgress value={progress} size={45} strokeWidth={4} />
-                    <div className="space-y-2 sm:flex sm:items-center sm:gap-2 sm:space-y-0">
-                      <div className="text-xs xl:text-sm font-medium">{goal.title}</div>
-                      <div className="flex gap-2">
-                        {goal.targetDate && (
-                          <Badge className={`rounded-full shadow-none font-normal ${paceBadgeClass(paceLabel)}`} aria-label={`Pace status: ${paceLabel}`}>
-                            {paceLabel}
-                          </Badge>
-                        )}
-                        <Badge variant="secondary" className="text-xs capitalize">
-                          {goal.category}
+              <div key={goal.id} className="rounded-lg border p-3">
+                {/* Header: title + chips + delete */}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-medium">{goal.title}</span>
+                      {goal.targetDate && (
+                        <Badge className={`rounded-full font-normal ${paceBadgeClass(paceLabel)}`} aria-label={`Pace: ${paceLabel}`}>
+                          {paceLabel}
                         </Badge>
-                      </div>
+                      )}
+                      <Badge variant="secondary" className="text-xs capitalize">
+                        {goal.category}
+                      </Badge>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="flex items-center gap-2">
+                      <Progress value={progress} className="h-1.5" />
+                      <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">{Math.round(progress)}%</span>
                     </div>
                   </div>
 
-                  <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)} className="hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring">
+                  <Button variant="ghost" size="icon" aria-label="Delete goal" onClick={() => deleteGoal(goal.id)} className="hover:bg-muted/50">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
 
-                <div>
-                  <Collapsible open={addHabitOpen} onOpenChange={setAddHabitOpen}>
-                    <div className="mb-2 flex items-center gap-2">
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="p-0 transition-transform data-[state=open]:rotate-90 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Toggle habits">
-                          <ChevronRight />
-                        </Button>
-                      </CollapsibleTrigger>
+                {/* Habits collapsible */}
+                <Collapsible open={addHabitOpen} onOpenChange={setAddHabitOpen}>
+                  <div className="flex items-center gap-2">
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="p-0 data-[state=open]:rotate-90" aria-label="Toggle habits">
+                        <ChevronRight />
+                      </Button>
+                    </CollapsibleTrigger>
 
-                      <div className="flex w-full flex-col gap-1">
-                        {goal.habits.map((habit) => (
-                          <div key={habit.id} className="flex items-center justify-between gap-2 rounded-md">
-                            <HabitTracker habit={habit} onToggle={toggleHabit} />
+                    <div className="flex-1 space-y-1">
+                      {goal.habits.map((habit) => (
+                        <div key={habit.id} className="flex items-center justify-between gap-2 rounded-md">
+                          <HabitTracker habit={habit} onToggle={toggleHabit} />
 
-                            <Button variant="ghost" size="icon" aria-label="Delete habit" onClick={() => deleteHabit(habit.id)} className="hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
+                          <Button variant="ghost" size="icon" aria-label="Delete habit" onClick={() => deleteHabit(habit.id)} className="hover:bg-muted/50">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
+                  </div>
 
-                    <CollapsibleContent
-                      className="
-          overflow-hidden
-          transition-all
-          data-[state=closed]:animate-none data-[state=closed]:opacity-0 data-[state=closed]:max-h-0
-          data-[state=open]:opacity-100 data-[state=open]:max-h-32
-        "
-                    >
-                      <div className="flex items-center gap-2">
-                        <Input placeholder="New habit" value={habitInputs[goal.id] ?? ""} onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && handleAddHabit(goal.id)} className="h-8 flex-1 rounded-md" aria-label="New habit name" />
-                        <Button size="sm" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)} className="focus-visible:ring-2 focus-visible:ring-ring">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
+                  <CollapsibleContent className="overflow-hidden data-[state=closed]:max-h-0 data-[state=open]:max-h-32 transition-all">
+                    <div className="mt-2 flex items-center gap-2">
+                      <Input
+                        placeholder="New habit"
+                        value={habitInputs[goal.id] ?? ""}
+                        onChange={(e) => setHabitInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))}
+                        onKeyDown={(e) => e.key === "Enter" && handleAddHabit(goal.id)}
+                        className="h-8 flex-1"
+                        aria-label="New habit name"
+                      />
+                      <Button size="sm" aria-label="Add habit" onClick={() => handleAddHabit(goal.id)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
             );
           })}

@@ -8,6 +8,7 @@ type WeeklyPriorityPatch = Partial<{
   weekStart: string;
   tag: string | null;
   level: string | null;
+  completed?: boolean | null;
 }>;
 
 const COL_PRIORITIES = "weekly_priorities";
