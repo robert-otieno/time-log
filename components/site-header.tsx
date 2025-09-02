@@ -1,21 +1,19 @@
 "use client";
 
-import { Power, SidebarIcon } from "lucide-react";
-
-import { SearchForm } from "@/components/search-form";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useSidebar } from "@/components/ui/sidebar";
+import { SearchForm } from "@/components/search-form";
 import { useEffect, useState } from "react";
 import { CommandMenu } from "./command-menu";
 import { signOut } from "firebase/auth";
 import { clientAuth } from "@/lib/firebase-client";
 import { useRouter } from "next/navigation";
 import ThemeSwitch from "@/components/theme-switch";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { CalendarButton } from "@/components/calendar-button";
 
 export function SiteHeader() {
-  const { toggleSidebar } = useSidebar();
   const [open, setOpen] = useState(false);
   const user = clientAuth.currentUser;
   const router = useRouter();
@@ -35,9 +33,7 @@ export function SiteHeader() {
     <>
       <header className="bg-background sticky top-0 z-50 flex w-full items-center border-b">
         <div className="flex h-(--header-height) w-full items-center gap-2 px-4">
-          <Button className="h-8 w-8" variant="ghost" size="icon" onClick={toggleSidebar}>
-            <SidebarIcon />
-          </Button>
+          <CalendarButton />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb className="hidden sm:block">
             <BreadcrumbList>
