@@ -7,23 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronRight, ExternalLink, Flame, MoreVertical, Plus, Trash2, CalendarDays, ChevronDownIcon, AlarmClockPlus } from "lucide-react";
+import { ChevronRight, ExternalLink, Flame, MoreVertical, Plus, Trash2, CalendarDays, GripVertical } from "lucide-react";
 import type { UITask } from "@/hooks/use-tasks";
 import { formatISODate } from "@/lib/date-utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { WeeklyPriority } from "@/lib/types/tasks";
-import { badgeVariants } from "@/components/ui/badge";
 import { Tag } from "@/hooks/use-tags";
 import { Textarea } from "@/components/ui/textarea";
 import { updateTaskDetails } from "@/app/actions/tasks";
-import { Label } from "@/components/ui/label";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { FormControl, FormDescription, FormItem, FormLabel, FormMessage } from "./ui/form";
 import LabeledSelect from "./labeled-select";
+import type { DraggableAttributes } from "@dnd-kit/core";
 
-interface TaskItemProps {
+export interface TaskItemProps {
   task: UITask;
   onToggleTask: (id: string, done: boolean) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
@@ -33,6 +30,11 @@ interface TaskItemProps {
   onUpdateTask: (id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) => Promise<void>;
   weeklyPriorities: WeeklyPriority[];
   tags: Tag[];
+  dragHandleProps?: {
+    attributes: DraggableAttributes;
+    // listeners: SyntheticListenerMap;
+    setActivatorNodeRef: (element: HTMLElement | null) => void;
+  };
 }
 
 export default function TaskItem({
@@ -45,6 +47,7 @@ export default function TaskItem({
   onUpdateTask,
   weeklyPriorities,
   tags,
+  dragHandleProps,
 }: TaskItemProps) {
   const [open, setOpen] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
@@ -427,7 +430,19 @@ export default function TaskItem({
       <Collapsible open={open} onOpenChange={setOpen}>
         <div className="bg-card text-card-foreground rounded-lg transition hover:bg-muted/40">
           {/* ===== HEADER (one-line summary) ===== */}
-          <div className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-2 px-3 py-2">
+          <div className="grid grid-cols-[auto_auto_auto_1fr_auto] items-center gap-2 px-3 py-2">
+            {/* Drag handle */}
+            {dragHandleProps && (
+              <button
+                className="h-7 w-7 cursor-grab text-muted-foreground"
+                ref={dragHandleProps.setActivatorNodeRef}
+                // {...dragHandleProps.listeners}
+                {...dragHandleProps.attributes}
+                aria-label="Drag task"
+              >
+                <GripVertical className="h-4 w-4" />
+              </button>
+            )}{" "}
             {/* Expand / collapse */}
             <CollapsibleTrigger asChild>
               <Button
@@ -439,10 +454,8 @@ export default function TaskItem({
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </CollapsibleTrigger>
-
             {/* Done */}
             <Checkbox checked={task.done} onCheckedChange={() => onToggleTask(task.id, task.done)} aria-label="Toggle task" className="translate-y-[1px]" />
-
             {/* Title (inline edit on double-click / Enter) */}
             <div className="min-w-0">
               {editingTitle ? (
@@ -522,7 +535,6 @@ export default function TaskItem({
                 )}
               </div>
             </div>
-
             {/* Right-side actions: due date + menu */}
             <div className="ml-1 flex items-center gap-1">
               {/* Due date button with quiet states */}

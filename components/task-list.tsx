@@ -12,10 +12,13 @@ import { useSelectedDate } from "@/hooks/use-selected-date";
 import { useTasks, UITask } from "@/hooks/use-tasks";
 import { cn } from "@/lib/utils";
 import { useTags } from "@/hooks/use-tags";
+import { DndContext, DragEndEvent, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import SortableTaskItem from "./sortable-task-item";
 
 export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
   const { selectedDate: date, setSelectedDate } = useSelectedDate();
-  const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, moveIncompleteToToday } =
+  const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, moveIncompleteToToday, reorderTask } =
     useTasks(date);
   const today = formatISODate(new Date());
   const { tags, loadTags } = useTags();
@@ -46,6 +49,19 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
       timers.forEach((id) => clearTimeout(id));
     };
   }, [tasks]);
+
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const sourceIndex = tasks.findIndex((t) => t.id === active.id);
+      const destIndex = tasks.findIndex((t) => t.id === over.id);
+      if (sourceIndex !== -1 && destIndex !== -1) {
+        reorderTask(sourceIndex, destIndex);
+      }
+    }
+  }
 
   const groupedTasks = tasks.reduce<Record<string, UITask[]>>((groups, task) => {
     const tag = task.tag || "other";
@@ -98,26 +114,30 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
                     <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “Newsletter Q2 outline.”</li>
                   </ul>
                 ) : (
-                  orderedGroups.map(([tag, tagTasks]) => (
-                    <div key={tag}>
-                      <ul className="divide-y">
-                        {tagTasks.map((task) => (
-                          <TaskItem
-                            key={task.id}
-                            task={task}
-                            onToggleTask={toggleTask}
-                            onDeleteTask={deleteTask}
-                            onAddSubtask={addSubtask}
-                            onToggleSubtask={toggleSubtask}
-                            onDeleteSubtask={deleteSubtask}
-                            onUpdateTask={updateTask}
-                            weeklyPriorities={weeklyPriorities}
-                            tags={tags}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  ))
+                  <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                    {orderedGroups.map(([tag, tagTasks]) => (
+                      <div key={tag}>
+                        <SortableContext items={tagTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                          <ul className="divide-y">
+                            {tagTasks.map((task) => (
+                              <SortableTaskItem
+                                key={task.id}
+                                task={task}
+                                onToggleTask={toggleTask}
+                                onDeleteTask={deleteTask}
+                                onAddSubtask={addSubtask}
+                                onToggleSubtask={toggleSubtask}
+                                onDeleteSubtask={deleteSubtask}
+                                onUpdateTask={updateTask}
+                                weeklyPriorities={weeklyPriorities}
+                                tags={tags}
+                              />
+                            ))}
+                          </ul>
+                        </SortableContext>
+                      </div>
+                    ))}
+                  </DndContext>
                 )}
               </CardContent>
             </div>

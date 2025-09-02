@@ -9,6 +9,7 @@ import {
   deleteDailySubtask,
   deleteDailyTask,
   getTodayTasks,
+  reorderDailyTasks,
   toggleDailySubtask,
   toggleDailyTask,
   updateDailyTask,
@@ -16,8 +17,10 @@ import {
 } from "@/app/actions/tasks";
 import { getWeeklyPriorities } from "@/app/actions";
 import type { TaskWithSubtasks, WeeklyPriority } from "@/lib/types/tasks";
+import { arrayMove } from "@dnd-kit/sortable";
 
 export type UITask = Omit<TaskWithSubtasks, "createdAt" | "updatedAt" | "subtasks"> & {
+  position: number;
   createdAt?: Date | null;
   updatedAt?: Date | null;
   subtasks: Array<
@@ -51,24 +54,26 @@ export function useTasks(date: string) {
 
       const [res, priorities] = await Promise.all([getTodayTasks(date), getWeeklyPriorities(weekStart)]);
       const now = Date.now();
-      const withMeta = res.map((t) => {
-        const createdAt = t.createdAt instanceof Timestamp ? t.createdAt.toDate() : null;
-        const updatedAt = t.updatedAt instanceof Timestamp ? t.updatedAt.toDate() : null;
-        const subtasks = t.subtasks.map((s) => ({
-          ...s,
-          createdAt: s.createdAt instanceof Timestamp ? s.createdAt.toDate() : null,
-          updatedAt: s.updatedAt instanceof Timestamp ? s.updatedAt.toDate() : null,
-        }));
-        let dueLabel: string | undefined;
-        let hot = false;
-        if (t.deadline) {
-          const deadline = new Date(t.deadline);
-          dueLabel = deadline.toLocaleDateString([], { month: "short", day: "numeric" });
-          const diff = deadline.getTime() - now;
-          hot = diff > 0 && diff <= 24 * 60 * 60 * 1000 && !t.done;
-        }
-        return { ...t, createdAt, updatedAt, subtasks, dueLabel, hot } as UITask;
-      });
+      const withMeta = res
+        .map((t) => {
+          const createdAt = t.createdAt instanceof Timestamp ? t.createdAt.toDate() : null;
+          const updatedAt = t.updatedAt instanceof Timestamp ? t.updatedAt.toDate() : null;
+          const subtasks = t.subtasks.map((s) => ({
+            ...s,
+            createdAt: s.createdAt instanceof Timestamp ? s.createdAt.toDate() : null,
+            updatedAt: s.updatedAt instanceof Timestamp ? s.updatedAt.toDate() : null,
+          }));
+          let dueLabel: string | undefined;
+          let hot = false;
+          if (t.deadline) {
+            const deadline = new Date(t.deadline);
+            dueLabel = deadline.toLocaleDateString([], { month: "short", day: "numeric" });
+            const diff = deadline.getTime() - now;
+            hot = diff > 0 && diff <= 24 * 60 * 60 * 1000 && !t.done;
+          }
+          return { ...t, position: t.position ?? 0, createdAt, updatedAt, subtasks, dueLabel, hot } as UITask;
+        })
+        .sort((a, b) => a.position - b.position);
       setTasks(withMeta);
       setWeeklyPriorities(priorities);
       setError(null);
@@ -93,7 +98,7 @@ export function useTasks(date: string) {
         reminderTime: reminderISO,
         weeklyPriorityId: priorityId,
       });
-      const id = res.id;
+      const { id, position } = res;
       const now = Date.now();
       let dueLabel: string | undefined;
       let hot = false;
@@ -104,26 +109,29 @@ export function useTasks(date: string) {
         hot = diff > 0 && diff <= 24 * 60 * 60 * 1000;
       }
       const priorityObj = priorityId ? weeklyPriorities.find((p) => p.id === priorityId) : undefined;
-      setTasks((prev) => [
-        ...prev,
-        {
-          id,
-          title,
-          date,
-          tag,
-          deadline: deadlineISO,
-          reminderTime: reminderISO,
-          weeklyPriorityId: priorityId,
-          done: false,
-          notes: null,
-          linkRefs: null,
-          fileRefs: null,
-          subtasks: [],
-          priority: priorityObj,
-          dueLabel,
-          hot,
-        } as UITask,
-      ]);
+      setTasks((prev) =>
+        [
+          ...prev,
+          {
+            id,
+            position,
+            title,
+            date,
+            tag,
+            deadline: deadlineISO,
+            reminderTime: reminderISO,
+            weeklyPriorityId: priorityId,
+            done: false,
+            notes: null,
+            linkRefs: null,
+            fileRefs: null,
+            subtasks: [],
+            priority: priorityObj,
+            dueLabel,
+            hot,
+          } as UITask,
+        ].sort((a, b) => a.position - b.position)
+      );
     } catch (err) {
       console.error(err);
       toast.error("Failed to add task");
@@ -204,6 +212,20 @@ export function useTasks(date: string) {
     }
   }
 
+  async function reorderTask(sourceIndex: number, destIndex: number) {
+    const updated = arrayMove(tasks, sourceIndex, destIndex).map((t, idx) => ({
+      ...t,
+      position: idx,
+    }));
+    setTasks(updated);
+    try {
+      await reorderDailyTasks(updated.map(({ id, position }) => ({ id, position })));
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to reorder tasks");
+    }
+  }
+
   async function moveIncompleteToToday() {
     try {
       const target = formatISODate(new Date());
@@ -221,7 +243,8 @@ export function useTasks(date: string) {
   }
 
   async function updateTask(id: string, values: { title: string; tag: string; deadline: string; reminder: string; priority: string }) {
-    const deadlineISO = values.deadline && values.deadline.length <= 5 && !values.deadline.includes("T") ? `${date}T${values.deadline}` : values.deadline || null;
+    const deadlineISO =
+      values.deadline && values.deadline.length <= 5 && !values.deadline.includes("T") ? `${date}T${values.deadline}` : values.deadline || null;
     const reminderISO = values.reminder ? `${date}T${values.reminder}` : null;
     const priorityId = values.priority && values.priority !== "none" ? values.priority : null;
     await updateDailyTask(id, {
@@ -270,6 +293,7 @@ export function useTasks(date: string) {
     toggleSubtask,
     deleteSubtask,
     updateTask,
+    reorderTask,
     moveIncompleteToToday,
   };
 }
