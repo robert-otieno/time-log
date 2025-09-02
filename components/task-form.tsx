@@ -7,11 +7,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSepa
 import { WeeklyPriority } from "@/lib/types/tasks";
 import { Tag } from "@/hooks/use-tags";
 import TagManager from "./tag-manager";
-import { Calendar } from "@/components/ui/calendar";
-
 import { Plus, HelpCircle, CalendarDays, Tag as TagIcon, Flag } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 /**
  * TaskFormCompact
@@ -74,63 +71,8 @@ export default function TaskForm({ onAdd, weeklyPriorities, tags, onTagsUpdated 
   };
 
   const tokens = useMemo(() => extractTokens(title), [title]);
-  const [dueOpen, setDueOpen] = useState(false);
 
   return (
-    // <div className="mb-4">
-    //   <div className="flex flex-col xl:flex-row gap-2">
-    //     <Input
-    //       placeholder="New task… e.g., 'Draft copy @work #priority:1 ^2024-05-01 !09:00'"
-    //       value={title}
-    //       onChange={(e) => setTitle(e.target.value)}
-    //       onKeyDown={(e) => {
-    //         if (e.key === "Enter") {
-    //           handleAdd();
-    //         }
-    //       }}
-    //       className="flex-1"
-    //     />
-
-    //     <Select value={tag} onValueChange={(v) => setTag(v)}>
-    //       <SelectTrigger className="w-auto rounded-md" aria-label="Select tag">
-    //         <SelectValue placeholder="Select Tag" />
-    //       </SelectTrigger>
-    //       <SelectContent>
-    //         <SelectGroup>
-    //           <SelectLabel>Tags</SelectLabel>
-    //           {tags.map((t) => (
-    //             <SelectItem key={t.id} value={t.id}>
-    //               {t.name}
-    //             </SelectItem>
-    //           ))}
-    //           <SelectSeparator />
-    //           <TagManager onTagsUpdated={onTagsUpdated} />
-    //         </SelectGroup>
-    //       </SelectContent>
-    //     </Select>
-
-    //     <div className="flex gap-2">
-    //       <Select value={priority} onValueChange={(v) => setPriority(v)}>
-    //         <SelectTrigger className="flex-1 rounded-md" aria-label="Link to priority">
-    //           <SelectValue placeholder="Link to Priority" />
-    //         </SelectTrigger>
-    //         <SelectContent>
-    //           <SelectItem value="none">None</SelectItem>
-    //           {weeklyPriorities.map((p) => (
-    //             <SelectItem key={p.id} value={p.id}>
-    //               {p.title}
-    //             </SelectItem>
-    //           ))}
-    //         </SelectContent>
-    //       </Select>
-
-    //       <Button size="icon" onClick={handleAdd} aria-label="Add task">
-    //         <Plus />
-    //       </Button>
-    //     </div>
-    //   </div>
-    //   <p className="mt-2 text-xs text-muted-foreground">Tokens: @tag #priority:&lt;level&gt; ^YYYY-MM-DD !HH:MM</p>
-    // </div>
     <div className="mb-4">
       <div className="flex flex-col xl:flex-row gap-2">
         {/* Command input */}
@@ -197,13 +139,14 @@ export default function TaskForm({ onAdd, weeklyPriorities, tags, onTagsUpdated 
               <SelectSeparator />
               {/* Inline tag manager slot if you have it */}
               <div className="px-2 py-1 text-xs text-muted-foreground">Manage tags in settings</div>
+              <TagManager onTagsUpdated={onTagsUpdated} />
             </SelectGroup>
           </SelectContent>
         </Select>
 
         {/* Priority select (compact) */}
         <Select value={priority} onValueChange={setPriority}>
-          <SelectTrigger className="h-10 w-[180px] border-0 bg-muted/60 shadow-none" aria-label="Link to priority">
+          <SelectTrigger className="h-10 w-auto border-0 bg-muted/60 shadow-none" aria-label="Link to priority">
             <SelectValue placeholder="Priority">
               {priority && (
                 <span className="inline-flex items-center gap-1">
@@ -222,18 +165,6 @@ export default function TaskForm({ onAdd, weeklyPriorities, tags, onTagsUpdated 
             ))}
           </SelectContent>
         </Select>
-
-        {/* Optional quick due-date popover (matches row button) */}
-        {/* <Popover open={dueOpen} onOpenChange={setDueOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-10 gap-1">
-              <CalendarDays className="h-4 w-4" /> Due
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar mode="single" onSelect={() => setDueOpen(false)} captionLayout="dropdown" />
-          </PopoverContent>
-        </Popover> */}
 
         {/* Add */}
         <Button size="sm" onClick={handleAdd} aria-label="Add task" className="h-10 gap-1">

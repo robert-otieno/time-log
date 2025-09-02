@@ -59,7 +59,11 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
                     aria-label={val >= habit.target ? `Completed ${habit.name} on ${date}` : `Not completed ${habit.name} on ${date}`}
                     aria-pressed={val >= habit.target}
                     onClick={() => onToggle(habit.id, date)}
-                    className={cn("h-3 w-3 rounded-full border", val >= habit.target && "bg-primary", due && val < habit.target && "animate-pulse border-primary")}
+                    className={cn(
+                      "h-3 w-3 rounded-full border",
+                      val >= habit.target && "bg-primary",
+                      due && val < habit.target && "animate-pulse border-primary"
+                    )}
                   />
                 </li>
               );
@@ -74,7 +78,13 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
               // if (habit.type === "timer") display = `${val}m/${habit.target}m`;
               // if (habit.type === "pomodoro") display = `🍅${val}/${habit.target}`;
               return (
-                <Button key={date} variant="outline" size="sm" className={cn("h-6", due && val < habit.target ? "animate-pulse" : "")} onClick={() => onToggle(habit.id, date, 1)}>
+                <Button
+                  key={date}
+                  variant="outline"
+                  size="sm"
+                  className={cn("h-6", due && val < habit.target ? "animate-pulse" : "")}
+                  onClick={() => onToggle(habit.id, date)}
+                >
                   {display}
                 </Button>
               );

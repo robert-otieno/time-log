@@ -88,7 +88,12 @@ export function useGoals() {
 
   async function toggleHabit(habitId: string, date: string, value = 1) {
     try {
-      await toggleHabitCompletion(habitId, date, value);
+      const habit = goals.flatMap((g) => g.habits).find((h) => h.id === habitId);
+      const existing = habit?.completions.find((c) => c.date === date);
+
+      const newValue = habit?.type === "checkbox" ? (existing ? 0 : 1) : (existing?.value ?? 0) + value;
+
+      await toggleHabitCompletion(habitId, date, newValue);
       setGoals((prev) =>
         prev.map((g) => ({
           ...g,

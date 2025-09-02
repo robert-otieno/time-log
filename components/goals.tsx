@@ -102,7 +102,7 @@ export default function Goals() {
                 </PopoverContent>
               </Popover>
 
-              <Button size="sm" aria-label="Add goals" onClick={handleAddGoal}>
+              <Button size="sm" aria-label="Add goals" onClick={handleAddGoal} className="h-10 gap-1">
                 <Plus className="h-4 w-4" /> Add
               </Button>
             </div>
@@ -123,7 +123,7 @@ export default function Goals() {
               const earliest = completionDates.length > 0 ? new Date(Math.min(...completionDates.map((d) => d.getTime()))) : today;
               const totalDays = Math.max(1, Math.ceil((targetDate.getTime() - earliest.getTime()) / 86400000) + 1);
               const daysPassed = Math.min(totalDays, Math.max(0, Math.ceil((today.getTime() - earliest.getTime()) / 86400000) + 1));
-              
+
               const target = goal.habits.reduce((sum, h) => sum + h.target * totalDays, 0);
               const expected = goal.habits.reduce((sum, h) => sum + h.target * daysPassed, 0) / target;
 

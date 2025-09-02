@@ -15,7 +15,8 @@ import { useTags } from "@/hooks/use-tags";
 
 export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
   const { selectedDate: date, setSelectedDate } = useSelectedDate();
-  const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, moveIncompleteToToday } = useTasks(date);
+  const { tasks, weeklyPriorities, addTask, toggleTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask, updateTask, moveIncompleteToToday } =
+    useTasks(date);
   const today = formatISODate(new Date());
   const { tags, loadTags } = useTags();
 
@@ -68,7 +69,7 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
         </CardHeader>
 
         <CardContent className={`p-0 , ${cn(focusMode ? "grid-cols-1" : "grid-cols-2")}`}>
-          <Card className="grid grid-cols-1 md:grid-cols-2 border-0 p-0 shadow-none rounded-none bg-card/0">
+          <Card className={`grid grid-cols-1 md:grid-cols-2 border-0 p-0 shadow-none rounded-none bg-card/0`}>
             <div>
               <CardHeader>
                 <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} tags={tags} onTagsUpdated={loadTags} />
@@ -101,7 +102,18 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
                     <div key={tag}>
                       <ul className="divide-y">
                         {tagTasks.map((task) => (
-                          <TaskItem key={task.id} task={task} onToggleTask={toggleTask} onDeleteTask={deleteTask} onAddSubtask={addSubtask} onToggleSubtask={toggleSubtask} onDeleteSubtask={deleteSubtask} onUpdateTask={updateTask} weeklyPriorities={weeklyPriorities} tags={tags} />
+                          <TaskItem
+                            key={task.id}
+                            task={task}
+                            onToggleTask={toggleTask}
+                            onDeleteTask={deleteTask}
+                            onAddSubtask={addSubtask}
+                            onToggleSubtask={toggleSubtask}
+                            onDeleteSubtask={deleteSubtask}
+                            onUpdateTask={updateTask}
+                            weeklyPriorities={weeklyPriorities}
+                            tags={tags}
+                          />
                         ))}
                       </ul>
                     </div>

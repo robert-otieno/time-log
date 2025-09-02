@@ -292,7 +292,7 @@ export default function WeeklyPriorityList() {
 
           {/* Subtle helper */}
           <div className="mt-3">
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="flex flex-wrap overflow-auto text-xs">
               Tip: Use the menu to rename or mark done. Drag handle is for reordering (coming soon).
             </Badge>
           </div>
