@@ -185,18 +185,27 @@ export async function toggleHabitCompletion(habitId: string, date: string, value
   const completionId = `${habitId}:${date}`;
   const ref = doc(userCol(user.uid, COL_COMPLETIONS), completionId);
 
-  await setDoc(
-    ref,
-    {
-      id: completionId,
-      habitId,
-      date,
-      value,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  const existingSnap = await getDoc(ref);
+  const currentValue = existingSnap.exists() ? existingSnap.data().value ?? 0 : 0;
+  const newValue = currentValue + value;
+
+  if (newValue <= 0) {
+    await deleteDoc(ref);
+    return undefined;
+  }
+
+  const payload: Record<string, unknown> = {
+    id: completionId,
+    habitId,
+    date,
+    value: newValue,
+    updatedAt: serverTimestamp(),
+  };
+  if (!existingSnap.exists()) {
+    payload.createdAt = serverTimestamp();
+  }
+
+  await setDoc(ref, payload, { merge: true });
 
   const snap = await getDoc(ref);
   return snap.data() as HabitCompletion | undefined;
@@ -206,7 +215,11 @@ export async function getGoalsWithHabits(date: string): Promise<GoalWithHabits[]
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const [goalsSnap, habitsSnap, compsSnap] = await Promise.all([getDocs(userCol(user.uid, COL_GOALS)), getDocs(userCol(user.uid, COL_HABITS)), getDocs(query(userCol(user.uid, COL_COMPLETIONS), where("date", "==", date)))]);
+  const [goalsSnap, habitsSnap, compsSnap] = await Promise.all([
+    getDocs(userCol(user.uid, COL_GOALS)),
+    getDocs(userCol(user.uid, COL_HABITS)),
+    getDocs(query(userCol(user.uid, COL_COMPLETIONS), where("date", "==", date))),
+  ]);
 
   const goals: Goal[] = goalsSnap.docs.map((d) => ({
     ...(d.data() as Goal),
