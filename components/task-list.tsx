@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatISODateString, formatISODate } from "@/lib/date-utils";
@@ -12,6 +12,7 @@ import { useSelectedDate } from "@/hooks/use-selected-date";
 import { useTasks, UITask } from "@/hooks/use-tasks";
 import { cn } from "@/lib/utils";
 import { useTags } from "@/hooks/use-tags";
+import * as chrono from "chrono-node";
 
 export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
   const { selectedDate: date, setSelectedDate } = useSelectedDate();
@@ -59,11 +60,47 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
     return (idxA === -1 ? tagOrder.length : idxA) - (idxB === -1 ? tagOrder.length : idxB);
   });
 
+  // Derive a friendly title for the selected date and allow parsing natural language
+  const [titleInput, setTitleInput] = useState("");
+  const friendlyTitle = useMemo(() => {
+    const d = new Date(date);
+    const now = new Date();
+    const dYMD = formatISODate(d);
+    const nowYMD = formatISODate(now);
+    const tomorrowYMD = formatISODate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+    if (dYMD === nowYMD) return "Today";
+    if (dYMD === tomorrowYMD) return "Tomorrow";
+    // Weekday name for this week
+    const day = d.toLocaleDateString(undefined, { weekday: "long" });
+    return day;
+  }, [date]);
+
+  const handleTitleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key !== "Enter") return;
+    const raw = titleInput.trim();
+    if (!raw) return;
+    // use the chrono-node library to parse natural language CardTitle
+    const parsed = chrono.parseDate(raw, new Date());
+    if (parsed) {
+      setSelectedDate(formatISODate(parsed));
+      setTitleInput("");
+    }
+  };
+
   return (
     <>
       <Card className='border-0 shadow-none rounded-none bg-card/0'>
         <CardHeader>
-          <CardTitle>Today</CardTitle>
+          <CardTitle>
+            <input
+              aria-label='Change day by natural language'
+              className='bg-transparent outline-none w-full'
+              placeholder={friendlyTitle}
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+              onKeyDown={handleTitleKeyDown}
+            />
+          </CardTitle>
           <CardDescription>{formatISODateString(date)}</CardDescription>
         </CardHeader>
 
