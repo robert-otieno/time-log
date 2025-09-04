@@ -39,19 +39,24 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { getServerUser } from "@/lib/auth-server";
+import { z } from "zod";
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+const paramsSchema = z.object({ id: z.string().min(1) });
+export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getServerUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { status } = await req.json(); // "acknowledged" | "snoozed"
   if (!status) return NextResponse.json({ error: "Bad Request" }, { status: 400 });
 
-  const ref = adminDb
-    .collection("users")
-    .doc(user.uid)
-    .collection("nudge_events")
-    .doc(params.id);
+  const { id } = await ctx.params;
+
+  const parsedParams = paramsSchema.safeParse({ id });
+  if (!parsedParams.success) {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  const ref = adminDb.collection("users").doc(user.uid).collection("nudge_events").doc(parsedParams.data.id);
 
   const snap = await ref.get();
   if (!snap.exists) return NextResponse.json({ error: "Not Found" }, { status: 404 });
