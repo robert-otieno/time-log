@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { firestore } from "@/lib/firebase-client";
-import { DailySubtask, DailyTask, TaskWithSubtasks, WeeklyPriority } from "@/lib/types/tasks";
+import { DailySubtask, DailyTask, RecurringTask, TaskWithSubtasks, WeeklyPriority } from "@/lib/types/tasks";
 import { userCol } from "@/lib/user-collection";
 import { deleteDoc, doc, documentId, FieldValue, getDoc, getDocs, limit, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from "firebase/firestore";
 import { formatISODate } from "@/lib/date-utils";
@@ -8,6 +8,7 @@ import { formatISODate } from "@/lib/date-utils";
 const COL_TASKS = "daily_tasks";
 const COL_SUBTASKS = "daily_subtasks";
 const COL_PRIORITIES = "weekly_priorities";
+const COL_RECURRING = "recurring_tasks";
 
 const chunk = <T>(arr: T[], size = 10): T[][] => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
 
@@ -59,6 +60,104 @@ export async function getTaskDates(): Promise<string[]> {
   const snap = await getDocs(userCol(user.uid, COL_TASKS));
   const dates = Array.from(new Set(snap.docs.map((d) => (d.data() as DailyTask).date)));
   return dates.sort().reverse();
+}
+
+export async function getRecurringTasks(): Promise<RecurringTask[]> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  const snap = await getDocs(userCol(user.uid, COL_RECURRING));
+  return snap.docs.map((d) => ({ ...(d.data() as RecurringTask) }));
+}
+
+type AddRecurringTaskInput = {
+  title: string;
+  tag: string;
+  recurrenceRule: string;
+  startDate: string;
+  endDate?: string | null;
+};
+
+export async function addRecurringTask(input: AddRecurringTaskInput) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  const id = crypto.randomUUID();
+  const ref = doc(userCol(user.uid, COL_RECURRING), id);
+  const payload: RecurringTask = {
+    id,
+    title: input.title.trim(),
+    tag: input.tag.trim(),
+    recurrenceRule: input.recurrenceRule,
+    startDate: input.startDate,
+    endDate: input.endDate ?? null,
+    createdAt: serverTimestamp() as FieldValue,
+    updatedAt: serverTimestamp() as FieldValue,
+  };
+  await setDoc(ref, payload);
+  const snap = await getDoc(ref);
+  return snap.data() as RecurringTask;
+}
+
+type RecurringTaskPatch = Partial<{
+  title: string;
+  tag: string;
+  recurrenceRule: string;
+  startDate: string;
+  endDate: string | null;
+}>;
+
+export async function updateRecurringTask(id: string, patch: RecurringTaskPatch) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  const payload: Record<string, unknown> = {};
+  if (typeof patch.title === "string") payload.title = patch.title.trim();
+  if (typeof patch.tag === "string") payload.tag = patch.tag.trim();
+  if (typeof patch.recurrenceRule === "string") payload.recurrenceRule = patch.recurrenceRule;
+  if (typeof patch.startDate === "string") payload.startDate = patch.startDate;
+  if (patch.endDate !== undefined) payload.endDate = patch.endDate === "" ? null : patch.endDate;
+  if (Object.keys(payload).length === 0) throw new Error("No valid fields to update.");
+  const ref = doc(userCol(user.uid, COL_RECURRING), id);
+  await setDoc(ref, { ...payload, updatedAt: serverTimestamp() }, { merge: true });
+  const snap = await getDoc(ref);
+  return snap.data() as RecurringTask;
+}
+
+export async function deleteRecurringTask(id: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  const ref = doc(userCol(user.uid, COL_RECURRING), id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return { deleted: false };
+  await deleteDoc(ref);
+  return { deleted: true };
+}
+
+export async function expandRecurringTasks(date: string): Promise<DailyTask[]> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  const snap = await getDocs(userCol(user.uid, COL_RECURRING));
+  const rec: RecurringTask[] = snap.docs.map((d) => ({ ...(d.data() as RecurringTask) }));
+  const target = new Date(date);
+  return rec
+    .filter((r) => {
+      const start = new Date(r.startDate);
+      const end = r.endDate ? new Date(r.endDate) : null;
+      if (target < start) return false;
+      if (end && target > end) return false;
+      switch (r.recurrenceRule) {
+        case "DAILY":
+          return true;
+        case "WEEKLY":
+          return start.getDay() === target.getDay();
+        case "MONTHLY":
+          return start.getDate() === target.getDate();
+        default:
+          return false;
+      }
+    })
+    .map(
+      (r) =>
+        ({ id: `${r.id}-${date}`, title: r.title, date, tag: r.tag, done: false } as DailyTask)
+    );
 }
 
 type AddDailyTaskInput = {
