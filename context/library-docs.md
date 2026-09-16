@@ -128,6 +128,16 @@ organizations/{organizationId}/projects/{projectId}/projectMembers/{uid}
 
 Membership and project-assignment document IDs are Firebase UIDs. Client companies are separate records, and a membership with role `client` must reference a `clientId`.
 
+Personal organization bootstrap:
+
+- Runs from the verified protected layout through `ensurePersonalOrganization`.
+- Derives a stable opaque organization ID from a SHA-256 digest of the Firebase UID; never expose the UID in a slug.
+- Creates the personal organization, active admin membership, `migrations/legacy-user-v1` marker, missing `users/{uid}/preferences/workspace` selection, and audit event in one transaction.
+- Reads every conditional record before issuing writes because Firestore may retry transaction callbacks.
+- Repairs missing records only. Ownership, membership, or migration conflicts fail safely and are audited; existing active selection is preserved.
+- Defaults organization timezone to UTC and onboarding state to `not_started`; personalized onboarding replaces those defaults later.
+- Treats `activeOrganizationId` as navigation state only. Every read and mutation must independently load and validate membership.
+
 Transactions protect business invariants:
 
 ```typescript

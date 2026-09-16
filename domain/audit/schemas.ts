@@ -69,6 +69,10 @@ const safeFieldValueSchemas = {
   clientReportingStatus: z.enum(["internal", "approved"]),
   deliveryStatus: z.enum(["queued", "sent", "delivered", "bounced", "failed", "suppressed"]),
   approvalStatus: z.enum(["pending", "approved", "rejected", "expired", "executed", "failed"]),
+  organizationCreated: z.boolean(),
+  membershipCreated: z.boolean(),
+  selectionCreated: z.boolean(),
+  migrationMarkerCreated: z.boolean(),
 } satisfies Record<SafeAuditField, z.ZodType>;
 
 export function safeAuditFieldValue(

@@ -6,9 +6,9 @@ Update this file after every completed feature. A new session should be able to 
 
 **Phase:** Phase 2 — Tenant, Roles, and Onboarding
 
-**Last completed:** 06 Audit Event Foundation
+**Last completed:** 07 Personal Organization Bootstrap
 
-**Next:** 07 Personal Organization Bootstrap
+**Next:** 08 Personalized Onboarding
 
 **Blockers:** None
 
@@ -44,7 +44,7 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 - [x] 05 Organization and Membership Schema
 - [x] 06 Audit Event Foundation
-- [ ] 07 Personal Organization Bootstrap
+- [x] 07 Personal Organization Bootstrap
 - [ ] 08 Personalized Onboarding
 - [ ] 09 People, Clients, and Invitations
 
@@ -128,6 +128,9 @@ Existing checkmarks describe repository presence, not production readiness for t
 | 2026-09-16 | Use a closed audit action registry with per-action safe-field allowlists | Prevent ad hoc action names and sensitive values from entering the immutable audit trail |
 | 2026-09-16 | Generate correlation identifiers on the server | Prevent callers from spoofing request/run relationships |
 | 2026-09-16 | Treat denied and failed audit persistence as mandatory | Avoid reporting a meaningful action as fully handled when its required history was not stored |
+| 2026-09-16 | Derive personal organization IDs from a truncated SHA-256 UID digest | Makes bootstrap deterministic without exposing Firebase UIDs in organization paths or slugs |
+| 2026-09-16 | Preserve existing active organization selection during bootstrap | Avoid disrupting users who already selected another accessible organization; selection never grants access |
+| 2026-09-16 | Repair missing bootstrap records but reject conflicting state | Keep retries self-healing without silently overwriting ownership or authorization data |
 
 ## Active Notes
 
@@ -136,6 +139,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-16 — Feature 07 — completed — deterministic personal organization bootstrap, active admin membership, preserved workspace selection, legacy migration marker, atomic audit, conflict handling, and protected-layout integration verified through initial and repeated authenticated live Firestore loads; 56 unit tests, 11 Firestore Rules tests, typecheck, lint, and production build pass — start Feature 08
 
 2026-09-16 — Feature 06 — completed — versioned audit schema, canonical action registry, typed redaction allowlists, server correlation helpers, create-only repository, transactional command boundary, mandatory denied/failed auditing, and browser-denial Rules tests implemented; 51 unit tests, 9 Firestore Rules tests, typecheck, lint, and production build pass — start Feature 07
 

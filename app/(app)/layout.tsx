@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 
 import { AuthenticationError, verifyFirebaseSessionCookie } from "@/lib/auth-server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth-session";
+import { createRequestCorrelation } from "@/domain/audit/correlation";
+import { ensurePersonalOrganization } from "@/domain/organizations/bootstrap";
 
 export default async function AuthenticatedLayout({
   children,
@@ -11,7 +13,8 @@ export default async function AuthenticatedLayout({
   if (!sessionCookie) redirect("/login?next=/");
 
   try {
-    await verifyFirebaseSessionCookie(sessionCookie);
+    const actor = await verifyFirebaseSessionCookie(sessionCookie);
+    await ensurePersonalOrganization(actor, createRequestCorrelation());
   } catch (error) {
     if (error instanceof AuthenticationError) redirect("/login?next=/");
     throw error;

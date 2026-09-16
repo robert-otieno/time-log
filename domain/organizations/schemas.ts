@@ -15,11 +15,28 @@ const timestampSchema = z.custom<{ seconds: number; nanoseconds: number }>(
 
 export const organizationSchema = z.object({
   id: z.string().min(1),
+  kind: z.enum(["personal", "team"]),
   name: z.string().trim().min(1).max(120),
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
   timezone: z.string().trim().min(1).max(100),
   ownerId: z.string().min(1),
   onboardingState: z.enum(["not_started", "in_progress", "complete"]),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+}).strict();
+
+export const activeOrganizationSelectionSchema = z.object({
+  activeOrganizationId: z.string().min(1),
+  source: z.enum(["bootstrap", "user"]),
+  updatedAt: timestampSchema,
+}).strict();
+
+export const legacyMigrationMarkerSchema = z.object({
+  organizationId: z.string().min(1),
+  sourceUserId: z.string().min(1),
+  sourcePath: z.string().regex(/^users\/[^/]+$/),
+  status: z.enum(["pending", "in_progress", "completed", "failed"]),
+  schemaVersion: z.literal(1),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 }).strict();
@@ -102,6 +119,8 @@ export const projectAssignmentSchema = z.object({
 });
 
 export type Organization = z.infer<typeof organizationSchema>;
+export type ActiveOrganizationSelection = z.infer<typeof activeOrganizationSelectionSchema>;
+export type LegacyMigrationMarker = z.infer<typeof legacyMigrationMarkerSchema>;
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>;
 export type Client = z.infer<typeof clientSchema>;
 export type Invitation = z.infer<typeof invitationSchema>;

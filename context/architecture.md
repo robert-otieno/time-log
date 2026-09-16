@@ -129,6 +129,8 @@ organizations/{organizationId}/connectors/{connectorId}
 organizations/{organizationId}/approvals/{approvalId}
 organizations/{organizationId}/notifications/{notificationId}
 organizations/{organizationId}/auditEvents/{eventId}
+organizations/{organizationId}/migrations/legacy-user-v1
+users/{uid}/preferences/workspace
 ```
 
 ### Core Records
@@ -140,6 +142,7 @@ All timestamps are server timestamps. All user-authored records include `created
 ```typescript
 type Organization = {
   id: string;
+  kind: "personal" | "team";
   name: string;
   slug: string;
   timezone: string;
@@ -149,6 +152,8 @@ type Organization = {
   updatedAt: Timestamp;
 };
 ```
+
+Each authenticated user receives one deterministic personal organization on first protected application use. Bootstrap atomically creates the organization, active admin membership, legacy migration marker, active-organization preference when absent, and audit event. Existing active selection is preserved and never substitutes for a membership check.
 
 #### Membership
 

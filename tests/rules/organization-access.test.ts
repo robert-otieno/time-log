@@ -93,6 +93,22 @@ describe("organization Firestore rules", () => {
     await assertFails(getDoc(doc(dbFor("client-user"), path)));
   });
 
+  it("does not treat the active organization preference as authorization", async () => {
+    const memberDb = dbFor("member");
+    await assertSucceeds(setDoc(doc(memberDb, "users/member/preferences/workspace"), {
+      activeOrganizationId: "org-b",
+      source: "user",
+    }));
+    await assertFails(getDoc(doc(memberDb, "organizations/org-b")));
+  });
+
+  it("denies browser writes to migration markers", async () => {
+    await assertFails(setDoc(
+      doc(dbFor("admin"), "organizations/org-a/migrations/legacy-user-v1"),
+      { status: "completed" },
+    ));
+  });
+
   it("preserves isolated legacy user data", async () => {
     await assertSucceeds(getDoc(doc(dbFor("member"), "users/member/daily_tasks/task-1")));
     await assertFails(getDoc(doc(dbFor("admin"), "users/member/daily_tasks/task-1")));

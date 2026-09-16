@@ -49,7 +49,8 @@ interface AuditCommandDetails {
 export interface AuditedCommandOptions<T> extends AuditCommandDetails {
   db?: Firestore;
   auditRepository?: AuditWriter;
-  changes?: readonly UnsafeAuditChange[];
+  changes?: readonly UnsafeAuditChange[] | ((result: T) => readonly UnsafeAuditChange[]);
+  shouldAuditSuccess?: (result: T) => boolean;
   execute(transaction: Transaction): Promise<T>;
 }
 
@@ -90,10 +91,15 @@ export async function executeAuditedCommand<T>(
   try {
     return await db.runTransaction(async (transaction) => {
       const result = await options.execute(transaction);
-      auditRepository.appendInTransaction(
-        transaction,
-        draftFor(options, "succeeded", null, options.changes ?? []),
-      );
+      if (options.shouldAuditSuccess?.(result) ?? true) {
+        const changes = typeof options.changes === "function"
+          ? options.changes(result)
+          : options.changes ?? [];
+        auditRepository.appendInTransaction(
+          transaction,
+          draftFor(options, "succeeded", null, changes),
+        );
+      }
       return result;
     });
   } catch (error) {
