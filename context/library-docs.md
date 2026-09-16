@@ -160,6 +160,23 @@ Official references:
 - [Firestore Security Rules](https://firebase.google.com/docs/firestore/security/get-started)
 - [Firebase Emulator Suite](https://firebase.google.com/docs/emulator-suite)
 
+## Audit Events
+
+**Path:** `organizations/{organizationId}/auditEvents/{eventId}`
+
+Project pattern:
+
+- Use the closed action registry in `domain/audit/actions.ts`; do not persist ad hoc action strings.
+- Generate request and run IDs on the server with `domain/audit/correlation.ts`. Never trust a browser-provided correlation ID.
+- Pass untrusted change candidates through `redactAuditChanges`. The event schema independently enforces the same per-action field allowlist and safe value types.
+- Successful Firestore mutations use `executeAuditedCommand`, which creates the audit document in the same transaction.
+- Denied and failed actions are appended through the server-only repository before returning. If that audit write fails, return a safe internal error rather than claiming the action was completely handled.
+- `AuditRepository` exposes create operations only. Browser reads and all browser writes remain denied; the later activity viewer must use an authorized server query.
+- Use `FieldValue.serverTimestamp()` for `occurredAt`. Event schema version 1 is immutable after release; incompatible changes require a new version.
+- Authentication action names exist in the registry, but events remain organization-scoped. Wire them only after the command has a verified organization context.
+
+Never include free text, email addresses, filenames, URLs, request bodies, authorization material, session values, raw provider payloads, chat/file content, or prompts in an event. The initial safe-value set is limited to enumerated roles/statuses/visibility values and booleans.
+
 ## Cloud Storage for Firebase
 
 **Path:** `organizations/{organizationId}/projects/{projectId}/files/{fileId}/{safeFilename}`

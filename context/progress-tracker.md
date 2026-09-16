@@ -4,13 +4,13 @@ Update this file after every completed feature. A new session should be able to 
 
 ## Current Status
 
-**Phase:** Phase 0 — Baseline and Framework Gate
+**Phase:** Phase 2 — Tenant, Roles, and Onboarding
 
-**Last completed:** 04 Complete Logout
+**Last completed:** 06 Audit Event Foundation
 
-**Current:** 05 Organization and Membership Schema — implementation complete; Firestore Rules verification pending Java
+**Next:** 07 Personal Organization Bootstrap
 
-**Blockers:** Firestore emulator tests require Java on `PATH`; the current workstation reports `spawn java ENOENT`.
+**Blockers:** None
 
 ## Existing Repository Baseline
 
@@ -42,8 +42,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ### Phase 2 — Tenant, Roles, and Onboarding
 
-- [ ] 05 Organization and Membership Schema (implemented; emulator verification pending)
-- [ ] 06 Audit Event Foundation
+- [x] 05 Organization and Membership Schema
+- [x] 06 Audit Event Foundation
 - [ ] 07 Personal Organization Bootstrap
 - [ ] 08 Personalized Onboarding
 - [ ] 09 People, Clients, and Invitations
@@ -125,6 +125,9 @@ Existing checkmarks describe repository presence, not production readiness for t
 | 2026-09-16 | Key organization memberships and project assignments by Firebase UID | Makes membership and assignment authorization deterministic in Firestore Rules |
 | 2026-09-16 | Keep client companies separate from client-user memberships | Allows multiple client users to share one client entity without conflating identity and account data |
 | 2026-09-16 | Permit collaborative writes only through verified server operations | Keeps authorization, validation, and future audit-event creation on one trusted boundary |
+| 2026-09-16 | Use a closed audit action registry with per-action safe-field allowlists | Prevent ad hoc action names and sensitive values from entering the immutable audit trail |
+| 2026-09-16 | Generate correlation identifiers on the server | Prevent callers from spoofing request/run relationships |
+| 2026-09-16 | Treat denied and failed audit persistence as mandatory | Avoid reporting a meaningful action as fully handled when its required history was not stored |
 
 ## Active Notes
 
@@ -134,7 +137,9 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ## Session Log
 
-2026-09-16 — Feature 05 — verification pending — organization, membership, client, invitation, project, and assignment schemas; capability policy; server repository boundary; deny-by-default Firestore Rules; and role-matrix emulator tests implemented; 35 unit tests, typecheck, lint, and production build pass — install Java and run `npm run test:rules`
+2026-09-16 — Feature 06 — completed — versioned audit schema, canonical action registry, typed redaction allowlists, server correlation helpers, create-only repository, transactional command boundary, mandatory denied/failed auditing, and browser-denial Rules tests implemented; 51 unit tests, 9 Firestore Rules tests, typecheck, lint, and production build pass — start Feature 07
+
+2026-09-16 — Feature 05 — completed — organization, membership, client, invitation, project, and assignment schemas; capability policy; server repository boundary; deny-by-default Firestore Rules; and role-matrix emulator tests implemented; 35 unit tests, 6 Firestore Rules tests, typecheck, lint, and production build pass — start Feature 06
 
 Add concise entries only when implementation work changes status:
 

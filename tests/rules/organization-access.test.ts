@@ -6,7 +6,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 let environment: RulesTestEnvironment;
 
@@ -34,6 +34,7 @@ beforeEach(async () => {
       setDoc(doc(db, "organizations/org-a/projects/project-1"), { name: "Project One" }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/member"), { userId: "member", status: "active" }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/client-user"), { userId: "client-user", status: "active" }),
+      setDoc(doc(db, "organizations/org-a/auditEvents/audit-1"), { action: "project.record.created" }),
       setDoc(doc(db, "users/member/daily_tasks/task-1"), { title: "Legacy" }),
     ]);
   });
@@ -66,6 +67,30 @@ describe("organization Firestore rules", () => {
 
   it("denies browser writes to collaborative records", async () => {
     await assertFails(setDoc(doc(dbFor("admin"), "organizations/org-a/projects/project-2"), { name: "No" }));
+  });
+
+  it("denies audit creation to every browser actor", async () => {
+    const path = "organizations/org-a/auditEvents/browser-write";
+
+    await assertFails(setDoc(doc(environment.unauthenticatedContext().firestore(), path), { action: "fake" }));
+    await assertFails(setDoc(doc(dbFor("admin"), path), { action: "fake" }));
+    await assertFails(setDoc(doc(dbFor("member"), path), { action: "fake" }));
+    await assertFails(setDoc(doc(dbFor("client-user"), path), { action: "fake" }));
+  });
+
+  it("denies audit updates and deletes to browser admins", async () => {
+    const reference = doc(dbFor("admin"), "organizations/org-a/auditEvents/audit-1");
+
+    await assertFails(updateDoc(reference, { action: "fake" }));
+    await assertFails(deleteDoc(reference));
+  });
+
+  it("does not expose the internal audit collection to browser roles", async () => {
+    const path = "organizations/org-a/auditEvents/audit-1";
+
+    await assertFails(getDoc(doc(dbFor("admin"), path)));
+    await assertFails(getDoc(doc(dbFor("member"), path)));
+    await assertFails(getDoc(doc(dbFor("client-user"), path)));
   });
 
   it("preserves isolated legacy user data", async () => {
