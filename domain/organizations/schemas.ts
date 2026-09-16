@@ -27,6 +27,7 @@ export const organizationSchema = z.object({
 
 export const activeOrganizationSelectionSchema = z.object({
   activeOrganizationId: z.string().min(1),
+  activeProjectId: z.string().min(1).nullable().optional(),
   source: z.enum(["bootstrap", "user"]),
   updatedAt: timestampSchema,
 }).strict();

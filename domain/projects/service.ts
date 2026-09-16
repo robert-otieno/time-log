@@ -55,7 +55,11 @@ export async function updateProject(actor: AuthActor, organizationId: string, ra
     await requireAdmin(transaction, db, organizationId, actor.uid); const snapshot = await transaction.get(reference);
     if (!snapshot.exists) throw new AuditedCommandError("failed", "project_not_found", "Project not found");
     const existing = projectSchema.parse({ id: snapshot.id, ...snapshot.data() });
-    if (existing.status === "archived") throw new AuditedCommandError("denied", "project_archived", "Restore the project before editing");
+    if (existing.status !== "active") throw new AuditedCommandError("denied", "project_read_only", "Restore the project before editing");
+    if (command.clientId) {
+      const client = await transaction.get(db.doc(`organizations/${organizationId}/clients/${command.clientId}`));
+      if (!client.exists || clientSchema.parse({ id: client.id, ...client.data() }).status !== "active") throw new AuditedCommandError("failed", "client_not_found", "Client not found");
+    }
     transaction.update(reference, { name: command.name, description: command.description, clientId: command.clientId, enabledTools: command.enabledTools, updatedBy: actor.uid, updatedAt: FieldValue.serverTimestamp() });
   }});
 }
@@ -75,9 +79,29 @@ export async function listAccessibleProjects(actor: AuthActor, organizationId: s
   return projects.docs.filter((_, index) => assignments[index].data()?.status === "active").map((document) => projectSchema.parse({ id: document.id, ...document.data() }));
 }
 
+export async function getAccessibleProject(actor: AuthActor, organizationId: string, projectId: string, db: Firestore = getAdminDb()) {
+  const [membershipSnapshot, projectSnapshot, assignmentSnapshot] = await Promise.all([
+    db.doc(`organizations/${organizationId}/members/${actor.uid}`).get(),
+    db.doc(`organizations/${organizationId}/projects/${projectId}`).get(),
+    db.doc(`organizations/${organizationId}/projects/${projectId}/projectMembers/${actor.uid}`).get(),
+  ]);
+  const member = membershipSnapshot.exists ? organizationMemberSchema.parse(membershipSnapshot.data()) : null;
+  if (!member || member.status !== "active" || member.role === "client" || !projectSnapshot.exists) return null;
+  if (member.role !== "admin" && assignmentSnapshot.data()?.status !== "active") return null;
+  return { project: projectSchema.parse({ id: projectSnapshot.id, ...projectSnapshot.data() }), role: member.role };
+}
+
 export async function selectActiveProject(actor: AuthActor, organizationId: string, raw: unknown, dependencies: Dependencies = {}) {
   const command = selectProjectCommandSchema.parse(raw); const db = dependencies.db ?? getAdminDb();
   const projects = await listAccessibleProjects(actor, organizationId, db);
   if (!projects?.some((project) => project.id === command.projectId && project.status !== "archived")) throw new AuditedCommandError("denied", "project_access_denied", "Project access denied");
   await db.doc(`users/${actor.uid}/preferences/workspace`).set({ activeOrganizationId: organizationId, activeProjectId: command.projectId, source: "user", updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+}
+
+export async function listActiveProjectClients(actor: AuthActor, organizationId: string, db: Firestore = getAdminDb()) {
+  const membership = await db.doc(`organizations/${organizationId}/members/${actor.uid}`).get();
+  const member = membership.exists ? organizationMemberSchema.parse(membership.data()) : null;
+  if (!hasCapability(member, "projects.manage")) return [];
+  const clients = await db.collection(`organizations/${organizationId}/clients`).where("status", "==", "active").get();
+  return clients.docs.map((document) => clientSchema.parse({ id: document.id, ...document.data() }));
 }

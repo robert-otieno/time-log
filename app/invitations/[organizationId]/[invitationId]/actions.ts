@@ -13,5 +13,5 @@ export async function acceptInvitationAction(organizationId: string, invitationI
   } catch {
     redirect(`/invitations/${organizationId}/${invitationId}?token=${encodeURIComponent(token)}&error=invalid`);
   }
-  redirect("/");
+  redirect("/projects");
 }

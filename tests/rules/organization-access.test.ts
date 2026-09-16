@@ -49,6 +49,13 @@ describe("organization Firestore rules", () => {
     await assertSucceeds(getDoc(doc(dbFor("admin"), "organizations/org-a/projects/project-1")));
   });
 
+  it("allows only admins to list all organization projects", async () => {
+    const { getDocs, collection } = await import("firebase/firestore");
+    await assertSucceeds(getDocs(collection(dbFor("admin"), "organizations/org-a/projects")));
+    await assertFails(getDocs(collection(dbFor("member"), "organizations/org-a/projects")));
+    await assertFails(getDocs(collection(dbFor("client-user"), "organizations/org-a/projects")));
+  });
+
   it("allows explicitly assigned members and clients", async () => {
     await assertSucceeds(getDoc(doc(dbFor("member"), "organizations/org-a/projects/project-1")));
     await assertSucceeds(getDoc(doc(dbFor("client-user"), "organizations/org-a/projects/project-1")));

@@ -8,7 +8,7 @@ Update this file after every completed feature. A new session should be able to 
 
 **Last completed:** 08 Personalized Onboarding
 
-**Current:** 10 Project CRUD and Navigation — domain implementation in progress; Feature 09 authenticated invitation smoke remains pending
+**Current:** 10 Project CRUD and Navigation — implementation and automated verification complete; authenticated browser smoke pending
 
 **Blockers:** None
 
@@ -143,7 +143,9 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ## Session Log
 
-2026-09-16 — Feature 10 — in progress — added strict project commands, immutable collision-safe key generation, audited create/edit/status services, internal membership-aware project listing, and active-project selection; 72 unit tests and typecheck pass — build project index, forms, switcher, and authorized project shell
+2026-09-16 — Feature 10 — verification pending — fixed the project Settings Server/Client serialization failure by mapping Firestore-backed project and client records to explicit plain form DTOs before rendering the client form; added a timestamp-metadata regression test; 76 unit tests, typecheck, lint (zero errors; 28 legacy warnings), and production build pass — re-test authenticated admin project Settings
+
+2026-09-16 — Feature 10 — verification pending — added strict project commands, immutable collision-safe keys, audited CRUD/lifecycle services, verified active-organization resolution, project index/forms/switcher, internal-only authorized shell, enabled-tool navigation and direct-route rejection, read-only historical states, and assignment-aware access; 75 unit tests, 14 Rules tests, 3 browser auth checks, typecheck, lint, and production build pass — run authenticated admin/member/client project smoke
 
 2026-09-16 — Feature 09 — verification pending — added admin People UI, member/client invitation validation, hashed seven-day tokens, authenticated email-bound acceptance, durable Resend outbox with idempotent delivery, client companies, explicit project assignments, suspend/restore/remove lifecycle, last-admin protection, and server-only outbox Rules coverage; 70 unit tests, 13 Rules tests, typecheck, lint, and production build pass — configure Resend and run admin invitation plus invited-account acceptance smoke
 

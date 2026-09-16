@@ -156,6 +156,8 @@ type Organization = {
 
 Each authenticated user receives one deterministic personal organization on first protected application use. Bootstrap atomically creates the organization, active admin membership, legacy migration marker, active-organization preference when absent, and audit event. Existing active selection is preserved and never substitutes for a membership check.
 
+Active workspace and project preferences are navigation hints stored at `users/{uid}/preferences/workspace`. Server routes resolve the selected organization only after loading and validating an active membership; inaccessible or stale selections fall back to the deterministic personal organization. Project selection is likewise re-authorized before it is persisted and never grants access.
+
 Onboarding persists a versioned, organization-scoped record per user. Each step is an authenticated, validated, audited transaction. The deterministic `onboarding-first` project prevents duplicate first projects, and completing education atomically changes the organization onboarding state to `complete`.
 
 #### Membership

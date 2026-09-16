@@ -69,8 +69,8 @@ Add source paths when implemented.
 | Component | Planned purpose | Required states |
 | --- | --- | --- |
 | `OrganizationSwitcher` | Select active organization | loading, single, multiple, inaccessible |
-| `ProjectSwitcher` | Select/create accessible project | loading, empty, search, archived |
-| `ProjectToolNav` | Render enabled and authorized tools | internal/client, mobile/desktop |
+| `ProjectSwitcher` | `components/projects/project-switcher.tsx` — select an accessible current or archived project | empty, current, archived |
+| `ProjectToolNav` | `components/projects/project-tool-nav.tsx` — render only enabled and authorized tools | internal, mobile/desktop |
 | `VisibilityBadge` | Read-only visibility label | internal, client-visible |
 | `VisibilityControl` | Change visibility with policy messaging | pending, denied, nested-content warning |
 | `AssigneePicker` | Search/select eligible project members | empty, multiple, removed member |
@@ -227,6 +227,44 @@ Last updated: 2026-09-16
 | Accent usage | `text-destructive` safe invalid/mismatch message |
 
 **Pattern notes:** Invitation acceptance never previews organization or project details before server validation. It identifies the signed-in email, uses one clear action, and collapses invalid, expired, consumed, and mismatched invitations into a non-disclosing error.
+
+### Project index and form
+
+Files: `app/(app)/projects/page.tsx`, `components/projects/project-form.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Background | Page `bg-muted/20` through project layout; canonical `Card` surfaces |
+| Border | Canonical card border; tool choices `border` |
+| Border radius | `rounded-md` tool choices; canonical card radius |
+| Text — primary | `text-3xl font-semibold tracking-tight`; section `text-xl font-semibold` |
+| Text — secondary | `text-sm text-muted-foreground` |
+| Spacing | Page `space-y-8`; forms `space-y-5`; card grids `gap-4` |
+| Hover state | Project cards and archived rows `hover:bg-muted/40` |
+| Shadow | Canonical card/button shadows |
+| Accent usage | Semantic status badges, primary create/save action, destructive archive confirmation |
+
+**Pattern notes:** Project lists use responsive cards for current work and compact rows for archived work. Only admins receive creation and settings controls. Tool selection uses labeled bordered checkbox rows, defaults to To-dos and Time tracking, retains at least one tool, and emits canonical tool IDs.
+
+### Project shell and switcher
+
+Files: `app/(app)/projects/layout.tsx`, `app/(app)/projects/[projectId]/layout.tsx`, `components/projects/project-switcher.tsx`, `components/projects/project-tool-nav.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Background | Shell `bg-muted/20`; sticky header `bg-background` |
+| Border | Header and tool navigation `border-b`; read-only banner `border` |
+| Border radius | Navigation links and banners `rounded-md` / `rounded-lg` |
+| Text — primary | Project `text-3xl font-semibold tracking-tight`; nav `text-sm font-medium` |
+| Text — secondary | Status and read-only guidance `text-muted-foreground` |
+| Spacing | Header `gap-3 px-4`; project content `space-y-6 p-4` |
+| Hover state | `hover:bg-accent` navigation; canonical dropdown focus states |
+| Shadow | none beyond canonical dropdown/button shadows |
+| Accent usage | Project key `text-primary`; semantic status badges |
+
+**Pattern notes:** The switcher shows only server-authorized projects and labels archived entries. The project shell repeats authorization at the route boundary, excludes clients until the client portal exists, renders only enabled tools, and returns not-found for disabled tools or inaccessible projects. Non-active projects display a visible read-only banner.
 
 ## Patterns to Retire
 
