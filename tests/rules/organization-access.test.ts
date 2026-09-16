@@ -6,7 +6,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 
 let environment: RulesTestEnvironment;
 
@@ -34,6 +34,8 @@ beforeEach(async () => {
       setDoc(doc(db, "organizations/org-a/projects/project-1"), { name: "Project One" }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/member"), { userId: "member", status: "active" }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/client-user"), { userId: "client-user", status: "active" }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/internal-task"), { title: "Internal", visibility: "internal" }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/shared-task"), { title: "Shared", visibility: "client-visible" }),
       setDoc(doc(db, "organizations/org-a/auditEvents/audit-1"), { action: "project.record.created" }),
       setDoc(doc(db, "users/member/daily_tasks/task-1"), { title: "Legacy" }),
     ]);
@@ -50,10 +52,23 @@ describe("organization Firestore rules", () => {
   });
 
   it("allows only admins to list all organization projects", async () => {
-    const { getDocs, collection } = await import("firebase/firestore");
     await assertSucceeds(getDocs(collection(dbFor("admin"), "organizations/org-a/projects")));
     await assertFails(getDocs(collection(dbFor("member"), "organizations/org-a/projects")));
     await assertFails(getDocs(collection(dbFor("client-user"), "organizations/org-a/projects")));
+  });
+
+  it("enforces project access and record visibility independently", async () => {
+    const base = "organizations/org-a/projects/project-1/tasks";
+    await assertSucceeds(getDoc(doc(dbFor("member"), `${base}/internal-task`)));
+    await assertSucceeds(getDoc(doc(dbFor("client-user"), `${base}/shared-task`)));
+    await assertFails(getDoc(doc(dbFor("client-user"), `${base}/internal-task`)));
+    await assertFails(getDoc(doc(dbFor("unassigned"), `${base}/shared-task`)));
+  });
+
+  it("requires client list queries to constrain visibility", async () => {
+    const tasks = collection(dbFor("client-user"), "organizations/org-a/projects/project-1/tasks");
+    await assertFails(getDocs(tasks));
+    await assertSucceeds(getDocs(query(tasks, where("visibility", "==", "client-visible"))));
   });
 
   it("allows explicitly assigned members and clients", async () => {

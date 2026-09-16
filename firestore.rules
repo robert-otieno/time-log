@@ -75,6 +75,12 @@ service cloud.firestore {
           allow write: if false;
         }
 
+        match /tasks/{taskId} {
+          allow read: if canReadProject(organizationId, projectId)
+            && (activeInternalMember(organizationId) || resource.data.visibility == 'client-visible');
+          allow write: if false;
+        }
+
         match /{document=**} {
           allow read, write: if false;
         }

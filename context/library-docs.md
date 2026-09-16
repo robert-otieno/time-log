@@ -173,6 +173,14 @@ Rules:
 - Client users may read only their linked client company and assigned projects. Content visibility remains an independent `internal` / `client-visible` policy for later project resources.
 - Legacy owner access under `users/{uid}` remains in place until the explicit migration feature.
 
+Project visibility pattern:
+
+- Use `domain/visibility/schemas.ts` for the canonical values and `DEFAULT_VISIBILITY`; never duplicate visibility string unions in feature domains.
+- Apply the explicit `deny` / `all` / `client-visible` result from `visibilityForQuery` before reading project collections. Firestore Rules are not filters: client list queries must include `where("visibility", "==", "client-visible")`, while `deny` must not issue a query.
+- Check active membership and project assignment independently with `canReadVisibleRecord`; a client-visible value never grants project access.
+- Pass client responses through `serializeVisibleRecordForClient` with a feature-owned Zod allowlist schema. Do not serialize a complete Firestore record and remove fields afterward.
+- Feature repositories provide a server-only `VisibilityRecordAdapter` to `changeRecordVisibility`; the shared service re-authorizes project access, rejects clients and read-only projects, and atomically records `visibility.record.changed` without storing content.
+
 Official references:
 
 - [Firestore transactions](https://firebase.google.com/docs/firestore/manage-data/transactions)

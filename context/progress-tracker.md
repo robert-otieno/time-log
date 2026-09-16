@@ -4,11 +4,11 @@ Update this file after every completed feature. A new session should be able to 
 
 ## Current Status
 
-**Phase:** Phase 2 — Tenant, Roles, and Onboarding
+**Phase:** Phase 3 — Projects and Visibility
 
-**Last completed:** 08 Personalized Onboarding
+**Last completed:** 11 Visibility Primitive
 
-**Current:** 10 Project CRUD and Navigation — implementation and automated verification complete; authenticated browser smoke pending
+**Current:** 12 Client Portal Shell
 
 **Blockers:** None
 
@@ -50,8 +50,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ### Phase 3 — Projects and Visibility
 
-- [ ] 10 Project CRUD and Navigation
-- [ ] 11 Visibility Primitive
+- [x] 10 Project CRUD and Navigation
+- [x] 11 Visibility Primitive
 - [ ] 12 Client Portal Shell
 
 ### Phase 4 — To-Dos
@@ -142,6 +142,10 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-16 — Feature 11 — completed — added canonical visibility schemas/defaults, independent project-access policy, database query constraints, Zod-allowlisted client serialization, adapter-based audited changes, shared badge/control UI, and task-path Rules coverage; 86 unit tests, 16 Rules tests, typecheck, lint, and production build pass — start Feature 12
+
+2026-09-16 — Feature 10 — completed — authenticated Project Settings retest confirmed after plain DTO serialization fix; automated gates remain green — start Feature 11
 
 2026-09-16 — Feature 10 — verification pending — fixed the project Settings Server/Client serialization failure by mapping Firestore-backed project and client records to explicit plain form DTOs before rendering the client form; added a timestamp-metadata regression test; 76 unit tests, typecheck, lint (zero errors; 28 legacy warnings), and production build pass — re-test authenticated admin project Settings
 

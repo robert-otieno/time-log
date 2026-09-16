@@ -71,8 +71,8 @@ Add source paths when implemented.
 | `OrganizationSwitcher` | Select active organization | loading, single, multiple, inaccessible |
 | `ProjectSwitcher` | `components/projects/project-switcher.tsx` — select an accessible current or archived project | empty, current, archived |
 | `ProjectToolNav` | `components/projects/project-tool-nav.tsx` — render only enabled and authorized tools | internal, mobile/desktop |
-| `VisibilityBadge` | Read-only visibility label | internal, client-visible |
-| `VisibilityControl` | Change visibility with policy messaging | pending, denied, nested-content warning |
+| `VisibilityBadge` | `components/visibility/visibility-badge.tsx` — read-only visibility label | internal, client-visible |
+| `VisibilityControl` | `components/visibility/visibility-control.tsx` — controlled visibility selector with policy messaging | internal, client-visible, pending, disabled |
 | `AssigneePicker` | Search/select eligible project members | empty, multiple, removed member |
 | `TaskPicker` | Select or create task for timer | loading, empty, inaccessible, inline create |
 | `GlobalTimer` | Persistent active timer | idle, selecting, starting, active, stopping, conflict, error |
@@ -265,6 +265,25 @@ Last updated: 2026-09-16
 | Accent usage | Project key `text-primary`; semantic status badges |
 
 **Pattern notes:** The switcher shows only server-authorized projects and labels archived entries. The project shell repeats authorization at the route boundary, excludes clients until the client portal exists, renders only enabled tools, and returns not-found for disabled tools or inaccessible projects. Non-active projects display a visible read-only banner.
+
+### Visibility badge and control
+
+Files: `components/visibility/visibility-badge.tsx`, `components/visibility/visibility-control.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical `Badge` and transparent `SelectTrigger` backgrounds |
+| Border | Canonical outline badge and `border-input` select border |
+| Border radius | `rounded-md` inherited from Badge and Select |
+| Text — primary | Canonical `text-xs font-medium` badge and `text-sm` control |
+| Text — secondary | `text-sm text-muted-foreground` policy guidance |
+| Spacing | Control `space-y-2`; badge icon/text `gap-1` |
+| Hover state | Canonical Badge and Select interactive states |
+| Shadow | `shadow-xs` trigger and `shadow-md` menu |
+| Accent usage | Secondary badge for client-visible; outline badge for internal; icons reinforce labels |
+
+**Pattern notes:** Always show the text label in addition to the icon. Keep the selector controlled so the owning feature handles its audited server mutation and rollback. Pending and denied states disable selection without hiding the current value. Guidance must state that client visibility still requires verified project access.
 
 ## Patterns to Retire
 
