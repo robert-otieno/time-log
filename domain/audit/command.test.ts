@@ -67,6 +67,22 @@ describe("audited commands", () => {
     }]);
   });
 
+  it("adds related lifecycle events to the same transaction", async () => {
+    const { writer, transactionalWrites } = fakeWriter();
+    await executeAuditedCommand({
+      ...common,
+      db: fakeDb(),
+      auditRepository: writer,
+      additionalSuccessAudits: () => [{
+        action: "notification.email.queued",
+        target: { type: "notification", id: "notice-1" },
+        changes: [{ field: "deliveryStatus", to: "queued" }],
+      }],
+      execute: async () => "done",
+    });
+    expect(transactionalWrites.map((event) => event.action)).toEqual(["task.record.completed", "notification.email.queued"]);
+  });
+
   it("records denied commands outside the aborted mutation transaction", async () => {
     const { writer, writes, transactionalWrites } = fakeWriter();
     const denial = new AuditedCommandError("denied", "project_access_denied", "Access denied");

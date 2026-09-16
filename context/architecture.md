@@ -164,13 +164,15 @@ Onboarding persists a versioned, organization-scoped record per user. Each step 
 type OrganizationMember = {
   userId: string;
   role: "admin" | "member" | "client";
-  status: "invited" | "active" | "suspended";
+  status: "invited" | "active" | "suspended" | "removed";
   clientId: string | null;
   joinedAt: Timestamp | null;
 };
 ```
 
 Project assignment is explicit. Organization membership alone does not grant a client access to every project.
+
+Suspension preserves project assignments for restoration. Removal preserves historical attribution but marks current assignments removed; returning requires a new invitation. The final active organization admin cannot be suspended or removed.
 
 #### Project
 

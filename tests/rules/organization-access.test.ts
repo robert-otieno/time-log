@@ -116,6 +116,12 @@ describe("organization Firestore rules", () => {
     ));
   });
 
+  it("keeps notification outbox records server-only", async () => {
+    const path = "organizations/org-a/notifications/notification-1";
+    await assertFails(getDoc(doc(dbFor("admin"), path)));
+    await assertFails(setDoc(doc(dbFor("admin"), path), { status: "sent" }));
+  });
+
   it("preserves isolated legacy user data", async () => {
     await assertSucceeds(getDoc(doc(dbFor("member"), "users/member/daily_tasks/task-1")));
     await assertFails(getDoc(doc(dbFor("admin"), "users/member/daily_tasks/task-1")));

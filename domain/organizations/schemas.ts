@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const membershipRoleSchema = z.enum(["admin", "member", "client"]);
-export const membershipStatusSchema = z.enum(["invited", "active", "suspended"]);
+export const membershipStatusSchema = z.enum(["invited", "active", "suspended", "removed"]);
 export const projectStatusSchema = z.enum(["active", "on_hold", "completed", "archived"]);
 
 const timestampSchema = z.custom<{ seconds: number; nanoseconds: number }>(
@@ -43,6 +43,8 @@ export const legacyMigrationMarkerSchema = z.object({
 
 export const organizationMemberSchema = z.object({
   userId: z.string().min(1),
+  email: z.string().trim().toLowerCase().email().nullable().optional(),
+  displayName: z.string().trim().min(1).max(120).nullable().optional(),
   role: membershipRoleSchema,
   status: membershipStatusSchema,
   clientId: z.string().min(1).nullable(),
@@ -74,6 +76,7 @@ export const invitationSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   role: membershipRoleSchema,
   clientId: z.string().min(1).nullable(),
+  tokenHash: z.string().regex(/^[a-f0-9]{64}$/),
   status: z.enum(["pending", "accepted", "expired", "revoked"]),
   projectIds: z.array(z.string().min(1)).max(100),
   expiresAt: timestampSchema,
@@ -81,11 +84,30 @@ export const invitationSchema = z.object({
   acceptedAt: timestampSchema.nullable(),
   createdBy: z.string().min(1),
   createdAt: timestampSchema,
+  updatedAt: timestampSchema,
 }).strict().superRefine((invitation, context) => {
   if ((invitation.role === "client") !== (invitation.clientId !== null)) {
     context.addIssue({ code: "custom", path: ["clientId"], message: "Only client invitations reference a client" });
   }
 });
+
+export const notificationSchema = z.object({
+  id: z.string().min(1),
+  type: z.literal("invitation"),
+  recipientEmail: z.string().trim().toLowerCase().email(),
+  templateData: z.object({
+    organizationName: z.string().trim().min(1).max(120),
+    inviterName: z.string().trim().min(1).max(120),
+    acceptUrl: z.string().url().max(2048),
+  }).strict(),
+  status: z.enum(["queued", "processing", "sent", "failed"]),
+  idempotencyKey: z.string().trim().min(1).max(256),
+  providerMessageId: z.string().min(1).nullable(),
+  attemptCount: z.number().int().min(0).max(20),
+  lastErrorCode: z.string().trim().min(1).max(64).nullable(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+}).strict();
 
 export const projectSchema = z.object({
   id: z.string().min(1),
@@ -124,6 +146,7 @@ export type LegacyMigrationMarker = z.infer<typeof legacyMigrationMarkerSchema>;
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>;
 export type Client = z.infer<typeof clientSchema>;
 export type Invitation = z.infer<typeof invitationSchema>;
+export type Notification = z.infer<typeof notificationSchema>;
 export type Project = z.infer<typeof projectSchema>;
 export type ProjectAssignment = z.infer<typeof projectAssignmentSchema>;
 export type MembershipRole = z.infer<typeof membershipRoleSchema>;

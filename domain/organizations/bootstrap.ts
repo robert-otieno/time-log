@@ -135,6 +135,8 @@ export async function ensurePersonalOrganization(
       if (created.membership) {
         transaction.create(membershipRef, {
           userId: actor.uid,
+          email: actor.email ? actor.email.trim().toLowerCase() : null,
+          displayName: actor.displayName?.trim() || null,
           role: "admin",
           status: "active",
           clientId: null,

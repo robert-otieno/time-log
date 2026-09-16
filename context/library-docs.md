@@ -218,6 +218,8 @@ Official references:
 
 **Used for:** transactional invitations, assignments, mentions, reminders, announcements, check-ins, and digests.
 
+**Installed:** `resend` 6.28.1.
+
 ```typescript
 import "server-only";
 import { Resend } from "resend";
@@ -254,6 +256,9 @@ Rules:
 - Verify the webhook from the raw body before parsing or processing.
 - Store provider message IDs and delivery status; never expose them to ordinary users.
 - Resend is selected for outbound notification mail. Verify inbound-email requirements before implementing Email Forwards.
+- Invitation creation writes `organizations/{organizationId}/notifications/{invitationId}` in the same transaction as the hashed invitation. Provider delivery happens afterward through `deliverNotification`; failures retain durable retry state.
+- Invitation mail uses deterministic key `invitation/{invitationId}` and stores provider identifiers only in the server-only notification record.
+- `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are validated lazily on the server. `NEXT_PUBLIC_APP_URL` is mandatory in production and defaults to `http://localhost:3000` only in development. The API key never enters a client module.
 
 Official references:
 

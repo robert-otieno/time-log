@@ -190,6 +190,44 @@ Last updated: 2026-09-16
 
 **Pattern notes:** Use this searchable controlled combobox for IANA timezone fields. Populate it from `Intl.supportedValuesOf("timeZone")`, retain `UTC` and the current value, close after selection, and preserve native keyboard/search behavior through `Command`.
 
+### People administration
+
+Files: `app/(app)/people/page.tsx`, `components/people/invite-person-form.tsx`, `components/people/membership-actions.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical `Card`; client company group `bg-muted/30` |
+| Border | Canonical card border; person rows `border` |
+| Border radius | `rounded-lg` rows and grouped fields |
+| Text — primary | `text-3xl font-semibold tracking-tight`; row `font-medium` |
+| Text — secondary | `text-sm text-muted-foreground` |
+| Spacing | Page `space-y-6`; rows and form groups `gap-3` / `space-y-4` |
+| Hover state | Canonical `Button`, `Select`, and sidebar link states |
+| Shadow | Canonical card/dialog shadows |
+| Accent usage | Semantic role/status badges, focus rings, destructive removal action |
+
+**Pattern notes:** People management uses responsive bordered rows rather than a horizontally scrolling table. Invitations reveal client-company inputs only for the client role. Suspension and removal preserve context, use explicit actions, and surface safe inline errors; destructive removal uses the canonical confirmation dialog.
+
+### Invitation acceptance card
+
+File: `app/invitations/[organizationId]/[invitationId]/page.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Background | Page `bg-muted/30`; canonical `Card` |
+| Border | Canonical card border |
+| Border radius | Canonical `rounded-xl` card |
+| Text — primary | Canonical `CardTitle` |
+| Text — secondary | Canonical `CardDescription` |
+| Spacing | Centered card with `p-4`; canonical card sections |
+| Hover state | Canonical primary `Button` |
+| Shadow | Canonical card styling |
+| Accent usage | `text-destructive` safe invalid/mismatch message |
+
+**Pattern notes:** Invitation acceptance never previews organization or project details before server validation. It identifies the signed-in email, uses one clear action, and collapses invalid, expired, consumed, and mismatched invitations into a non-disclosing error.
+
 ## Patterns to Retire
 
 - Product name “Visio Genesis” in login, header, or metadata.

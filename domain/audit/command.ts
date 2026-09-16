@@ -51,6 +51,12 @@ export interface AuditedCommandOptions<T> extends AuditCommandDetails {
   auditRepository?: AuditWriter;
   changes?: readonly UnsafeAuditChange[] | ((result: T) => readonly UnsafeAuditChange[]);
   shouldAuditSuccess?: (result: T) => boolean;
+  additionalSuccessAudits?: (result: T) => readonly {
+    action: AuditAction;
+    target: AuditTarget;
+    projectId?: string | null;
+    changes?: readonly UnsafeAuditChange[];
+  }[];
   execute(transaction: Transaction): Promise<T>;
 }
 
@@ -99,6 +105,14 @@ export async function executeAuditedCommand<T>(
           transaction,
           draftFor(options, "succeeded", null, changes),
         );
+        for (const additional of options.additionalSuccessAudits?.(result) ?? []) {
+          auditRepository.appendInTransaction(transaction, draftFor({
+            ...options,
+            action: additional.action,
+            target: additional.target,
+            projectId: additional.projectId ?? options.projectId,
+          }, "succeeded", null, additional.changes ?? []));
+        }
       }
       return result;
     });

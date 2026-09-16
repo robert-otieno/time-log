@@ -6,9 +6,9 @@ Update this file after every completed feature. A new session should be able to 
 
 **Phase:** Phase 2 — Tenant, Roles, and Onboarding
 
-**Last completed:** 07 Personal Organization Bootstrap
+**Last completed:** 08 Personalized Onboarding
 
-**Current:** 08 Personalized Onboarding — browser smoke passed except timezone/time controls; responsive shadcn replacements implemented and re-smoke pending
+**Current:** 09 People, Clients, and Invitations — implementation complete; authenticated invitation and two-account acceptance smoke pending
 
 **Blockers:** None
 
@@ -45,8 +45,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 - [x] 05 Organization and Membership Schema
 - [x] 06 Audit Event Foundation
 - [x] 07 Personal Organization Bootstrap
-- [ ] 08 Personalized Onboarding (timezone/time-picker correction implemented; authenticated re-smoke pending)
-- [ ] 09 People, Clients, and Invitations
+- [x] 08 Personalized Onboarding
+- [ ] 09 People, Clients, and Invitations (implemented; authenticated smoke pending)
 
 ### Phase 3 — Projects and Visibility
 
@@ -142,6 +142,10 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-16 — Feature 09 — verification pending — added admin People UI, member/client invitation validation, hashed seven-day tokens, authenticated email-bound acceptance, durable Resend outbox with idempotent delivery, client companies, explicit project assignments, suspend/restore/remove lifecycle, last-admin protection, and server-only outbox Rules coverage; 70 unit tests, 13 Rules tests, typecheck, lint, and production build pass — configure Resend and run admin invitation plus invited-account acceptance smoke
+
+2026-09-16 — Feature 08 — completed — authenticated onboarding passed after replacing the timezone datalist with a searchable shadcn combobox and work-hour inputs with shadcn time pickers; automated gates remain green — start Feature 09
 
 2026-09-16 — Feature 08 — verification pending — all tested onboarding areas passed except the non-responsive native timezone datalist; replaced it with a searchable shadcn combobox and replaced native work-hour inputs with canonical shadcn time pickers; 63 unit tests, typecheck, and lint pass — re-smoke the profile step
 
