@@ -71,7 +71,7 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
             {dates.map((date) => {
               const val = completionMap.get(date) ?? 0;
               const due = date === today && habit.dueToday;
-              let display = `${val}/${habit.target}`;
+              const display = `${val}/${habit.target}`;
               // if (habit.type === "timer") display = `${val}m/${habit.target}m`;
               // if (habit.type === "pomodoro") display = `🍅${val}/${habit.target}`;
               return (

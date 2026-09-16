@@ -29,7 +29,7 @@ export async function getWeeklyPriorities(weekStart: string) {
 
   const priorities: WeeklyPriority[] = priSnap.docs.map((d) => ({
     id: d.id,
-    ...(d.data() as any),
+    ...(d.data() as Omit<WeeklyPriority, "id">),
   }));
 
   if (priorities.length === 0) return [];
@@ -40,7 +40,7 @@ export async function getWeeklyPriorities(weekStart: string) {
 
   const tasks: DailyTask[] = tasksSnap.docs.map((d) => ({
     id: d.id,
-    ...(d.data() as any),
+    ...(d.data() as Omit<DailyTask, "id">),
   }));
 
   const byStringId = new Map<string, DailyTask[]>();

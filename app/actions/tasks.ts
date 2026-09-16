@@ -2,7 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { firestore } from "@/lib/firebase-client";
 import { DailySubtask, DailyTask, RecurringTask, TaskWithSubtasks, WeeklyPriority } from "@/lib/types/tasks";
 import { userCol } from "@/lib/user-collection";
-import { deleteDoc, doc, documentId, FieldValue, getDoc, getDocs, limit, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from "firebase/firestore";
+import { deleteDoc, doc, documentId, FieldValue, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where, writeBatch } from "firebase/firestore";
 import { formatISODate } from "@/lib/date-utils";
 
 const COL_TASKS = "daily_tasks";
@@ -25,7 +25,7 @@ export async function getTodayTasks(date: string): Promise<TaskWithSubtasks[]> {
 
   const taskIds = tasks.map((t) => t.id);
 
-  let subtasks: DailySubtask[] = [];
+  const subtasks: DailySubtask[] = [];
   for (const ids of chunk(taskIds, 10)) {
     const subSnap = await getDocs(query(userCol(user.uid, COL_SUBTASKS), where("taskId", "in", ids)));
 

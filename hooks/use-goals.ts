@@ -70,7 +70,7 @@ export function useGoals() {
                     completions: [],
                     dueToday,
                   },
-                ] as any,
+                ],
               }
             : g
         )

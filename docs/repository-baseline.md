@@ -98,4 +98,31 @@ Run against a non-production Firebase project:
 
 Record the date and result here when this checklist is executed manually.
 
-**Last manual run:** Not yet recorded.
+**Manual run — 2026-09-16:**
+
+- [x] Google login succeeded.
+- [x] Daily task creation succeeded.
+- [x] Daily task editing succeeded.
+- [x] Daily task completion succeeded.
+- [x] Logout succeeded and returned the user to the signed-out flow.
+- [ ] Task reopen was not separately confirmed; this is a non-blocking follow-up check.
+- [ ] Subtask creation and toggle remain to be confirmed.
+- [ ] Selected-date task loading remains to be confirmed.
+
+Feature 00 acceptance smoke coverage is complete: login, task create/edit/complete, and logout all succeeded.
+
+## Next.js 16 Compatibility Gate
+
+Feature 01 upgraded the application to Next.js 16.3.5, React 19.3.0, and React DOM 19.3.0 using the official Next.js codemod. The obsolete `next lint` command was replaced with ESLint 9 flat configuration and `eslint .`.
+
+Automated results captured on 2026-09-16:
+
+| Check | Result |
+| --- | --- |
+| `npm run test` | Pass — 2 files, 7 tests |
+| `npm run typecheck` | Pass |
+| `npm run lint` | Pass with 28 non-blocking legacy warnings |
+| `npm run build` | Pass — Next.js 16.3.5 Turbopack production build and all page generation completed |
+| Production route probe | Pass — `/login` and `/` both return HTTP 200 from the Next.js 16 production server |
+
+The lint warnings are migration debt in legacy components, primarily unused code and editable state synchronized from props in effects. New code must not add warnings. A post-upgrade authenticated smoke run remains required before Feature 01 is closed.

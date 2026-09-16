@@ -18,7 +18,10 @@ export function FocusModeProvider({ children }: { children: ReactNode }) {
 
   function toggleFocusMode() {
     if (typeof document !== "undefined" && "startViewTransition" in document) {
-      (document as any).startViewTransition(() => {
+      const transitionDocument = document as Document & {
+        startViewTransition: (callback: () => void) => void;
+      };
+      transitionDocument.startViewTransition(() => {
         setFocusMode((prev) => !prev);
       });
     } else {

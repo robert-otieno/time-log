@@ -6,11 +6,13 @@ Update this file after every completed feature. A new session should be able to 
 
 **Phase:** Phase 0 — Baseline and Framework Gate
 
-**Last completed:** Automated baseline harness and repository baseline document added
+**Last completed:** 00 Repository Baseline
 
-**Next:** Complete the Feature 00 manual Google login/task/logout smoke checklist, then begin 01 Next.js 16 Compatibility Gate
+**Current:** 01 Next.js 16 Compatibility Gate — automated gate passed; authenticated smoke pending
 
-**Blockers:** Authenticated browser smoke test requires a manual Google sign-in against the configured non-production Firebase project
+**Next:** Complete the post-upgrade login/task/logout smoke, then start 02 Firebase Admin Foundation
+
+**Blockers:** None
 
 ## Existing Repository Baseline
 
@@ -31,8 +33,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ### Phase 0 — Baseline and Framework Gate
 
-- [ ] 00 Repository Baseline — automated checks established; manual authenticated smoke test pending
-- [ ] 01 Next.js 16 Compatibility Gate
+- [x] 00 Repository Baseline
+- [ ] 01 Next.js 16 Compatibility Gate — automated checks pass; manual smoke pending
 
 ### Phase 1 — Authentication First
 
@@ -135,4 +137,6 @@ Add concise entries only when implementation work changes status:
 YYYY-MM-DD — Feature NN — completed/blocked — verification summary — next action
 ```
 
-2026-09-16 — Feature 00 — in progress — build/typecheck/unit harness and baseline documentation added; authenticated manual smoke test pending — run manual checklist, then start Feature 01
+2026-09-16 — Feature 01 — in progress — official Next.js codemod applied; Next.js 16.3.5, React 19.3.0, ESLint CLI, tests, typecheck, lint, and production build verified — run authenticated smoke
+
+2026-09-16 — Feature 00 — completed — tests, typecheck, production build, route availability, login, task create/edit/complete, and logout verified; lint limitation documented — start Feature 01

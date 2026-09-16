@@ -9,7 +9,6 @@ export function useTags() {
 
   useEffect(() => {
     loadTags();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadTags() {

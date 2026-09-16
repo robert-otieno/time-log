@@ -62,6 +62,21 @@ import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
 import { FieldPath } from "firebase-admin/firestore";
 
+type HabitDocument = {
+  name?: string;
+  scheduleMask?: string | null;
+  target?: number | null;
+};
+
+type CompletionDocument = {
+  value?: number;
+};
+
+type NudgeDocument = {
+  habitId: string;
+  remaining?: number;
+};
+
 export async function GET(req: Request) {
   try {
     const user = await getServerUser(req);
@@ -80,7 +95,7 @@ export async function GET(req: Request) {
     // 2) If none exist, compute and create them idempotently
     if (nudgesSnap.empty) {
       const habitsSnap = await adminDb.collection("users").doc(user.uid).collection("habits").get();
-      const habits = habitsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      const habits = habitsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as HabitDocument) }));
       const dueHabits = habits.filter((h) => isHabitDue(h.scheduleMask));
 
       if (dueHabits.length) {
@@ -99,7 +114,7 @@ export async function GET(req: Request) {
             .get();
           comps.docs.forEach((doc) => {
             const [hid] = doc.id.split(":");
-            const v = (doc.data() as any)?.value ?? 0;
+            const v = (doc.data() as CompletionDocument).value ?? 0;
             valByHabit.set(hid!, Number(v) || 0);
           });
         }
@@ -133,7 +148,7 @@ export async function GET(req: Request) {
 
     if (nudgesSnap.empty) return NextResponse.json([]);
 
-    const nudges = nudgesSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+    const nudges = nudgesSnap.docs.map((d) => ({ id: d.id, ...(d.data() as NudgeDocument) }));
     const habitIds = Array.from(new Set(nudges.map((n) => String(n.habitId)).filter(Boolean)));
 
     // Join habit names (stored under user-scoped habits). Use FieldPath.documentId().
@@ -146,7 +161,7 @@ export async function GET(req: Request) {
         .collection("habits")
         .where(FieldPath.documentId(), "in", ids)
         .get();
-      hs.docs.forEach((h) => nameById.set(h.id, ((h.data() as any)?.name ?? "") as string));
+      hs.docs.forEach((h) => nameById.set(h.id, (h.data() as HabitDocument).name ?? ""));
     }
 
     const events = nudges.map((n) => ({

@@ -425,7 +425,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onAddSubtas
 
               {/* subtasks */}
               <ul className='space-y-2'>
-                {task.subtasks.map((sub: any) => (
+                {task.subtasks.map((sub) => (
                   <li key={sub.id} className='flex items-center gap-2 text-sm'>
                     <Checkbox checked={sub.done} onCheckedChange={() => onToggleSubtask(sub.id, sub.done)} aria-label='Toggle subtask' />
                     <span className={`flex-1 truncate ${sub.done ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>

@@ -12,7 +12,7 @@ This file records project-specific usage, not a substitute for upstream document
 
 ## Next.js
 
-**Target:** Next.js 16 after the compatibility gate.
+**Installed:** Next.js 16.3.5 with React and React DOM 19.3.0.
 
 Official references:
 
@@ -25,6 +25,8 @@ Project rules:
 - Use the official upgrade codemod for the 15 → 16 transition.
 - Next.js 16 uses Turbopack by default for development and builds.
 - Remove the obsolete `next lint` script and configure ESLint CLI.
+- ESLint uses the flat configuration in `eslint.config.mjs`; run it with `npm run lint`.
+- `react-hooks/set-state-in-effect` remains a warning for legacy editable components. Refactor those flows as their domains move to the project model; do not add new violations.
 - Keep App Router. Do not introduce Pages Router.
 - Confirm current request/cookie APIs while implementing secure sessions.
 

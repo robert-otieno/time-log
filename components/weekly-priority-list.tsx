@@ -17,14 +17,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getWeeklyPriorities, addWeeklyPriority, deleteWeeklyPriority, updateWeeklyPriority } from "@/app/actions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
+type PriorityLevel = "low" | "medium" | "high";
+type PriorityFilter = "all" | "work" | "personal";
+
 interface Priority {
   id: string;
   title: string;
   tag?: "work" | "personal" | string | null;
-  level?: "low" | "medium" | "high" | string | null;
+  level?: PriorityLevel | null;
   progress?: number | null;
   completed?: boolean | null;
   weekStart: string;
+}
+
+function normalizePriorityLevel(value: unknown): PriorityLevel {
+  return value === "low" || value === "high" ? value : "medium";
+}
+
+function isPriorityFilter(value: string): value is PriorityFilter {
+  return value === "all" || value === "work" || value === "personal";
 }
 
 export default function WeeklyPriorityList() {
@@ -43,11 +54,11 @@ export default function WeeklyPriorityList() {
 
   const [priorities, setPriorities] = useState<Priority[]>([]);
   const [newPriority, setNewPriority] = useState("");
-  const [newPriorityLevel, setNewPriorityLevel] = useState<"low" | "medium" | "high">("medium");
-  const [filter, setFilter] = useState<"all" | "work" | "personal">("all");
+  const [newPriorityLevel, setNewPriorityLevel] = useState<PriorityLevel>("medium");
+  const [filter, setFilter] = useState<PriorityFilter>("all");
   const [editingPriorityId, setEditingPriorityId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
-  const [editingLevel, setEditingLevel] = useState<"low" | "medium" | "high">("medium");
+  const [editingLevel, setEditingLevel] = useState<PriorityLevel>("medium");
 
   // load when weekStart changes
   useEffect(() => {
@@ -56,12 +67,12 @@ export default function WeeklyPriorityList() {
   }, [weekStart]);
 
   async function loadPriorities() {
-    const res: Priority[] = await getWeeklyPriorities(weekStart);
+    const res = await getWeeklyPriorities(weekStart);
     setPriorities(
       res.map((p) => ({
         ...p,
-        tag: (p.tag as any) ?? "work",
-        level: ((p.level as any) ?? "medium") as any,
+        tag: p.tag ?? "work",
+        level: normalizePriorityLevel(p.level),
         progress: p.progress ?? 0,
         completed: p.completed ?? false,
       }))
@@ -123,7 +134,7 @@ export default function WeeklyPriorityList() {
           <div className="space-y-2">
             {/* Filter chips */}
             <div className="flex items-center justify-between gap-2">
-              <ToggleGroup type="single" value={filter} onValueChange={(v) => v && setFilter(v as any)} className="rounded-lg bg-muted/50 p-0.5">
+              <ToggleGroup type="single" value={filter} onValueChange={(value) => isPriorityFilter(value) && setFilter(value)} className="rounded-lg bg-muted/50 p-0.5">
                 <ToggleGroupItem value="all" className="px-3 h-7 text-xs data-[state=on]:bg-background rounded-md">
                   All
                 </ToggleGroupItem>
@@ -152,7 +163,7 @@ export default function WeeklyPriorityList() {
               <ToggleGroup
                 type="single"
                 value={newPriorityLevel}
-                onValueChange={(v) => v && setNewPriorityLevel(v as any)}
+                onValueChange={(value) => value && setNewPriorityLevel(normalizePriorityLevel(value))}
                 className="rounded-lg bg-muted/50 p-0.5"
               >
                 <ToggleGroupItem value="low" className="px-3 h-10 text-sm data-[state=on]:bg-background rounded-md">
@@ -207,7 +218,7 @@ export default function WeeklyPriorityList() {
                           autoFocus
                         />
                         {/* inline level editor */}
-                        <Select value={editingLevel} onValueChange={(v) => setEditingLevel(v as any)}>
+                        <Select value={editingLevel} onValueChange={(value) => setEditingLevel(normalizePriorityLevel(value))}>
                           <SelectTrigger className="h-8 w-[120px]" aria-label="Priority level">
                             <SelectValue placeholder="Level" />
                           </SelectTrigger>
@@ -274,7 +285,7 @@ export default function WeeklyPriorityList() {
                         onClick={() => {
                           setEditingPriorityId(p.id);
                           setEditingTitle(p.title);
-                          setEditingLevel(((p.level as any) ?? "medium") as any);
+                          setEditingLevel(normalizePriorityLevel(p.level));
                         }}
                       >
                         Rename

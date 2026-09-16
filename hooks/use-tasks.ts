@@ -72,9 +72,9 @@ export function useTasks(date: string) {
       setTasks(withMeta);
       setWeeklyPriorities(priorities);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error("Failed to load tasks", err);
+      toast.error("Failed to load tasks");
       setError("Failed to load tasks");
     }
   }
@@ -167,9 +167,9 @@ export function useTasks(date: string) {
       const res = await addDailySubtask({ taskId, title });
       // setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: [...t.subtasks, res] } : t)));
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: [...t.subtasks, { id: res!.id, taskId, title, done: false }] } : t)));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error("Error Adding Subtask", err);
+      toast.error("Error adding subtask");
     }
   }
 

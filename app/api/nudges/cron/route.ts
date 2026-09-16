@@ -5,10 +5,14 @@ import { adminDb } from "@/lib/firebase-admin";
 import { getServerUser } from "@/lib/auth-server";
 import { FieldPath } from "firebase-admin/firestore";
 
-const chunk = <T>(arr: T[], size = 10): T[][] =>
-  Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-    arr.slice(i * size, i * size + size),
-  );
+type HabitDocument = {
+  scheduleMask?: string | null;
+  target?: number | null;
+};
+
+type CompletionDocument = {
+  value?: number;
+};
 
 export async function POST(req: Request) {
   try {
@@ -19,7 +23,7 @@ export async function POST(req: Request) {
     const today = formatISODate(new Date());
 
     const habitsSnap = await adminDb.collection("users").doc(user.uid).collection("habits").get();
-    const allHabits = habitsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+    const allHabits = habitsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as HabitDocument) }));
 
     const dueHabits = allHabits.filter((h) => isHabitDue(h.scheduleMask));
     if (dueHabits.length === 0) return NextResponse.json({ created: [] });
@@ -37,7 +41,7 @@ export async function POST(req: Request) {
         .get();
       compsSnap.forEach((doc) => {
         const habitId = doc.id.split(":")[0]!;
-        const val = (doc.data() as any)?.value ?? 0;
+        const val = (doc.data() as CompletionDocument).value ?? 0;
         valueByHabitId.set(habitId, Number(val) || 0);
       });
     }
