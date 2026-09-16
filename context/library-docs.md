@@ -242,10 +242,9 @@ Do not add a hard-coded model name to context or production code until the provi
 
 ## Testing Libraries (Planned)
 
-- Vitest for domain/unit tests.
+- Vitest 4.1.11 for domain/unit tests. It is pinned during the Next.js 15 baseline because Vitest 5 requires newer Node type definitions than the repository currently declares.
 - React Testing Library for component behavior.
 - Playwright for core user journeys.
 - Firebase Emulator Suite for Firestore and Storage Rules.
 
-Pin compatible versions when Phase 0/1 begins and update this document with the actual setup.
-
+The initial Vitest configuration uses the Node environment and `@/` alias. Add DOM/browser dependencies only when the first component test requires them.

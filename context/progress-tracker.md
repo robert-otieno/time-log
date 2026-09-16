@@ -4,10 +4,13 @@ Update this file after every completed feature. A new session should be able to 
 
 ## Current Status
 
-**Phase:** Context and architecture prepared; implementation not started  
-**Last completed:** Product language and architecture decisions documented  
-**Next:** 00 Repository Baseline  
-**Blockers:** None known
+**Phase:** Phase 0 — Baseline and Framework Gate
+
+**Last completed:** Automated baseline harness and repository baseline document added
+
+**Next:** Complete the Feature 00 manual Google login/task/logout smoke checklist, then begin 01 Next.js 16 Compatibility Gate
+
+**Blockers:** Authenticated browser smoke test requires a manual Google sign-in against the configured non-production Firebase project
 
 ## Existing Repository Baseline
 
@@ -28,7 +31,7 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ### Phase 0 — Baseline and Framework Gate
 
-- [ ] 00 Repository Baseline
+- [ ] 00 Repository Baseline — automated checks established; manual authenticated smoke test pending
 - [ ] 01 Next.js 16 Compatibility Gate
 
 ### Phase 1 — Authentication First
@@ -116,10 +119,11 @@ Existing checkmarks describe repository presence, not production readiness for t
 | 2026-09-16 | Allow admins to start project-level timers | Supports administrative/unplanned work without weakening member policy |
 | 2026-09-16 | Use Resend with a durable outbox | Prevent lost/duplicate email and make delivery observable |
 | 2026-09-16 | Add an append-only audit trail for meaningful actions | Provide accountable history across users, admins, system jobs, integrations, and AI without collecting noisy UI telemetry |
+| 2026-09-16 | Pin Vitest 4.1.11 for the baseline | Vitest 5 requires Node type definitions newer than the repository's current `@types/node` 20 declaration |
 
 ## Active Notes
 
-- The existing repository is behind its remote branch and has a pre-existing `package-lock.json` modification. Preserve unrelated user changes.
+- The repository was synchronized before implementation began. `AGENTS.md` and current baseline changes are intentionally uncommitted implementation work.
 - Existing Firebase data is user-scoped under `users/{uid}`. New collaborative data must use organization/project scope and an explicit migration.
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
@@ -130,3 +134,5 @@ Add concise entries only when implementation work changes status:
 ```text
 YYYY-MM-DD — Feature NN — completed/blocked — verification summary — next action
 ```
+
+2026-09-16 — Feature 00 — in progress — build/typecheck/unit harness and baseline documentation added; authenticated manual smoke test pending — run manual checklist, then start Feature 01
