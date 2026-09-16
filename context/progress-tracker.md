@@ -8,7 +8,7 @@ Update this file after every completed feature. A new session should be able to 
 
 **Last completed:** 08 Personalized Onboarding
 
-**Current:** 09 People, Clients, and Invitations — implementation complete; authenticated invitation and two-account acceptance smoke pending
+**Current:** 10 Project CRUD and Navigation — domain implementation in progress; Feature 09 authenticated invitation smoke remains pending
 
 **Blockers:** None
 
@@ -142,6 +142,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-16 — Feature 10 — in progress — added strict project commands, immutable collision-safe key generation, audited create/edit/status services, internal membership-aware project listing, and active-project selection; 72 unit tests and typecheck pass — build project index, forms, switcher, and authorized project shell
 
 2026-09-16 — Feature 09 — verification pending — added admin People UI, member/client invitation validation, hashed seven-day tokens, authenticated email-bound acceptance, durable Resend outbox with idempotent delivery, client companies, explicit project assignments, suspend/restore/remove lifecycle, last-admin protection, and server-only outbox Rules coverage; 70 unit tests, 13 Rules tests, typecheck, lint, and production build pass — configure Resend and run admin invitation plus invited-account acceptance smoke
 
