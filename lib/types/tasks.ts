@@ -28,6 +28,17 @@ export interface DailyTask {
   updatedAt?: Timestamp | FieldValue | null;
 }
 
+export interface RecurringTask {
+  id: string;
+  title: string;
+  recurrenceRule: string;
+  startDate: string;
+  endDate?: string | null;
+  tag: string;
+  createdAt?: Timestamp | FieldValue | null;
+  updatedAt?: Timestamp | FieldValue | null;
+}
+
 export interface DailySubtask {
   id: string;
   taskId: string;

@@ -3,6 +3,7 @@ import { firestore } from "@/lib/firebase-client";
 import type { Goal, Habit, HabitCompletion, GoalWithHabits } from "@/lib/types/goals";
 import { userCol } from "@/lib/user-collection";
 import { isHabitDue } from "@/lib/habit-schedule";
+import { formatISODate } from "@/lib/date-utils";
 import { deleteDoc, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 
 const COL_GOALS = "goals";
@@ -185,28 +186,47 @@ export async function toggleHabitCompletion(habitId: string, date: string, value
   const completionId = `${habitId}:${date}`;
   const ref = doc(userCol(user.uid, COL_COMPLETIONS), completionId);
 
-  await setDoc(
-    ref,
-    {
-      id: completionId,
-      habitId,
-      date,
-      value,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  const existingSnap = await getDoc(ref);
+  const currentValue = existingSnap.exists() ? existingSnap.data().value ?? 0 : 0;
+  const newValue = currentValue + value;
+
+  if (newValue <= 0) {
+    await deleteDoc(ref);
+    return undefined;
+  }
+
+  const payload: Record<string, unknown> = {
+    id: completionId,
+    habitId,
+    date,
+    value: newValue,
+    updatedAt: serverTimestamp(),
+  };
+  if (!existingSnap.exists()) {
+    payload.createdAt = serverTimestamp();
+  }
+
+  await setDoc(ref, payload, { merge: true });
 
   const snap = await getDoc(ref);
   return snap.data() as HabitCompletion | undefined;
 }
 
-export async function getGoalsWithHabits(date: string): Promise<GoalWithHabits[]> {
+export async function getGoalsWithHabits(start: string, end: string): Promise<GoalWithHabits[]> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const [goalsSnap, habitsSnap, compsSnap] = await Promise.all([getDocs(userCol(user.uid, COL_GOALS)), getDocs(userCol(user.uid, COL_HABITS)), getDocs(query(userCol(user.uid, COL_COMPLETIONS), where("date", "==", date)))]);
+  const [goalsSnap, habitsSnap, compsSnap] = await Promise.all([
+    getDocs(userCol(user.uid, COL_GOALS)),
+    getDocs(userCol(user.uid, COL_HABITS)),
+    getDocs(
+      query(
+        userCol(user.uid, COL_COMPLETIONS),
+        where("date", ">=", start),
+        where("date", "<=", end)
+      )
+    ),
+  ]);
 
   const goals: Goal[] = goalsSnap.docs.map((d) => ({
     ...(d.data() as Goal),
@@ -220,11 +240,11 @@ export async function getGoalsWithHabits(date: string): Promise<GoalWithHabits[]
     ...(d.data() as HabitCompletion),
   }));
 
-  const compsByHabit = new Map<string, Array<Pick<HabitCompletion, "date" | "value">>>();
+  const compsByHabit = new Map<string, Map<string, number>>();
   for (const c of completions) {
-    const arr = compsByHabit.get(c.habitId) ?? [];
-    arr.push({ date: c.date, value: c.value });
-    compsByHabit.set(c.habitId, arr);
+    const map = compsByHabit.get(c.habitId) ?? new Map<string, number>();
+    map.set(c.date, c.value);
+    compsByHabit.set(c.habitId, map);
   }
 
   const habitsByGoal = new Map<string, Habit[]>();
@@ -234,20 +254,29 @@ export async function getGoalsWithHabits(date: string): Promise<GoalWithHabits[]
     habitsByGoal.set(h.goalId, arr);
   }
 
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const allDates: string[] = [];
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    allDates.push(formatISODate(d));
+  }
+
+  const todayStr = formatISODate(new Date());
+
   const result: GoalWithHabits[] = goals.map((g) => {
     const hs = habitsByGoal.get(g.id) ?? [];
     const hsWithComps = hs.map((h) => {
-      const completions = compsByHabit.get(h.id) ?? [];
-      const todayVal = completions[0]?.value ?? 0;
-      const dueToday = isHabitDue(h.scheduleMask, new Date(date)) && todayVal < h.target;
+      const compMap = compsByHabit.get(h.id) ?? new Map();
+      const completions = allDates.map((date) => ({
+        date,
+        value: compMap.get(date) ?? 0,
+      }));
+      const todayVal = compMap.get(todayStr) ?? 0;
+      const dueToday = isHabitDue(h.scheduleMask, new Date()) && todayVal < h.target;
       return { ...h, completions, dueToday };
     });
     return { ...g, habits: hsWithComps };
   });
-
-  // (Optional) sort goals/habits
-  // result.sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
-  // result.forEach(g => g.habits.sort((a,b)=> (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0)));
 
   return result;
 }

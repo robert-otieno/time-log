@@ -180,9 +180,9 @@ export function useTasks(date: string) {
         prev.map((t) =>
           t.subtasks.some((s) => s.id === id)
             ? {
-                ...t,
-                subtasks: t.subtasks.map((s) => (s.id === id ? { ...s, done: !done } : s)),
-              }
+              ...t,
+              subtasks: t.subtasks.map((s) => (s.id === id ? { ...s, done: !done } : s)),
+            }
             : t
         )
       );

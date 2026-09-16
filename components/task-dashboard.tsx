@@ -1,8 +1,6 @@
 "use client";
 
-import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import TaskList from "@/components/task-list";
 import { formatISODate } from "@/lib/date-utils";
 import { useShortcuts } from "@/hooks/use-shortcuts";
@@ -33,15 +31,12 @@ export default function TaskDashboard() {
   });
   return (
     <div className="[--header-height:calc(--spacing(14))]">
-      <SidebarProvider className="flex flex-col">
-        <SiteHeader />
-        <div className="flex flex-1 transition-all duration-300">
-          {!focusMode && <AppSidebar />}
-          <SidebarInset className="container mx-auto transition-all duration-300 ">
-            <TaskList focusMode={focusMode} />
-          </SidebarInset>
+      <SiteHeader />
+      <div className="flex flex-1 transition-all duration-300">
+        <div className="container mx-auto">
+          <TaskList focusMode={focusMode} />
         </div>
-      </SidebarProvider>
+      </div>
     </div>
   );
 }

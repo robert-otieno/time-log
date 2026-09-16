@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatISODateString, formatISODate } from "@/lib/date-utils";
@@ -12,6 +12,7 @@ import { useSelectedDate } from "@/hooks/use-selected-date";
 import { useTasks, UITask } from "@/hooks/use-tasks";
 import { cn } from "@/lib/utils";
 import { useTags } from "@/hooks/use-tags";
+import * as chrono from "chrono-node";
 
 export default function TaskList({ focusMode = false }: { focusMode?: boolean }) {
   const { selectedDate: date, setSelectedDate } = useSelectedDate();
@@ -59,25 +60,61 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
     return (idxA === -1 ? tagOrder.length : idxA) - (idxB === -1 ? tagOrder.length : idxB);
   });
 
+  // Derive a friendly title for the selected date and allow parsing natural language
+  const [titleInput, setTitleInput] = useState("");
+  const friendlyTitle = useMemo(() => {
+    const d = new Date(date);
+    const now = new Date();
+    const dYMD = formatISODate(d);
+    const nowYMD = formatISODate(now);
+    const tomorrowYMD = formatISODate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+    if (dYMD === nowYMD) return "Today";
+    if (dYMD === tomorrowYMD) return "Tomorrow";
+    // Weekday name for this week
+    const day = d.toLocaleDateString(undefined, { weekday: "long" });
+    return day;
+  }, [date]);
+
+  const handleTitleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key !== "Enter") return;
+    const raw = titleInput.trim();
+    if (!raw) return;
+    // use the chrono-node library to parse natural language CardTitle
+    const parsed = chrono.parseDate(raw, new Date());
+    if (parsed) {
+      setSelectedDate(formatISODate(parsed));
+      setTitleInput("");
+    }
+  };
+
   return (
     <>
-      <Card className="border-0 shadow-none rounded-none bg-card/0">
+      <Card className='border-0 shadow-none rounded-none bg-card/0'>
         <CardHeader>
-          <CardTitle>Today</CardTitle>
+          <CardTitle>
+            <input
+              aria-label='Change day by natural language'
+              className='bg-transparent outline-none w-full'
+              placeholder={friendlyTitle}
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+              onKeyDown={handleTitleKeyDown}
+            />
+          </CardTitle>
           <CardDescription>{formatISODateString(date)}</CardDescription>
         </CardHeader>
 
-        <CardContent className={`p-0 , ${cn(focusMode ? "grid-cols-1" : "grid-cols-2")}`}>
-          <Card className="grid grid-cols-1 md:grid-cols-2 border-0 p-0 shadow-none rounded-none bg-card/0">
+        <CardContent className='p-0'>
+          <Card className={`grid grid-cols-1, ${cn(focusMode ? "md:grid-cols-1" : "md:grid-cols-2")} border-0 p-0 shadow-none rounded-none bg-card/0`}>
             <div>
               <CardHeader>
                 <TaskForm onAdd={addTask} weeklyPriorities={weeklyPriorities} tags={tags} onTagsUpdated={loadTags} />
-                <div className="flex items-center justify-between">
+                <div className='flex items-center justify-between'>
                   <CardTitle>Daily Tasks</CardTitle>
                   {date !== today && tasks.some((t) => !t.done) && (
                     <Button
-                      size="sm"
-                      variant="outline"
+                      size='sm'
+                      variant='outline'
                       onClick={async () => {
                         const moved = await moveIncompleteToToday();
                         if (moved > 0) {
@@ -94,14 +131,25 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
               <CardContent>
                 {tasks.length === 0 ? (
                   <ul>
-                    <li className="py-6 text-sm text-muted-foreground">Nothing scheduled. Try “Newsletter Q2 outline.”</li>
+                    <li className='py-6 text-sm text-muted-foreground'>Nothing scheduled. Try “Newsletter Q2 outline.”</li>
                   </ul>
                 ) : (
                   orderedGroups.map(([tag, tagTasks]) => (
                     <div key={tag}>
-                      <ul className="divide-y">
+                      <ul className='divide-y'>
                         {tagTasks.map((task) => (
-                          <TaskItem key={task.id} task={task} onToggleTask={toggleTask} onDeleteTask={deleteTask} onAddSubtask={addSubtask} onToggleSubtask={toggleSubtask} onDeleteSubtask={deleteSubtask} onUpdateTask={updateTask} weeklyPriorities={weeklyPriorities} tags={tags} />
+                          <TaskItem
+                            key={task.id}
+                            task={task}
+                            onToggleTask={toggleTask}
+                            onDeleteTask={deleteTask}
+                            onAddSubtask={addSubtask}
+                            onToggleSubtask={toggleSubtask}
+                            onDeleteSubtask={deleteSubtask}
+                            onUpdateTask={updateTask}
+                            weeklyPriorities={weeklyPriorities}
+                            tags={tags}
+                          />
                         ))}
                       </ul>
                     </div>
@@ -112,7 +160,7 @@ export default function TaskList({ focusMode = false }: { focusMode?: boolean })
 
             <div>
               {!focusMode && (
-                <div className="space-y-6">
+                <div className='space-y-6'>
                   <Goals />
                   <WeeklyPriorityList />
                 </div>

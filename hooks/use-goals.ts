@@ -4,20 +4,25 @@ import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
 import { GoalWithHabits } from "@/lib/types/goals";
 import { addHabit, createGoal, deleteGoal, deleteHabit, getGoalsWithHabits, toggleHabitCompletion } from "@/app/actions/goals";
+import { useSelectedDate } from "@/hooks/use-selected-date";
 
 export function useGoals() {
   const [goals, setGoals] = useState<GoalWithHabits[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { selectedDate } = useSelectedDate();
 
   useEffect(() => {
     loadGoals();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedDate]);
 
   async function loadGoals() {
     try {
-      const today = formatISODate(new Date());
-      const res = await getGoalsWithHabits(today);
+      const end = selectedDate;
+      const startDate = new Date(selectedDate);
+      startDate.setDate(startDate.getDate() - 6);
+      const start = formatISODate(startDate);
+      const res = await getGoalsWithHabits(start, end);
       setGoals(res);
       setError(null);
     } catch (err) {
@@ -88,7 +93,12 @@ export function useGoals() {
 
   async function toggleHabit(habitId: string, date: string, value = 1) {
     try {
-      await toggleHabitCompletion(habitId, date, value);
+      const habit = goals.flatMap((g) => g.habits).find((h) => h.id === habitId);
+      const existing = habit?.completions.find((c) => c.date === date);
+
+      const newValue = habit?.type === "checkbox" ? (existing ? 0 : 1) : (existing?.value ?? 0) + value;
+
+      await toggleHabitCompletion(habitId, date, newValue);
       setGoals((prev) =>
         prev.map((g) => ({
           ...g,

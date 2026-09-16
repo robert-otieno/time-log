@@ -30,32 +30,33 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
 
   const completionMap = new Map(habit.completions.map((c) => [c.date, c.value]));
   let streak = 0;
-  for (let i = 0; ; i++) {
+  const target = habit.target ?? 1;
+  for (let i = 0; i < 365; i++) {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() - i);
     const formatted = formatISODate(d);
     const val = completionMap.get(formatted) ?? 0;
-    if (val < habit.target) break;
+    if (val < target) break;
     streak++;
   }
 
   return (
-    <div className="flex flex-col md:flex-row gap-2">
-      <span className="flex items-center gap-1 text-sm">
+    <div className='flex flex-col md:flex-row gap-2'>
+      <span className='flex items-center gap-1 text-sm'>
         {habit.name}
-        <Badge variant="secondary">🔥{streak}</Badge>
+        <Badge variant='secondary'>🔥{streak}</Badge>
       </span>
 
-      <div className="">
+      <div className=''>
         {habit.type === "checkbox" ? (
-          <ol className="grid grid-cols-7 gap-1">
+          <ol className='grid grid-cols-7 gap-1'>
             {dates.map((date) => {
               const val = completionMap.get(date) ?? 0;
               const due = date === today && habit.dueToday;
               return (
                 <li key={date}>
                   <button
-                    type="button"
+                    type='button'
                     aria-label={val >= habit.target ? `Completed ${habit.name} on ${date}` : `Not completed ${habit.name} on ${date}`}
                     aria-pressed={val >= habit.target}
                     onClick={() => onToggle(habit.id, date)}
@@ -66,7 +67,7 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
             })}
           </ol>
         ) : (
-          <div className="grid grid-cols-7 gap-1">
+          <div className='grid grid-cols-7 gap-1'>
             {dates.map((date) => {
               const val = completionMap.get(date) ?? 0;
               const due = date === today && habit.dueToday;
@@ -74,7 +75,7 @@ export default function HabitTracker({ habit, onToggle, days = 7 }: HabitTracker
               // if (habit.type === "timer") display = `${val}m/${habit.target}m`;
               // if (habit.type === "pomodoro") display = `🍅${val}/${habit.target}`;
               return (
-                <Button key={date} variant="outline" size="sm" className={cn("h-6", due && val < habit.target ? "animate-pulse" : "")} onClick={() => onToggle(habit.id, date, 1)}>
+                <Button key={date} variant='outline' size='sm' className={cn("h-6", due && val < habit.target ? "animate-pulse" : "")} onClick={() => onToggle(habit.id, date)}>
                   {display}
                 </Button>
               );

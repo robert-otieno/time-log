@@ -8,6 +8,7 @@ import { SelectedDateProvider } from "@/hooks/use-selected-date";
 import { AuthProvider } from "@/components/auth-provider";
 import AuthGuard from "@/components/auth-guard";
 import { ThemeProvider } from "next-themes";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,15 +31,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang='en'>
       <body className={`${geistSans.variable} ${geistMono.variable} text-xs antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system">
+        <ThemeProvider attribute='class' defaultTheme='system'>
           <AuthProvider>
             <AuthGuard>
               <SelectedDateProvider>
                 <FocusModeProvider>
                   <NudgeBanner />
                   {children}
+                  <Analytics />
                 </FocusModeProvider>
               </SelectedDateProvider>
             </AuthGuard>
