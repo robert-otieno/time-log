@@ -44,11 +44,13 @@ Living inventory of reusable UI. Read before building a component. After creatin
 | --- | --- | --- | --- |
 | `AuthProvider` | `components/auth-provider.tsx` | Legacy foundation | Keep browser auth state; pair with server session architecture |
 | `AuthGuard` | `components/auth-guard.tsx` | Legacy foundation | Replace as sole protection; server authorization is required |
+| `LoginForm` | `components/login-form.tsx` | Reuse | Time Log Google sign-in card with explicit idle, pending, and safe inline error states |
 | `SiteHeader` | `components/site-header.tsx` | Adapt | Contains sidebar, command, theme, logout; add project context/global timer |
 | `AppSidebar` | `components/app-sidebar.tsx` | Adapt | Currently calendar-only; becomes capability-aware navigation |
 | `CommandMenu` | `components/command-menu.tsx` | Adapt | Extend with project/task/timer commands subject to authorization |
 | `SearchForm` | `components/search-form.tsx` | Adapt | Define tenant/project-safe search before wiring results |
 | `ThemeSwitch` | `components/theme-switch.tsx` | Reuse | Existing light/dark control |
+| `LogoutButton` | `components/logout-button.tsx` | Reuse | Header icon opens a confirmation dialog; supports cancel, pending, and safe error states |
 | `TaskDashboard` | `components/task-dashboard.tsx` | Legacy | Personal dashboard; migrate into My Work/project pages |
 | `TaskList` | `components/task-list.tsx` | Adapt concepts | Existing task interaction; do not reuse user-scoped data assumptions |
 | `TaskItem` | `components/task-item.tsx` | Adapt concepts | Extend to assignment/status/visibility/timer pattern |
@@ -93,6 +95,44 @@ Add source paths when implemented.
 - Command palette keyboard access.
 - Theme support through semantic tokens.
 - Sonner for concise transient feedback.
+
+### Logout confirmation dialog
+
+File: `components/logout-button.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Background | `bg-background` inherited from `DialogContent` |
+| Border | `border` inherited from `DialogContent` |
+| Border radius | `rounded-lg` inherited from `DialogContent` |
+| Text — primary | `text-lg font-semibold` inherited from `DialogTitle` |
+| Text — secondary | `text-sm text-muted-foreground` inherited from `DialogDescription` |
+| Spacing | `gap-4 p-6`; footer `gap-2` |
+| Hover state | Canonical `Button` variant states |
+| Shadow | `shadow-lg` inherited from `DialogContent` |
+| Accent usage | Primary confirmation, outline cancel, `text-destructive` error |
+
+**Pattern notes:** Use this compact confirmation pattern for session-ending actions. Keep cancel available, disable dismissal/actions while pending, use a spinner with explicit pending text, and show provider-safe inline errors without closing the dialog.
+
+### Authentication form
+
+File: `components/login-form.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Background | `bg-card text-card-foreground` |
+| Border | `border` |
+| Border radius | `rounded-xl` |
+| Text — primary | `text-2xl font-semibold tracking-tight` |
+| Text — secondary | `text-sm text-muted-foreground` |
+| Spacing | `gap-6 p-6`; heading copy `space-y-2` |
+| Hover state | Canonical outline `Button` states |
+| Shadow | none |
+| Accent usage | `text-destructive` inline error; semantic button tokens |
+
+**Pattern notes:** Authentication forms use a centered bordered card, visible explanatory copy, full-width provider action, explicit spinner/pending text, and a safe inline error with `role="alert"`. Disable duplicate submission without hiding or replacing the form.
 
 ## Patterns to Retire
 

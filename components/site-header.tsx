@@ -1,22 +1,18 @@
 "use client";
 
-import { Power } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SearchForm } from "@/components/search-form";
 import { useEffect, useState } from "react";
 import { CommandMenu } from "./command-menu";
-import { signOut } from "firebase/auth";
 import { clientAuth } from "@/lib/firebase-client";
-import { useRouter } from "next/navigation";
 import ThemeSwitch from "@/components/theme-switch";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { CalendarButton } from "@/components/calendar-button";
+import { LogoutButton } from "@/components/logout-button";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const user = clientAuth.currentUser;
-  const router = useRouter();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -46,21 +42,7 @@ export function SiteHeader() {
           </Breadcrumb>
           <SearchForm className="w-full sm:ml-auto sm:w-auto" />
           <ThemeSwitch />
-          {user && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={async () => {
-                await signOut(clientAuth);
-                document.cookie = "token=; path=/; max-age=0";
-                router.push("/login");
-              }}
-              className="ml-2"
-            >
-              {" "}
-              <Power />
-            </Button>
-          )}
+          {user && <LogoutButton />}
         </div>
       </header>
       <CommandMenu open={open} setOpen={setOpen} />

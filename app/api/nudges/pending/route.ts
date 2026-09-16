@@ -56,7 +56,7 @@
 //   }
 // }
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { getServerUser } from "@/lib/auth-server";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
@@ -81,6 +81,7 @@ export async function GET(req: Request) {
   try {
     const user = await getServerUser(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const adminDb = getAdminDb();
 
     const today = formatISODate(new Date());
 

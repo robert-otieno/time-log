@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function membershipPath(organizationId, userId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/members/$(userId);
+    }
+
+    function activeMember(organizationId) {
+      return signedIn()
+        && exists(membershipPath(organizationId, request.auth.uid))
+        && get(membershipPath(organizationId, request.auth.uid)).data.status == 'active';
+    }
+
+    function activeAdmin(organizationId) {
+      return activeMember(organizationId)
+        && get(membershipPath(organizationId, request.auth.uid)).data.role == 'admin';
+    }
+
+    function activeInternalMember(organizationId) {
+      return activeMember(organizationId)
+        && get(membershipPath(organizationId, request.auth.uid)).data.role in ['admin', 'member'];
+    }
+
+    function assignedToProject(organizationId, projectId) {
+      let assignment = /databases/$(database)/documents/organizations/$(organizationId)/projects/$(projectId)/projectMembers/$(request.auth.uid);
+      return activeMember(organizationId)
+        && exists(assignment)
+        && get(assignment).data.status == 'active';
+    }
+
+    function canReadProject(organizationId, projectId) {
+      return activeAdmin(organizationId) || assignedToProject(organizationId, projectId);
+    }
+
+    match /users/{userId}/{document=**} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /organizations/{organizationId} {
+      allow read: if activeMember(organizationId);
+      allow write: if false;
+
+      match /members/{userId} {
+        allow get: if activeAdmin(organizationId) || (signedIn() && request.auth.uid == userId);
+        allow list: if activeAdmin(organizationId);
+        allow write: if false;
+      }
+
+      match /clients/{clientId} {
+        allow read: if activeInternalMember(organizationId)
+          || (activeMember(organizationId)
+            && get(membershipPath(organizationId, request.auth.uid)).data.role == 'client'
+            && get(membershipPath(organizationId, request.auth.uid)).data.clientId == clientId);
+        allow write: if false;
+      }
+
+      match /invitations/{invitationId} {
+        allow read: if activeAdmin(organizationId);
+        allow write: if false;
+      }
+
+      match /projects/{projectId} {
+        allow read: if canReadProject(organizationId, projectId);
+        allow write: if false;
+
+        match /projectMembers/{userId} {
+          allow get: if activeAdmin(organizationId)
+            || (signedIn() && request.auth.uid == userId && activeMember(organizationId));
+          allow list: if activeAdmin(organizationId);
+          allow write: if false;
+        }
+
+        match /{document=**} {
+          allow read, write: if false;
+        }
+      }
+
+      match /auditEvents/{eventId} {
+        allow read, write: if false;
+      }
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

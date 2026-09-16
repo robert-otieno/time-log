@@ -1,19 +1,38 @@
-import { getApps, initializeApp, applicationDefault, cert } from "firebase-admin/app";
+import "server-only";
+
+import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
-const projectId = process.env.FIREBASE_PROJECT_ID;
-const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+import { parseFirebaseAdminEnvironment } from "@/lib/firebase-admin-config";
 
-if (!getApps().length) {
-    if (clientEmail && privateKey) {
-        initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
-    } else {
-        // Fallback to ADC in local dev if you've set GOOGLE_APPLICATION_CREDENTIALS
-        initializeApp({ credential: applicationDefault() });
-    }
+let adminApp: App | undefined;
+
+export function getAdminApp(): App {
+  if (adminApp) return adminApp;
+
+  const existingApp = getApps()[0];
+  if (existingApp) {
+    adminApp = existingApp;
+    return adminApp;
+  }
+
+  const environment = parseFirebaseAdminEnvironment(process.env);
+  adminApp = initializeApp({
+    credential: cert({
+      projectId: environment.projectId,
+      clientEmail: environment.clientEmail,
+      privateKey: environment.privateKey,
+    }),
+  });
+
+  return adminApp;
 }
 
-export const adminAuth = getAuth();
-export const adminDb = getFirestore();
+export function getAdminAuth() {
+  return getAuth(getAdminApp());
+}
+
+export function getAdminDb() {
+  return getFirestore(getAdminApp());
+}

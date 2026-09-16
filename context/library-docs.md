@@ -64,38 +64,69 @@ Official references:
 **Used for:** server session verification, privileged Firestore operations, user/invitation administration, and short-lived file access.
 
 ```typescript
+import "server-only";
+
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
-const adminApp =
-  getApps()[0] ??
-  initializeApp({
+export function getAdminApp() {
+  return getApps()[0] ?? initializeApp({
     credential: cert({
       projectId: env.FIREBASE_ADMIN_PROJECT_ID,
       clientEmail: env.FIREBASE_ADMIN_CLIENT_EMAIL,
       privateKey: env.FIREBASE_ADMIN_PRIVATE_KEY,
     }),
   });
+}
 
-export const adminAuth = getAuth(adminApp);
-export const adminDb = getFirestore(adminApp);
+export const getAdminAuth = () => getAuth(getAdminApp());
+export const getAdminDb = () => getFirestore(getAdminApp());
 ```
 
 Rules:
 
 - Module is server-only.
+- `server-only` is installed as a runtime boundary marker for privileged modules.
+- The canonical three-variable service-account configuration is validated lazily on first privileged use so builds do not require production secrets.
+- All three `FIREBASE_ADMIN_*` variables are required together. Application Default Credentials and the legacy `FIREBASE_*` names are not fallback paths.
+- Use `getAdminAuth()` and `getAdminDb()`; do not initialize another Admin app or export eagerly constructed services.
 - Verify Firebase ID tokens or session cookies before trusting a `uid`.
+- Session-cookie verification checks revocation by default. ID-token verification does not add the revocation network request unless the caller explicitly requests it.
+- Convert decoded credentials into the minimal `AuthActor`; organization/project roles are loaded from Firestore and are never accepted from browser input.
+- Exchange only a recently authenticated ID token (five-minute maximum age) for the `time_log_session` cookie.
+- The session cookie lasts five days and is `httpOnly`, `SameSite=Lax`, path-wide, high priority, and `Secure` outside local development.
+- Session exchange and clearing accept same-origin JSON requests only. Never place ID tokens or session values in URLs, logs, or audit metadata.
+- Normal logout is current-browser only: expire the application cookies, sign out the Firebase browser client, then use full document replacement to reset user-scoped memory. Account-wide refresh-token revocation requires a separate explicit “Log out everywhere” action.
+- `/api/auth/logout` is idempotent. A retry after cookies are already absent still succeeds.
+- Next.js 16 `cookies()` is asynchronous. Read or mutate cookies only through awaited server APIs in Server Components, Server Functions, or Route Handlers.
+- `proxy.ts` may redirect when the cookie is absent, but protected layouts and mutations must still perform cryptographic verification.
 - Admin SDK bypasses Firestore/Storage Rules; every domain operation must enforce authorization itself.
 - Keep organization/project membership in Firestore. Use custom claims only for coarse, stable platform-level privileges.
 
 Official references:
 
 - [Verify Firebase ID tokens](https://firebase.google.com/docs/auth/admin/verify-id-tokens)
+- [Manage Firebase session cookies](https://firebase.google.com/docs/auth/admin/manage-cookies)
 - [Firebase Admin authentication](https://firebase.google.com/docs/auth/admin)
 - [Custom claims guidance](https://firebase.google.com/docs/auth/admin/custom-claims)
+- [Next.js cookies](https://nextjs.org/docs/app/api-reference/functions/cookies)
+- [Next.js Proxy](https://nextjs.org/docs/app/api-reference/file-conventions/proxy)
 
 ## Cloud Firestore
+
+Collaborative records use these paths:
+
+```text
+organizations/{organizationId}
+organizations/{organizationId}/members/{uid}
+organizations/{organizationId}/clients/{clientId}
+organizations/{organizationId}/invitations/{invitationId}
+organizations/{organizationId}/projects/{projectId}
+organizations/{organizationId}/projects/{projectId}/projectMembers/{uid}
+```
+
+Membership and project-assignment document IDs are Firebase UIDs. Client companies are separate records, and a membership with role `client` must reference a `clientId`.
 
 Transactions protect business invariants:
 
@@ -118,6 +149,10 @@ Rules:
 - Use deterministic document IDs where idempotent create semantics help.
 - Add pagination and index definitions with any collection query.
 - Test Security Rules in the Emulator Suite before deployment.
+- Collaborative browser writes are denied. Mutations go through authenticated server operations, which must apply the same domain capability checks because the Admin SDK bypasses Rules.
+- Active admins have organization-wide project access. Active members and clients require an active `projectMembers/{uid}` assignment. Suspended users are denied.
+- Client users may read only their linked client company and assigned projects. Content visibility remains an independent `internal` / `client-visible` policy for later project resources.
+- Legacy owner access under `users/{uid}` remains in place until the explicit migration feature.
 
 Official references:
 
@@ -242,11 +277,14 @@ No provider/model is selected yet. At implementation time:
 
 Do not add a hard-coded model name to context or production code until the provider decision is recorded.
 
-## Testing Libraries (Planned)
+## Testing Libraries
 
 - Vitest 4.1.11 for domain/unit tests. It is pinned during the Next.js 15 baseline because Vitest 5 requires newer Node type definitions than the repository currently declares.
 - React Testing Library for component behavior.
-- Playwright for core user journeys.
+- Playwright for core browser journeys. `npm run test:e2e` starts or reuses the local Next.js server, uses installed Chrome locally, and uses Playwright Chromium in CI.
 - Firebase Emulator Suite for Firestore and Storage Rules.
+- Firestore Rules tests use `@firebase/rules-unit-testing` and run with `npm run test:rules` against the demo project `demo-time-log`. The local Firebase emulator requires Java on `PATH`; use Java 21 to satisfy the current/future emulator requirement.
 
 The initial Vitest configuration uses the Node environment and `@/` alias. Add DOM/browser dependencies only when the first component test requires them.
+
+The initial Playwright authentication suite covers signed-out protected redirects, hostile return-path containment, and current-browser cookie expiration. Google popup authentication remains a manual smoke test until a dedicated Firebase test environment is available; never place production credentials or captured session state in test fixtures.

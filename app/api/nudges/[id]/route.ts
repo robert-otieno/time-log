@@ -37,7 +37,7 @@
 //   }
 // }
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { getServerUser } from "@/lib/auth-server";
 import { z } from "zod";
 
@@ -45,6 +45,7 @@ const paramsSchema = z.object({ id: z.string().min(1) });
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getServerUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminDb = getAdminDb();
 
   const { status } = await req.json(); // "acknowledged" | "snoozed"
   if (!status) return NextResponse.json({ error: "Bad Request" }, { status: 400 });

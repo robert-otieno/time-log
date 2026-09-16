@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { formatISODate } from "@/lib/date-utils";
 import { isHabitDue } from "@/lib/habit-schedule";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { getServerUser } from "@/lib/auth-server";
 import { FieldPath } from "firebase-admin/firestore";
 
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
     // Require a valid Firebase ID token (client or server can call this)
     const user = await getServerUser(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const adminDb = getAdminDb();
 
     const today = formatISODate(new Date());
 

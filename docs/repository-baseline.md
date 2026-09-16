@@ -29,15 +29,15 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
 NEXT_PUBLIC_FIREBASE_APP_ID
 ```
 
-The preliminary server Firebase Admin implementation currently expects:
+The server Firebase Admin implementation expects:
 
 ```text
-FIREBASE_PROJECT_ID
-FIREBASE_CLIENT_EMAIL
-FIREBASE_PRIVATE_KEY
+FIREBASE_ADMIN_PROJECT_ID
+FIREBASE_ADMIN_CLIENT_EMAIL
+FIREBASE_ADMIN_PRIVATE_KEY
 ```
 
-If service-account variables are absent it falls back to Application Default Credentials. Phase 02 will replace this with validated server-only environment configuration and align names with `context/code-standards.md`.
+All three values are required before the first privileged Firebase Admin operation. They are validated in a server-only boundary, escaped private-key newlines are normalized there, and there is no implicit Application Default Credentials fallback. Production builds remain secret-independent because initialization is lazy.
 
 Never record environment values, tokens, or credentials in this file.
 
@@ -125,4 +125,22 @@ Automated results captured on 2026-09-16:
 | `npm run build` | Pass — Next.js 16.3.5 Turbopack production build and all page generation completed |
 | Production route probe | Pass — `/login` and `/` both return HTTP 200 from the Next.js 16 production server |
 
-The lint warnings are migration debt in legacy components, primarily unused code and editable state synchronized from props in effects. New code must not add warnings. A post-upgrade authenticated smoke run remains required before Feature 01 is closed.
+The lint warnings are migration debt in legacy components, primarily unused code and editable state synchronized from props in effects. New code must not add warnings. The post-upgrade authenticated login/task/logout smoke run passed on 2026-09-16.
+
+Logout now opens a confirmation dialog before ending the Firebase browser session. Cancel leaves the session unchanged; confirmation disables duplicate actions, clears the legacy token only after Firebase sign-out succeeds, and redirects to `/login`. Provider failures remain in the dialog with safe retry guidance.
+
+## Secure Session Migration
+
+Feature 03 replaces the script-readable ID-token cookie with the `time_log_session` Firebase session cookie. The cookie is created only by a same-origin JSON exchange of a recently issued Firebase ID token and is `httpOnly`, `SameSite=Lax`, path-wide, and `Secure` outside local development. Protected pages now perform full Firebase Admin session verification in a server layout; Next.js Proxy provides only an optimistic missing-cookie redirect.
+
+The Firebase browser session remains temporarily active because legacy personal task screens still use the client Firestore SDK. Server session clearing is performed before browser sign-out so the transitional dual-session model cannot leave protected access active after the visible logout action.
+
+**Authenticated session smoke — 2026-09-16:** Google sign-in succeeded, the server session survived refresh, hostile external return paths remained within Time Log, confirmed logout succeeded, and neither browser Back nor direct protected navigation restored access.
+
+## Complete Logout Hardening
+
+Normal logout is scoped to the current browser. The idempotent `/api/auth/logout` endpoint expires the trusted session and legacy cookie before Firebase browser sign-out; successful completion uses full document replacement to clear user-scoped React state. Account-wide Firebase refresh-token revocation is intentionally reserved for a future explicit “Log out everywhere” security action.
+
+Playwright browser coverage verifies repeated signed-out protected navigation, hostile return-path containment, and removal of both authentication cookies. The real Google popup and confirmation-dialog journey remains part of the manual Firebase smoke test.
+
+**Final logout smoke — 2026-09-16:** after the full-navigation hardening, confirmed logout returned to `/login`, browser Back did not restore protected content, and direct navigation to `/` remained denied.
