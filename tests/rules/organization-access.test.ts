@@ -109,6 +109,13 @@ describe("organization Firestore rules", () => {
     ));
   });
 
+  it("denies browser writes to onboarding state", async () => {
+    await assertFails(setDoc(
+      doc(dbFor("admin"), "organizations/org-a/onboarding/admin"),
+      { currentStep: "complete" },
+    ));
+  });
+
   it("preserves isolated legacy user data", async () => {
     await assertSucceeds(getDoc(doc(dbFor("member"), "users/member/daily_tasks/task-1")));
     await assertFails(getDoc(doc(dbFor("admin"), "users/member/daily_tasks/task-1")));

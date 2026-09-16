@@ -51,6 +51,7 @@ Living inventory of reusable UI. Read before building a component. After creatin
 | `SearchForm` | `components/search-form.tsx` | Adapt | Define tenant/project-safe search before wiring results |
 | `ThemeSwitch` | `components/theme-switch.tsx` | Reuse | Existing light/dark control |
 | `LogoutButton` | `components/logout-button.tsx` | Reuse | Header icon opens a confirmation dialog; supports cancel, pending, and safe error states |
+| `OnboardingFlow` | `components/onboarding/onboarding-flow.tsx` | Reuse | Four-step resumable setup with progress, profile/schedule/preferences, workspace, first project, and task-first timer education |
 | `TaskDashboard` | `components/task-dashboard.tsx` | Legacy | Personal dashboard; migrate into My Work/project pages |
 | `TaskList` | `components/task-list.tsx` | Adapt concepts | Existing task interaction; do not reuse user-scoped data assumptions |
 | `TaskItem` | `components/task-item.tsx` | Adapt concepts | Extend to assignment/status/visibility/timer pattern |
@@ -133,6 +134,61 @@ Last updated: 2026-09-16
 | Accent usage | `text-destructive` inline error; semantic button tokens |
 
 **Pattern notes:** Authentication forms use a centered bordered card, visible explanatory copy, full-width provider action, explicit spinner/pending text, and a safe inline error with `role="alert"`. Disable duplicate submission without hiding or replacing the form.
+
+### Personalized onboarding flow
+
+File: `components/onboarding/onboarding-flow.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Page background | `bg-muted/30` |
+| Content width | `max-w-2xl` with responsive page gutters |
+| Step surface | Canonical bordered `Card` |
+| Progress | Canonical `Progress` plus visible “Step N of 4” text |
+| Field spacing | `space-y-5`; related time fields use responsive two-column grid |
+| Errors | Inline `text-destructive` with form-level `role="alert"` |
+| Pending | Disabled canonical button with spinner and “Saving…” text |
+
+**Pattern notes:** Each step persists independently and advances only after the server confirms success. Keep labels visible, preserve entered values after recoverable errors, explain mandatory notification categories, and pair checkbox state with text labels.
+
+### Time picker
+
+File: `components/ui/time-picker.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical transparent `SelectTrigger` |
+| Border | `border-input` inherited from `SelectTrigger` |
+| Border radius | `rounded-md` |
+| Text — primary | `text-sm` inherited from `SelectTrigger` |
+| Text — secondary | `text-muted-foreground` separator |
+| Spacing | `gap-2`; canonical select padding |
+| Hover state | Canonical `Select` states |
+| Shadow | `shadow-xs` on triggers; `shadow-md` on menus |
+| Accent usage | Semantic focus ring and selected-item accent |
+
+**Pattern notes:** Use three accessible shadcn `Select` controls for hour, minute, and AM/PM. The public value remains canonical 24-hour `HH:mm`; do not leak display formatting into domain data.
+
+### Timezone combobox
+
+File: `components/ui/timezone-combobox.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Background | `bg-background` trigger; `bg-popover` results |
+| Border | Canonical outline `Button` and `PopoverContent` border |
+| Border radius | `rounded-md` |
+| Text — primary | `text-sm font-normal` trigger and results |
+| Text — secondary | Muted chevron and search icon |
+| Spacing | Canonical command item padding; popover `p-0` |
+| Hover state | `data-[selected=true]:bg-accent` |
+| Shadow | `shadow-xs` trigger; `shadow-md` popover |
+| Accent usage | Selected checkmark and semantic focus ring |
+
+**Pattern notes:** Use this searchable controlled combobox for IANA timezone fields. Populate it from `Intl.supportedValuesOf("timeZone")`, retain `UTC` and the current value, close after selection, and preserve native keyboard/search behavior through `Command`.
 
 ## Patterns to Retire
 

@@ -4,6 +4,10 @@ export const AUDIT_ACTIONS = [
   "auth.logout.succeeded",
   "auth.logout.failed",
   "organization.bootstrap.completed",
+  "organization.onboarding.profile.saved",
+  "organization.onboarding.organization.saved",
+  "organization.onboarding.project.saved",
+  "organization.onboarding.completed",
   "organization.invitation.created",
   "organization.invitation.accepted",
   "organization.invitation.revoked",
@@ -60,6 +64,9 @@ export const SAFE_AUDIT_FIELDS = [
   "membershipCreated",
   "selectionCreated",
   "migrationMarkerCreated",
+  "onboardingStep",
+  "onboardingCompleted",
+  "projectCreated",
 ] as const;
 
 export type SafeAuditField = (typeof SAFE_AUDIT_FIELDS)[number];
@@ -73,6 +80,10 @@ export const AUDIT_CHANGE_ALLOWLIST = {
   "auth.logout.succeeded": NONE,
   "auth.logout.failed": NONE,
   "organization.bootstrap.completed": ["organizationCreated", "membershipCreated", "selectionCreated", "migrationMarkerCreated"] as const,
+  "organization.onboarding.profile.saved": ["onboardingStep"] as const,
+  "organization.onboarding.organization.saved": ["onboardingStep"] as const,
+  "organization.onboarding.project.saved": ["onboardingStep", "projectCreated"] as const,
+  "organization.onboarding.completed": ["onboardingStep", "onboardingCompleted"] as const,
   "organization.invitation.created": ["role", "status"] as const,
   "organization.invitation.accepted": STATUS,
   "organization.invitation.revoked": STATUS,

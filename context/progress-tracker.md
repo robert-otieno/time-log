@@ -8,7 +8,7 @@ Update this file after every completed feature. A new session should be able to 
 
 **Last completed:** 07 Personal Organization Bootstrap
 
-**Next:** 08 Personalized Onboarding
+**Current:** 08 Personalized Onboarding — browser smoke passed except timezone/time controls; responsive shadcn replacements implemented and re-smoke pending
 
 **Blockers:** None
 
@@ -45,7 +45,7 @@ Existing checkmarks describe repository presence, not production readiness for t
 - [x] 05 Organization and Membership Schema
 - [x] 06 Audit Event Foundation
 - [x] 07 Personal Organization Bootstrap
-- [ ] 08 Personalized Onboarding
+- [ ] 08 Personalized Onboarding (timezone/time-picker correction implemented; authenticated re-smoke pending)
 - [ ] 09 People, Clients, and Invitations
 
 ### Phase 3 — Projects and Visibility
@@ -131,6 +131,9 @@ Existing checkmarks describe repository presence, not production readiness for t
 | 2026-09-16 | Derive personal organization IDs from a truncated SHA-256 UID digest | Makes bootstrap deterministic without exposing Firebase UIDs in organization paths or slugs |
 | 2026-09-16 | Preserve existing active organization selection during bootstrap | Avoid disrupting users who already selected another accessible organization; selection never grants access |
 | 2026-09-16 | Repair missing bootstrap records but reject conflicting state | Keep retries self-healing without silently overwriting ownership or authorization data |
+| 2026-09-16 | Persist onboarding state inside the organization tenant | Keeps onboarding writes server-controlled and aligned with membership authorization |
+| 2026-09-16 | Use a deterministic onboarding first-project record | Makes repeated project submissions safe without duplicate workspaces |
+| 2026-09-16 | Keep task/timer onboarding educational until their numbered features | Avoid disposable implementations while teaching the required task-first workflow |
 
 ## Active Notes
 
@@ -139,6 +142,10 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-16 — Feature 08 — verification pending — all tested onboarding areas passed except the non-responsive native timezone datalist; replaced it with a searchable shadcn combobox and replaced native work-hour inputs with canonical shadcn time pickers; 63 unit tests, typecheck, and lint pass — re-smoke the profile step
+
+2026-09-16 — Feature 08 — verification pending — resumable four-step onboarding, validated schedule and notification preferences, workspace rename, deterministic first project, task-first timer education, audited server actions, routing, and server-only Rules coverage implemented; 63 unit tests, 12 Firestore Rules tests, typecheck, lint, and production build pass — run authenticated onboarding and resume smoke
 
 2026-09-16 — Feature 07 — completed — deterministic personal organization bootstrap, active admin membership, preserved workspace selection, legacy migration marker, atomic audit, conflict handling, and protected-layout integration verified through initial and repeated authenticated live Firestore loads; 56 unit tests, 11 Firestore Rules tests, typecheck, lint, and production build pass — start Feature 08
 

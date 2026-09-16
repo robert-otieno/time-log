@@ -138,6 +138,15 @@ Personal organization bootstrap:
 - Defaults organization timezone to UTC and onboarding state to `not_started`; personalized onboarding replaces those defaults later.
 - Treats `activeOrganizationId` as navigation state only. Every read and mutation must independently load and validate membership.
 
+Personalized onboarding:
+
+- Store resumable state at `organizations/{organizationId}/onboarding/{uid}`, not under the browser-writable legacy user tree.
+- Server Actions re-verify the httpOnly session, validate commands with step-specific Zod schemas, and execute mutations with the audited transaction boundary.
+- Profile defaults are browser timezone, weekdays, and 09:00–17:00; the server independently validates IANA timezone and time ordering.
+- Security and invitation mail are mandatory and therefore absent from editable preference fields.
+- The first project uses deterministic ID `onboarding-first`, key `FIRST`, `internal` default visibility, and enabled tools `todos` and `time`.
+- Dashboard routing checks organization onboarding state server-side. Active selection is never an authorization input.
+
 Transactions protect business invariants:
 
 ```typescript
@@ -283,6 +292,8 @@ The schema validates shape only. Authorization and the non-admin task rule remai
 - Use `cn()` from `lib/utils.ts` for conditional class composition.
 - Do not add a Tailwind config solely for colors.
 - Follow `ui-tokens.md`, `ui-rules.md`, and `ui-registry.md`.
+- Use the project `TimezoneCombobox` composition (`Popover` + `Command`) for searchable IANA timezone selection; native `datalist` behavior is not consistent enough for this workflow.
+- Use the project `TimePicker` composition for standalone working-hour values. It displays hour, minute, and AM/PM shadcn `Select` controls while emitting the domain's canonical 24-hour `HH:mm` value.
 
 ## date-fns
 
