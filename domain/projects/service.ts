@@ -1,6 +1,6 @@
 import "server-only";
 
-import { FieldValue, type Firestore } from "firebase-admin/firestore";
+import { FieldValue, type DocumentReference, type Firestore } from "firebase-admin/firestore";
 import type { AuditCorrelation } from "@/domain/audit/correlation";
 import { AuditedCommandError, executeAuditedCommand, type AuditWriter } from "@/domain/audit/command";
 import { hasCapability } from "@/domain/organizations/policy";
@@ -72,7 +72,21 @@ export async function changeProjectStatus(actor: AuthActor, organizationId: stri
 export async function listAccessibleProjects(actor: AuthActor, organizationId: string, db: Firestore = getAdminDb()) {
   const membershipSnapshot = await db.doc(`organizations/${organizationId}/members/${actor.uid}`).get();
   const member = membershipSnapshot.exists ? organizationMemberSchema.parse(membershipSnapshot.data()) : null;
-  if (!member || member.status !== "active" || member.role === "client") return null;
+  if (!member || member.status !== "active") return null;
+  if (member.role === "client") {
+    const assignments = await db.collectionGroup("projectMembers")
+      .where("userId", "==", actor.uid)
+      .where("status", "==", "active")
+      .get();
+    const projectReferences = assignments.docs
+      .map((assignment) => assignment.ref.parent.parent)
+      .filter((reference): reference is DocumentReference => reference !== null && reference.parent.parent?.id === organizationId);
+    if (projectReferences.length === 0) return [];
+    const projects = await db.getAll(...projectReferences);
+    return projects
+      .filter((project) => project.exists)
+      .map((project) => projectSchema.parse({ id: project.id, ...project.data() }));
+  }
   const projects = await db.collection(`organizations/${organizationId}/projects`).get();
   if (member.role === "admin") return projects.docs.map((document) => projectSchema.parse({ id: document.id, ...document.data() }));
   const assignments = await Promise.all(projects.docs.map((project) => db.doc(`${project.ref.path}/projectMembers/${actor.uid}`).get()));
@@ -86,7 +100,7 @@ export async function getAccessibleProject(actor: AuthActor, organizationId: str
     db.doc(`organizations/${organizationId}/projects/${projectId}/projectMembers/${actor.uid}`).get(),
   ]);
   const member = membershipSnapshot.exists ? organizationMemberSchema.parse(membershipSnapshot.data()) : null;
-  if (!member || member.status !== "active" || member.role === "client" || !projectSnapshot.exists) return null;
+  if (!member || member.status !== "active" || !projectSnapshot.exists) return null;
   if (member.role !== "admin" && assignmentSnapshot.data()?.status !== "active") return null;
   return { project: projectSchema.parse({ id: projectSnapshot.id, ...projectSnapshot.data() }), role: member.role };
 }

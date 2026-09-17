@@ -8,7 +8,7 @@ Update this file after every completed feature. A new session should be able to 
 
 **Last completed:** 11 Visibility Primitive
 
-**Current:** 12 Client Portal Shell
+**Current:** 12 Client Portal Shell — implementation and automated verification complete; authenticated client browser smoke pending
 
 **Blockers:** None
 
@@ -142,6 +142,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-16 — Feature 12 — verification pending — added assignment-first client project discovery, cross-tenant reference filtering, direct-route reauthorization, historical read-only project access, client-safe tool availability checks, non-disclosing tool routes, restricted navigation, portal banner, and empty state; 92 unit tests, 16 Rules tests, typecheck, lint, and production build pass — run authenticated client portal smoke
 
 2026-09-16 — Feature 11 — completed — added canonical visibility schemas/defaults, independent project-access policy, database query constraints, Zod-allowlisted client serialization, adapter-based audited changes, shared badge/control UI, and task-path Rules coverage; 86 unit tests, 16 Rules tests, typecheck, lint, and production build pass — start Feature 12
 

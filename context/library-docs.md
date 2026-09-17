@@ -181,6 +181,14 @@ Project visibility pattern:
 - Pass client responses through `serializeVisibleRecordForClient` with a feature-owned Zod allowlist schema. Do not serialize a complete Firestore record and remove fields afterward.
 - Feature repositories provide a server-only `VisibilityRecordAdapter` to `changeRecordVisibility`; the shared service re-authorizes project access, rejects clients and read-only projects, and atomically records `visibility.record.changed` without storing content.
 
+Client portal project access pattern:
+
+- Client project discovery starts from active `projectMembers` assignments using the `projectMembers` collection-group index on `userId` and `status`; discard references outside the verified active organization before loading projects.
+- Direct project routes independently re-read active membership and the exact project assignment. Project-list membership never substitutes for route authorization.
+- Client tool navigation is allowlisted in `domain/projects/client-tools.ts`. A tool appears only after its client-safe repository is implemented and a server query confirms client-visible content.
+- Unsupported, disabled, empty, internal-only, and inaccessible tool routes use the same non-disclosing not-found behavior for clients.
+- Internal users continue to see every enabled tool. Client availability checks must not change internal navigation or expose internal record counts.
+
 Official references:
 
 - [Firestore transactions](https://firebase.google.com/docs/firestore/manage-data/transactions)

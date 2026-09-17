@@ -88,6 +88,8 @@ Add source paths when implemented.
 | `ClientPreviewBanner` | Clearly mark preview-as-client mode | active, exit action |
 | `EmptyState` | Consistent no-content guidance | icon, message, optional CTA |
 | `PermissionState` | Non-destructive denied state | internal denied, client-safe not found |
+| `ClientPortalBanner` | `components/projects/client-portal-banner.tsx` — identifies authenticated client mode | client mode |
+| `ClientPortalEmptyState` | `components/projects/client-portal-empty-state.tsx` — non-disclosing no-shared-content state | no available client tools |
 
 ## Patterns to Preserve
 
@@ -284,6 +286,25 @@ Last updated: 2026-09-16
 | Accent usage | Secondary badge for client-visible; outline badge for internal; icons reinforce labels |
 
 **Pattern notes:** Always show the text label in addition to the icon. Keep the selector controlled so the owning feature handles its audited server mutation and rollback. Pending and denied states disable selection without hiding the current value. Guidance must state that client visibility still requires verified project access.
+
+### Client portal shell
+
+Files: `components/projects/client-portal-banner.tsx`, `components/projects/client-portal-empty-state.tsx`, `app/(app)/projects/layout.tsx`
+Last updated: 2026-09-16
+
+| Property | Class |
+| --- | --- |
+| Background | Shell `bg-muted/20`; portal surfaces `bg-muted/40`; canonical Card |
+| Border | Shell `border-b`; portal banner and icon container `border` |
+| Border radius | `rounded-lg` banner; `rounded-md` icon container; canonical Card radius |
+| Text — primary | `font-medium`; empty-state canonical `CardTitle` |
+| Text — secondary | `text-sm text-muted-foreground` |
+| Spacing | Banner `gap-3 p-4`; empty state uses canonical Card spacing |
+| Hover state | Canonical project card and navigation states |
+| Shadow | Canonical Card shadow only |
+| Accent usage | Semantic muted surface and Eye icon; no client-specific hardcoded color |
+
+**Pattern notes:** Client mode reuses the internal project shell but removes People, settings, creation, and unsupported tool navigation. The banner explicitly identifies client context without implying preview or impersonation. Empty states never reveal internal tool names, record counts, or hidden-content existence.
 
 ## Patterns to Retire
 
