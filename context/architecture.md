@@ -206,16 +206,23 @@ type ProjectTask = {
   assigneeIds: string[];
   status: "backlog" | "todo" | "in_progress" | "blocked" | "done";
   priority: "low" | "medium" | "high" | "urgent";
+  dueDate: string | null; // YYYY-MM-DD calendar date
   dueAt: Timestamp | null;
+  dueTimeSet: boolean;
   visibility: "internal" | "client-visible";
+  parentTaskId: string | null;
   boardColumnId: string | null;
   sortOrder: number;
   completedAt: Timestamp | null;
+  archivedAt: Timestamp | null;
   createdBy: string;
   createdAt: Timestamp;
+  updatedBy: string;
   updatedAt: Timestamp;
 };
 ```
+
+Subtasks use the same collection and schema through `parentTaskId`. Parent references must remain inside the project; writes reject missing parents, self-parenting, and ancestry cycles. Visibility is independent at every level. `dueDate` preserves the calendar date without timezone conversion; `dueAt` is populated only when `dueTimeSet` records an intentional clock time. `archivedAt` is separate from workflow status so completed tasks may be archived without losing their `done` state, and restoring clears only `archivedAt`.
 
 #### Active Timer and Time Entry
 

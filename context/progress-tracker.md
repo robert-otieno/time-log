@@ -4,11 +4,11 @@ Update this file after every completed feature. A new session should be able to 
 
 ## Current Status
 
-**Phase:** Phase 3 — Projects and Visibility
+**Phase:** Phase 4 — To-Dos
 
-**Last completed:** 11 Visibility Primitive
+**Last completed:** 15 My Work
 
-**Current:** 12 Client Portal Shell — implementation and automated verification complete; authenticated client browser smoke pending
+**Current:** 16 Legacy Task Migration — planning
 
 **Blockers:** None
 
@@ -52,13 +52,13 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 - [x] 10 Project CRUD and Navigation
 - [x] 11 Visibility Primitive
-- [ ] 12 Client Portal Shell
+- [x] 12 Client Portal Shell
 
 ### Phase 4 — To-Dos
 
-- [ ] 13 Project Task Schema and Repository
-- [ ] 14 To-Do List UI
-- [ ] 15 My Work
+- [x] 13 Project Task Schema and Repository
+- [x] 14 To-Do List UI
+- [x] 15 My Work
 - [ ] 16 Legacy Task Migration
 
 ### Phase 5 — Time Tracking
@@ -142,6 +142,18 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-18 — Feature 15 — completed — authenticated browser smoke accepted; My Work aggregation, due groups, navigation, timer handoff, empty state, and client redirect are ready — start Feature 16 Legacy Task Migration
+
+2026-09-18 — Feature 15 — verification pending — replaced the legacy home dashboard with server-authorized cross-project assigned work grouped by overdue, today, upcoming, and no due date; added organization-timezone grouping, unfinished-task filtering, project/task links, timer-route handoff, client redirect, empty state, and access/grouping tests; 111 unit tests, typecheck, lint (28 legacy warnings), and production build pass — run authenticated admin/member/client browser smoke
+
+2026-09-18 — Feature 14 — completed — authenticated browser smoke confirmed immediate task creation, Shadcn date/time deadlines, direct subtask creation, archive discovery, and restore behavior — start Feature 15 My Work
+
+2026-09-18 — Feature 14 — verification pending — added the real project To-dos route, client-safe task DTOs, authorized assignee loading, immediate optimistic parent/subtask creation, direct nested subtask forms, Shadcn-composed optional date/time deadlines with timezone-safe date-only storage, compact/nested rows, expandable inline editing, filters, optimistic complete/reopen with rollback, explicit Archived view with audited Restore, read-only client mode, and safe server actions; 107 unit tests, typecheck, lint (28 legacy warnings), and production build pass — run focused parent/subtask, deadline, archive/restore, and client browser smoke
+
+2026-09-18 — Feature 13 — completed — added strict project-task documents and commands, multiple internal assignees, timezone-aware deadlines, independent completion/archive state, same-collection subtasks with cycle checks, bounded visibility-aware repository queries, audited lifecycle mutations, shared visibility adapter, composite indexes, and client-safe Rules; 103 unit tests, 16 Rules tests, typecheck, lint, and production build pass — start Feature 14
+
+2026-09-18 — Feature 12 — completed — authenticated client portal smoke passed after index deployment; assigned-project, restricted-navigation, empty-state, and non-disclosing route behavior confirmed — start Feature 13
 
 2026-09-16 — Feature 12 — verification pending — added assignment-first client project discovery, cross-tenant reference filtering, direct-route reauthorization, historical read-only project access, client-safe tool availability checks, non-disclosing tool routes, restricted navigation, portal banner, and empty state; 92 unit tests, 16 Rules tests, typecheck, lint, and production build pass — run authenticated client portal smoke
 

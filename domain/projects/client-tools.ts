@@ -30,10 +30,10 @@ export async function listAvailableClientTools(
     const snapshot = await db
       .collection(`organizations/${organizationId}/projects/${projectId}/${definition.collection}`)
       .where(definition.visibilityField, "==", definition.visibleValue)
+      .where("archivedAt", "==", null)
       .limit(1)
       .get();
     return snapshot.empty ? null : tool;
   }));
   return available.filter((tool): tool is ProjectTool => tool !== null);
 }
-

@@ -189,6 +189,22 @@ Client portal project access pattern:
 - Unsupported, disabled, empty, internal-only, and inaccessible tool routes use the same non-disclosing not-found behavior for clients.
 - Internal users continue to see every enabled tool. Client availability checks must not change internal navigation or expose internal record counts.
 
+Project task persistence pattern:
+
+- Canonical task documents and commands live in `domain/tasks/schemas.ts`; collaborative task code must not import legacy daily-task types.
+- `TaskRepository.list` requires an explicit visibility query scope, defaults to non-archived tasks, orders by `sortOrder`, and caps every request at 100 records.
+- Task writes run through `domain/tasks/service.ts`, which re-authorizes the actor and active project, validates every assignee, checks parent ancestry, and writes the audit event transactionally.
+- Assignees must be active internal admins/members with project access. Clients cannot be assigned in the initial release.
+- Use `taskVisibilityAdapter` for standalone visibility controls so visibility changes reuse the shared audited visibility service.
+- Client task queries constrain both `visibility == "client-visible"` and `archivedAt == null`; Firestore Rules are not filters.
+- Task server actions live beside the `/todos` route, accept plain structured values, derive actor and organization from the verified session, generate correlation IDs server-side, revalidate only the project task route, and return provider-safe errors.
+- Convert task timestamps and redact client-ineligible fields with `domain/tasks/form-data.ts` before crossing the Server/Client Component boundary.
+- Use `components/ui/date-time-picker.tsx` for optional task deadlines. It composes the shadcn Calendar, Popover, Checkbox, and project TimePicker; `dueTimeSet` preserves whether the user intentionally supplied a clock time.
+- Project task creation uses an optimistic client row with a temporary ID. Reconcile it with the server-returned task ID after the audited transaction succeeds; remove it and preserve a safe error when persistence fails.
+- Internal task reads may request archived records for the explicit Archived view. Client queries must continue to constrain `archivedAt == null` and never disclose archived counts.
+- My Work starts from `listAccessibleProjects`, retains only active projects with To-dos enabled, then issues bounded per-project task queries constrained by the current user's `assigneeIds`. Completed and archived tasks are removed before grouping; never use a collection-group task query without independently preserving project authorization.
+- Group My Work deadlines with the organization's configured timezone. Prefer the timezone-free `dueDate` field; only derive a calendar date from `dueAt` for compatibility with older timed deadlines.
+
 Official references:
 
 - [Firestore transactions](https://firebase.google.com/docs/firestore/manage-data/transactions)

@@ -75,6 +75,7 @@ Add source paths when implemented.
 | `VisibilityControl` | `components/visibility/visibility-control.tsx` — controlled visibility selector with policy messaging | internal, client-visible, pending, disabled |
 | `AssigneePicker` | Search/select eligible project members | empty, multiple, removed member |
 | `TaskPicker` | Select or create task for timer | loading, empty, inaccessible, inline create |
+| `ProjectTaskList` | `components/tasks/project-task-list.tsx` — project task creation, filters, rows, nesting, and lifecycle actions | empty, filtered-empty, editing, optimistic, rollback, read-only client |
 | `GlobalTimer` | Persistent active timer | idle, selecting, starting, active, stopping, conflict, error |
 | `DurationInput` | Safe manual duration entry | valid, invalid, disabled |
 | `TimeEntryRow` | Display/edit auditable entry | timer/manual, internal/approved, edit denied |
@@ -305,6 +306,63 @@ Last updated: 2026-09-16
 | Accent usage | Semantic muted surface and Eye icon; no client-specific hardcoded color |
 
 **Pattern notes:** Client mode reuses the internal project shell but removes People, settings, creation, and unsupported tool navigation. The banner explicitly identifies client context without implying preview or impersonation. Empty states never reveal internal tool names, record counts, or hidden-content existence.
+
+### Project to-do list
+
+Files: `components/tasks/project-task-list.tsx`, `app/(app)/projects/[projectId]/todos/page.tsx`
+Last updated: 2026-09-18
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical `bg-card` task rows and quick-create surface |
+| Border | `border` rows; `border-t` expanded edit separator; `border-l` subtask nesting |
+| Border radius | `rounded-lg` rows and empty states; canonical controls |
+| Text — primary | Row `font-medium`; page `text-xl font-semibold` |
+| Text — secondary | `text-sm text-muted-foreground`; completed title adds `line-through` |
+| Spacing | Surfaces `p-4`; list `space-y-3`; metadata `gap-2` / `gap-3` |
+| Hover state | Canonical Button, Select, Checkbox, and input states |
+| Shadow | Canonical control shadows; no additional row shadow |
+| Accent usage | Semantic status/priority/visibility badges and destructive archive confirmation |
+
+**Pattern notes:** Keep rows compact until explicitly expanded for inline editing. Creation and completion are optimistic; pending creation uses an outline Saving badge and rolls back on failure. Archive uses confirmation and moves records into an explicit Archived view with Restore. Direct subtask creation appears beneath the parent on a `bg-muted/30` inset surface; saved subtasks use indentation plus a left border. Client mode is read-only and omits archived counts, assignees, visibility filters, and every mutation control.
+
+### Optional date and time picker
+
+File: `components/ui/date-time-picker.tsx`
+Last updated: 2026-09-18
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical Popover and Calendar surfaces |
+| Border | Canonical outline Button, Popover, Select, and Checkbox borders |
+| Border radius | Canonical `rounded-md` controls |
+| Text — primary | `text-sm` inherited from canonical controls |
+| Text — secondary | Canonical muted empty-date label |
+| Spacing | Container `space-y-3`; trigger/clear row `gap-2`; time picker `gap-2` |
+| Hover state | Canonical Button, Calendar, Checkbox, and Select states |
+| Shadow | Canonical control and popover shadows |
+| Accent usage | Semantic selected calendar day and focus rings |
+
+**Pattern notes:** Optional deadlines begin with a calendar trigger. Selecting a date reveals an explicit “Include a time” checkbox; only then does the existing three-part TimePicker appear. Keep a visible clear action with an accessible name, and preserve date-only intent separately from the stored timestamp.
+
+### My Work grouped task list
+
+Files: `components/tasks/my-work.tsx`, `app/(app)/page.tsx`
+Last updated: 2026-09-18
+
+| Property | Class |
+| --- | --- |
+| Background | Page `bg-muted/20`; task rows and empty state use canonical `bg-card` |
+| Border | Canonical row and Card borders; sticky header `border-b` |
+| Border radius | Task rows `rounded-lg`; canonical Card and Button radii |
+| Text — primary | Page `text-2xl font-semibold tracking-tight`; group and task titles `font-semibold` / `font-medium` |
+| Text — secondary | `text-sm text-muted-foreground` for group guidance and task metadata |
+| Spacing | Page `space-y-8`; groups `space-y-3`; rows `p-4`; metadata `gap-3` |
+| Hover state | Linked task titles underline; project links use `hover:text-foreground`; canonical Button states |
+| Shadow | None beyond canonical controls and Card |
+| Accent usage | `text-primary` eyebrow; semantic status and priority badges |
+
+**Pattern notes:** Cross-project work is grouped by due state rather than project. Keep project identity visible on every row, use a secondary outline Track time action only when Time tracking is enabled, and omit empty groups. A completely empty queue uses one calm Card with a Projects action.
 
 ## Patterns to Retire
 

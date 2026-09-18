@@ -34,8 +34,9 @@ beforeEach(async () => {
       setDoc(doc(db, "organizations/org-a/projects/project-1"), { name: "Project One" }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/member"), { userId: "member", status: "active" }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/client-user"), { userId: "client-user", status: "active" }),
-      setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/internal-task"), { title: "Internal", visibility: "internal" }),
-      setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/shared-task"), { title: "Shared", visibility: "client-visible" }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/internal-task"), { title: "Internal", visibility: "internal", archivedAt: null }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/shared-task"), { title: "Shared", visibility: "client-visible", archivedAt: null }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/archived-shared-task"), { title: "Archived", visibility: "client-visible", archivedAt: { seconds: 1 } }),
       setDoc(doc(db, "organizations/org-a/auditEvents/audit-1"), { action: "project.record.created" }),
       setDoc(doc(db, "users/member/daily_tasks/task-1"), { title: "Legacy" }),
     ]);
@@ -62,13 +63,15 @@ describe("organization Firestore rules", () => {
     await assertSucceeds(getDoc(doc(dbFor("member"), `${base}/internal-task`)));
     await assertSucceeds(getDoc(doc(dbFor("client-user"), `${base}/shared-task`)));
     await assertFails(getDoc(doc(dbFor("client-user"), `${base}/internal-task`)));
+    await assertFails(getDoc(doc(dbFor("client-user"), `${base}/archived-shared-task`)));
     await assertFails(getDoc(doc(dbFor("unassigned"), `${base}/shared-task`)));
   });
 
   it("requires client list queries to constrain visibility", async () => {
     const tasks = collection(dbFor("client-user"), "organizations/org-a/projects/project-1/tasks");
     await assertFails(getDocs(tasks));
-    await assertSucceeds(getDocs(query(tasks, where("visibility", "==", "client-visible"))));
+    await assertFails(getDocs(query(tasks, where("visibility", "==", "client-visible"))));
+    await assertSucceeds(getDocs(query(tasks, where("visibility", "==", "client-visible"), where("archivedAt", "==", null))));
   });
 
   it("allows explicitly assigned members and clients", async () => {

@@ -10,7 +10,9 @@ function database(collectionStates: Record<string, boolean>) {
   const db = {
     collection: vi.fn((path: string) => {
       currentPath = path;
-      return { where: vi.fn(() => ({ limit: vi.fn(() => ({ get })) })) };
+      const chain = { where: vi.fn(), limit: vi.fn(() => ({ get })) };
+      chain.where.mockReturnValue(chain);
+      return chain;
     }),
   } as unknown as Firestore;
   return { db, get };
@@ -35,4 +37,3 @@ describe("client project tool availability", () => {
     expect(get).not.toHaveBeenCalled();
   });
 });
-
