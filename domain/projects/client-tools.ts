@@ -8,10 +8,12 @@ type ClientToolDefinition = {
   collection: string;
   visibilityField: string;
   visibleValue: string;
+  excludesArchived?: boolean;
 };
 
 const CLIENT_TOOL_DEFINITIONS: Partial<Record<ProjectTool, ClientToolDefinition>> = {
-  todos: { collection: "tasks", visibilityField: "visibility", visibleValue: "client-visible" },
+  todos: { collection: "tasks", visibilityField: "visibility", visibleValue: "client-visible", excludesArchived: true },
+  time: { collection: "timeEntries", visibilityField: "clientReportingStatus", visibleValue: "approved" },
 };
 
 export function isClientCapableTool(tool: ProjectTool): boolean {
@@ -27,12 +29,11 @@ export async function listAvailableClientTools(
   const candidates = enabledTools.filter(isClientCapableTool);
   const available = await Promise.all(candidates.map(async (tool) => {
     const definition = CLIENT_TOOL_DEFINITIONS[tool]!;
-    const snapshot = await db
+    let query = db
       .collection(`organizations/${organizationId}/projects/${projectId}/${definition.collection}`)
-      .where(definition.visibilityField, "==", definition.visibleValue)
-      .where("archivedAt", "==", null)
-      .limit(1)
-      .get();
+      .where(definition.visibilityField, "==", definition.visibleValue);
+    if (definition.excludesArchived) query = query.where("archivedAt", "==", null);
+    const snapshot = await query.limit(1).get();
     return snapshot.empty ? null : tool;
   }));
   return available.filter((tool): tool is ProjectTool => tool !== null);

@@ -8,7 +8,7 @@ Update this file after every completed feature. A new session should be able to 
 
 **Last completed:** 18 Global Timer UI
 
-**Current:** 19 Stop Timer and Time Entries — implementation complete; authenticated browser and final production-build verification pending
+**Current:** 20 Time Views and Reports — implementation and automated verification complete; authenticated browser verification pending
 
 **Blockers:** None
 
@@ -146,6 +146,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-20 — Feature 20 — browser verification pending — added personal day/week time views with period navigation, organization-timezone date boundaries, project summaries, role-scoped filters, approved-only client preview/navigation, audited client-safe CSV export, and report aggregation/empty states; review fixes block clients from personal time, neutralize spreadsheet formulas, cap each project report at 2,000 entries with explicit partial-results feedback, and reject partial exports; 136 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass — run admin/member/client browser smoke
 
 2026-09-20 — Global timer enhancement — automated verification complete — added a capability-gated Document Picture-in-Picture “Keep timer visible” control, compact always-on-top active-task timer, audited Stop & save using explicit internal/non-billable defaults, PiP lifecycle cleanup, permission failure feedback, and a live elapsed/task browser-title fallback; 129 unit tests, typecheck, and lint (28 pre-existing warnings) pass — run authenticated supported-browser PiP/open/minimize/close/stop smoke alongside Feature 19 browser verification
 

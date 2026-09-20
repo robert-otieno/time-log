@@ -5,12 +5,10 @@ vi.mock("server-only", () => ({}));
 import { isClientCapableTool, listAvailableClientTools } from "@/domain/projects/client-tools";
 
 function database(collectionStates: Record<string, boolean>) {
-  const get = vi.fn(async () => ({ empty: !collectionStates[currentPath] }));
-  let currentPath = "";
+  const get = vi.fn(async (path: string) => ({ empty: !collectionStates[path] }));
   const db = {
     collection: vi.fn((path: string) => {
-      currentPath = path;
-      const chain = { where: vi.fn(), limit: vi.fn(() => ({ get })) };
+      const chain = { where: vi.fn(), limit: vi.fn(() => ({ get: () => get(path) })) };
       chain.where.mockReturnValue(chain);
       return chain;
     }),
@@ -21,7 +19,7 @@ function database(collectionStates: Record<string, boolean>) {
 describe("client project tool availability", () => {
   it("treats only implemented client-safe repositories as client capable", () => {
     expect(isClientCapableTool("todos")).toBe(true);
-    expect(isClientCapableTool("time")).toBe(false);
+    expect(isClientCapableTool("time")).toBe(true);
     expect(isClientCapableTool("chat")).toBe(false);
   });
 
@@ -33,7 +31,13 @@ describe("client project tool availability", () => {
 
   it("does not query unsupported enabled tools", async () => {
     const { db, get } = database({});
-    await expect(listAvailableClientTools("org-1", "project-1", ["time", "chat"], db)).resolves.toEqual([]);
+    await expect(listAvailableClientTools("org-1", "project-1", ["chat"], db)).resolves.toEqual([]);
     expect(get).not.toHaveBeenCalled();
+  });
+
+  it("shows time only when an approved entry exists", async () => {
+    const path = "organizations/org-1/projects/project-1/timeEntries";
+    const { db } = database({ [path]: true });
+    await expect(listAvailableClientTools("org-1", "project-1", ["time"], db)).resolves.toEqual(["time"]);
   });
 });

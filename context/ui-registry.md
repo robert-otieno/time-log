@@ -440,6 +440,25 @@ Last updated: 2026-09-20
 
 **Pattern notes:** Stop confirmation preserves the running timer until the server atomically returns success. Manual entry and correction share the same task, Shadcn date/time, note, billable, and reporting controls. Duration is display-only in the browser and always derived by the server. Corrections remain compact entry-row actions and explicitly explain audit preservation.
 
+### Time views and client-safe reports
+
+Files: `components/time/time-report-filters.tsx`, `components/time/time-report-view.tsx`, `app/(app)/time/page.tsx`, `app/(app)/projects/[projectId]/time/page.tsx`
+Last updated: 2026-09-20
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical Card; filter and empty surfaces `bg-muted/20`; table header `bg-muted/40` |
+| Border | Summary tiles, filter panel, table container, and rows use semantic `border` / `border-t` |
+| Border radius | Filters, summaries, tables, and empty states use `rounded-lg` |
+| Text — primary | Page `text-2xl font-semibold tracking-tight`; totals `text-2xl font-semibold tabular-nums`; table task `font-medium` |
+| Text — secondary | Descriptions, dates, timezone notes, and empty states use `text-muted-foreground` |
+| Spacing | Page and report stacks `space-y-6` / `space-y-5`; filter and summary surfaces `gap-4 p-4` |
+| Interactive state | Canonical Button, Input, and Select states; filter submission disables with `animate-spin` during navigation |
+| Shadow | Canonical Card and control shadows only |
+| Accent usage | Primary section eyebrow and active period control; semantic secondary/outline status badges |
+
+**Pattern notes:** Reports lead with filters, then three consistent summary tiles, then a horizontally scrollable detail table. Personal views expose day/week and previous/next navigation. Client-safe previews are visually explicit, never show internal status or notes, and place the audited CSV export in the Card header. Empty datasets retain the same report structure without revealing filtered-out counts. Oversized datasets use a semantic destructive alert, explicitly label totals as partial, and omit export until the user narrows the date range.
+
 ## Patterns to Retire
 
 - Product name “Visio Genesis” in login, header, or metadata.

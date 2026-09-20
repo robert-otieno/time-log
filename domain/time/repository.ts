@@ -1,8 +1,10 @@
 import "server-only";
 
-import type { Firestore } from "firebase-admin/firestore";
+import { Timestamp, type Firestore } from "firebase-admin/firestore";
 import { activeTimerPointerSchema, activeTimerSchema, timeEntrySchema, type ActiveTimer } from "@/domain/time/schemas";
 import { getAdminDb } from "@/lib/firebase-admin";
+
+export const TIME_REPORT_ENTRY_LIMIT = 2000;
 
 export class TimeRepository {
   constructor(private readonly db: Firestore = getAdminDb()) {}
@@ -46,5 +48,18 @@ export class TimeRepository {
   async listRecentEntries(organizationId: string, projectId: string, limit = 20) {
     const snapshot = await this.timeEntriesCollection(organizationId, projectId).orderBy("startedAt", "desc").limit(limit).get();
     return snapshot.docs.map((document) => timeEntrySchema.parse({ id: document.id, ...document.data() }));
+  }
+
+  async listEntriesBetween(organizationId: string, projectId: string, start: Date, endExclusive: Date) {
+    const snapshot = await this.timeEntriesCollection(organizationId, projectId)
+      .where("startedAt", ">=", Timestamp.fromDate(start))
+      .where("startedAt", "<", Timestamp.fromDate(endExclusive))
+      .orderBy("startedAt", "desc")
+      .limit(TIME_REPORT_ENTRY_LIMIT + 1)
+      .get();
+    return {
+      entries: snapshot.docs.slice(0, TIME_REPORT_ENTRY_LIMIT).map((document) => timeEntrySchema.parse({ id: document.id, ...document.data() })),
+      truncated: snapshot.size > TIME_REPORT_ENTRY_LIMIT,
+    };
   }
 }

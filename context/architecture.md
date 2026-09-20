@@ -273,6 +273,8 @@ Document Picture-in-Picture is a progressive enhancement for supported secure br
 
 Stopping a timer atomically creates its time entry and removes both active-timer records. Manual entries and corrections accept start/end instants, while the server calculates and validates integer duration seconds. New entries are non-billable and internal unless explicitly changed. Corrections update the record in a transaction, increment `correctionCount`, identify `updatedBy`, and append an audit event; the product never silently rewrites time history.
 
+Time reporting uses organization-local calendar boundaries and bounded server queries. Admin project reports may include all project entries; member reports are forcibly scoped to the actor; clients cannot access personal time views and project reports are forcibly scoped to `clientReportingStatus: "approved"` before serialization. Queries read at most 2,000 entries per project and disclose truncation; partial client-safe datasets cannot be exported. Client-safe previews and CSV exports omit notes and internal counts, exported user-controlled text is neutralized against spreadsheet formulas, and both preview and export are audited. Personal time views use the configured timezone and never broaden the actor beyond their own entries.
+
 ### Audit Event
 
 ```typescript
