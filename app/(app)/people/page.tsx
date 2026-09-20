@@ -3,14 +3,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InvitePersonForm } from "@/components/people/invite-person-form";
 import { MembershipActions } from "@/components/people/membership-actions";
-import { personalOrganizationId } from "@/domain/organizations/bootstrap";
 import { listPeopleAdminData } from "@/domain/people/repository";
-import { getSessionActor } from "@/lib/server-session";
+import { getActiveOrganizationId, getSessionActor } from "@/lib/server-session";
 
 export default async function PeoplePage({ searchParams }: { searchParams: Promise<{ invite?: string }> }) {
   const actor = await getSessionActor();
   if (!actor) redirect("/login?next=/people");
-  const data = await listPeopleAdminData(personalOrganizationId(actor.uid), actor.uid);
+  const data = await listPeopleAdminData(await getActiveOrganizationId(actor), actor.uid);
   if (!data) redirect("/");
   const inviteStatus = (await searchParams).invite;
   return <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">

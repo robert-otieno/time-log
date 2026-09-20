@@ -51,7 +51,8 @@ export async function createInvitation(actor: AuthActor, organizationId: string,
       projectSnapshots.forEach((snapshot) => {
         if (!snapshot.exists) throw new AuditedCommandError("failed", "project_not_found", "A selected project was not found");
         const project = projectSchema.parse({ id: snapshot.id, ...snapshot.data() });
-        if (command.role === "client" && project.clientId && project.clientId !== clientRef?.id) throw new AuditedCommandError("denied", "client_project_mismatch", "Client project mismatch");
+        if (project.status === "archived") throw new AuditedCommandError("denied", "project_archived", "Archived projects cannot receive assignments");
+        if (command.role === "client" && project.clientId !== clientRef?.id) throw new AuditedCommandError("denied", "client_project_mismatch", "Client project mismatch");
       });
       if (command.client.mode === "existing" && (!clientSnapshot?.exists || clientSchema.parse({ id: clientSnapshot.id, ...clientSnapshot.data() }).status !== "active")) {
         throw new AuditedCommandError("failed", "client_not_found", "Client company not found");

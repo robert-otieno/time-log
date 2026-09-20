@@ -459,6 +459,25 @@ Last updated: 2026-09-20
 
 **Pattern notes:** Reports lead with filters, then three consistent summary tiles, then a horizontally scrollable detail table. Personal views expose day/week and previous/next navigation. Client-safe previews are visually explicit, never show internal status or notes, and place the audited CSV export in the Card header. Empty datasets retain the same report structure without revealing filtered-out counts. Oversized datasets use a semantic destructive alert, explicitly label totals as partial, and omit export until the user narrows the date range.
 
+### Admin console
+
+Files: `app/(app)/admin/page.tsx`, `components/admin/organization-settings-form.tsx`, `components/admin/member-admin-controls.tsx`, `components/people/membership-actions.tsx`
+Last updated: 2026-09-20
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical Card; management rows use `bg-card`; no role-specific hardcoded colors |
+| Border | People, projects, audit rows, and control separators use semantic `border` / `border-t` |
+| Border radius | Management rows and summary surfaces use `rounded-lg`; canonical Dialog radius |
+| Text — primary | Page `text-3xl font-semibold tracking-tight`; totals `text-2xl font-semibold tabular-nums`; entity names `font-medium` |
+| Text — secondary | Descriptions and identifiers use `text-muted-foreground`; policy notes use `text-xs` / `text-sm` |
+| Spacing | Page `space-y-8`; major grids `gap-6`; management rows `p-4`; compact history rows `p-3` |
+| Interactive state | Canonical Button, Select, Input, and searchable TimezoneCombobox; pending mutations disable and show `animate-spin` |
+| Shadow | Canonical Card, Dialog, and control shadows only |
+| Accent usage | Primary administration eyebrow; semantic role/status badges; destructive confirmation actions |
+
+**Pattern notes:** The console leads with four compact health totals, then gives people/access management the widest surface. Role, suspension, removal, project-access removal, and timezone changes explain consequences before consequential changes. Canonical project settings remain linked rather than duplicated. Recent administration is intentionally compact; full audit exploration belongs to the dedicated viewer.
+
 ## Patterns to Retire
 
 - Product name “Visio Genesis” in login, header, or metadata.

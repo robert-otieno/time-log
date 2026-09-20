@@ -5,13 +5,12 @@ import { redirect } from "next/navigation";
 import { createRequestCorrelation } from "@/domain/audit/correlation";
 import { changeMembershipAccess, createInvitation } from "@/domain/invitations/service";
 import { deliverNotification } from "@/domain/notifications/outbox";
-import { personalOrganizationId } from "@/domain/organizations/bootstrap";
-import { getSessionActor } from "@/lib/server-session";
+import { getActiveOrganizationId, getSessionActor } from "@/lib/server-session";
 
 export async function invitePersonAction(formData: FormData) {
   const actor = await getSessionActor();
   if (!actor) redirect("/login?next=/people");
-  const organizationId = personalOrganizationId(actor.uid);
+  const organizationId = await getActiveOrganizationId(actor);
   const role = String(formData.get("role"));
   const existingClientId = String(formData.get("clientId") ?? "");
   const newClientName = String(formData.get("newClientName") ?? "").trim();
@@ -42,7 +41,7 @@ export async function changeMembershipAccessAction(userId: string, action: "susp
   const actor = await getSessionActor();
   if (!actor) return { ok: false as const, error: "Your session expired." };
   try {
-    await changeMembershipAccess(actor, personalOrganizationId(actor.uid), { userId, action }, createRequestCorrelation());
+    await changeMembershipAccess(actor, await getActiveOrganizationId(actor), { userId, action }, createRequestCorrelation());
     revalidatePath("/people");
     return { ok: true as const };
   } catch {

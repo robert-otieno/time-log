@@ -4,11 +4,11 @@ Update this file after every completed feature. A new session should be able to 
 
 ## Current Status
 
-**Phase:** Phase 5 — Time Tracking
+**Phase:** Phase 6 — Admin and Email Foundation
 
-**Last completed:** 18 Global Timer UI
+**Last completed:** 20 Time Views and Reports
 
-**Current:** 20 Time Views and Reports — implementation and automated verification complete; authenticated browser verification pending
+**Current:** 21 Admin Console — implementation and automated verification complete; authenticated browser verification pending
 
 **Blockers:** None
 
@@ -65,8 +65,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 - [x] 17 Active Timer Domain
 - [x] 18 Global Timer UI
-- [ ] 19 Stop Timer and Time Entries
-- [ ] 20 Time Views and Reports
+- [x] 19 Stop Timer and Time Entries
+- [x] 20 Time Views and Reports
 
 ### Phase 6 — Admin and Email Foundation
 
@@ -146,6 +146,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-20 — Feature 21 — browser verification pending — added an audited admin-only organization console, organization/client health summaries, client-company directory, role management, last-active-admin protection, confirmed suspension/removal/demotion, atomic soft removal assignment cleanup, client-owned project assignment enforcement, archived-project assignment prevention, organization name/timezone settings with timezone confirmation, canonical project links, and recent administrative history; 140 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass — run admin/member/client browser smoke
 
 2026-09-20 — Feature 20 — browser verification pending — added personal day/week time views with period navigation, organization-timezone date boundaries, project summaries, role-scoped filters, approved-only client preview/navigation, audited client-safe CSV export, and report aggregation/empty states; review fixes block clients from personal time, neutralize spreadsheet formulas, cap each project report at 2,000 entries with explicit partial-results feedback, and reject partial exports; 136 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass — run admin/member/client browser smoke
 

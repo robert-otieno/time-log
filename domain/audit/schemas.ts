@@ -77,6 +77,8 @@ const safeFieldValueSchemas = {
   onboardingStep: z.enum(["profile", "organization", "project", "education", "complete"]),
   onboardingCompleted: z.boolean(),
   projectCreated: z.boolean(),
+  nameChanged: z.boolean(),
+  timezoneChanged: z.boolean(),
 } satisfies Record<SafeAuditField, z.ZodType>;
 
 export function safeAuditFieldValue(

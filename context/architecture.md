@@ -174,6 +174,8 @@ type OrganizationMember = {
 
 Project assignment is explicit. Organization membership alone does not grant a client access to every project.
 
+Admin mutations use server-verified organization membership and audited transactions. Internal members may be assigned to any non-archived project; client users may only be assigned to projects whose `clientId` matches their membership. Suspension blocks organization access while retaining assignments. Soft removal sets membership to `removed`, revokes every active project assignment in the same transaction, and preserves historical attribution. A transactional active-admin count prevents demotion, suspension, or removal of the final active administrator. Organization timezone changes alter future scheduling and display/report boundaries but never rewrite stored timestamps.
+
 Suspension preserves project assignments for restoration. Removal preserves historical attribution but marks current assignments removed; returning requires a new invitation. The final active organization admin cannot be suspended or removed.
 
 #### Project
