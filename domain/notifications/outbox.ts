@@ -32,7 +32,12 @@ async function resolveRecipient(db: Firestore, organizationId: string, notificat
     return invitation.status === "pending" && invitation.expiresAt.seconds * 1000 > now.getTime() ? notification.recipientEmail : null;
   }
   if (!notification.recipientUserId) return null;
-  if (notification.type !== "assignment") return notification.recipientEmail;
+  if (notification.type === "digest") {
+    const memberSnapshot = await db.doc(`organizations/${organizationId}/members/${notification.recipientUserId}`).get();
+    if (!memberSnapshot.exists) return null; const member = organizationMemberSchema.parse(memberSnapshot.data());
+    return member.status === "active" && member.role !== "client" && member.email ? member.email : null;
+  }
+  if (notification.type !== "assignment" && notification.type !== "reminder") return notification.recipientEmail;
   const [memberSnapshot, assignmentSnapshot, taskSnapshot] = await Promise.all([
     db.doc(`organizations/${organizationId}/members/${notification.recipientUserId}`).get(),
     db.doc(`organizations/${organizationId}/projects/${notification.projectId}/projectMembers/${notification.recipientUserId}`).get(),

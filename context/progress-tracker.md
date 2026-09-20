@@ -6,9 +6,9 @@ Update this file after every completed feature. A new session should be able to 
 
 **Phase:** Phase 6 — Admin and Email Foundation
 
-**Last completed:** 21 Admin Console
+**Last completed:** 24 Resend Webhooks and Preferences
 
-**Current:** 22 Audit Trail Viewer — implementation and automated verification complete; authenticated browser verification pending
+**Current:** 25 Scheduled Notifications — implementation and automated verification complete; deployment verification pending
 
 **Blockers:** None
 
@@ -71,9 +71,9 @@ Existing checkmarks describe repository presence, not production readiness for t
 ### Phase 6 — Admin and Email Foundation
 
 - [x] 21 Admin Console
-- [ ] 22 Audit Trail Viewer
-- [ ] 23 Resend Outbox and Templates
-- [ ] 24 Resend Webhooks and Preferences
+- [x] 22 Audit Trail Viewer
+- [x] 23 Resend Outbox and Templates
+- [x] 24 Resend Webhooks and Preferences
 - [ ] 25 Scheduled Notifications
 
 ### Phase 7 — Storage and Core Collaboration
@@ -146,6 +146,10 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-20 — Feature 25 — deployment verification pending — added an authenticated hourly notification scheduler, recipient-timezone reminder/digest windows, deterministic enqueue with immediate delivery, due retry scanning, bounded organization/member cursors, run records/counts/failures, and correlated per-organization scheduler audits; review fixes prevent capped members from losing remaining work and make lifecycle auditing explicit; automatic check-ins remain deferred to their Feature 32 domain prerequisite — deploy the Firestore index, configure `CRON_SECRET`, invoke the cron route, and verify one due reminder plus an idempotent repeat
+
+2026-09-20 — Feature 24 — completed — personal notification preferences and verified Resend delivery webhook behavior accepted — start Feature 25 Scheduled Notifications
 
 2026-09-20 — Feature 24 — browser verification pending — added personal timezone/category settings, legacy preference compatibility, signed raw-body Resend webhooks, hashed receipt deduplication, out-of-order event protection, operational delivery states, privacy-preserving engagement-event omission, and hashed bounce/complaint suppression enforced immediately before non-essential delivery; review fixes keep provider outcomes separate from outbox retry state and audit the actual applied/stale/duplicate webhook result; 162 unit tests, 19 Rules tests, typecheck, lint (28 pre-existing warnings), and production build pass — configure webhook secret/endpoint and run settings plus Resend delivery-event smoke
 

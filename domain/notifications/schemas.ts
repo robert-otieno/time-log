@@ -32,7 +32,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
   z.object({ ...common, type: z.literal("invitation"), templateData: z.object({ organizationName: name, inviterName: name, acceptUrl: url }).strict() }).strict(),
   z.object({ ...common, type: z.literal("assignment"), projectId: id, taskId: id, templateData: z.object({ organizationName: name, projectName: name, taskTitle: title, assignedByName: name, taskUrl: url }).strict() }).strict(),
   z.object({ ...common, type: z.literal("mention"), projectId: id, templateData: z.object({ projectName: name, authorName: name, contextLabel: title, targetUrl: url }).strict() }).strict(),
-  z.object({ ...common, type: z.literal("reminder"), projectId: id, templateData: z.object({ projectName: name, itemTitle: title, dueLabel: z.string().trim().min(1).max(120), targetUrl: url }).strict() }).strict(),
+  z.object({ ...common, type: z.literal("reminder"), projectId: id, taskId: id, templateData: z.object({ projectName: name, itemTitle: title, dueLabel: z.string().trim().min(1).max(120), targetUrl: url }).strict() }).strict(),
   z.object({ ...common, type: z.literal("announcement"), projectId: id, templateData: z.object({ projectName: name, announcementTitle: title, authorName: name, targetUrl: url }).strict() }).strict(),
   z.object({ ...common, type: z.literal("digest"), templateData: z.object({ organizationName: name, periodLabel: z.string().trim().min(1).max(120), summary: z.string().trim().min(1).max(1000), targetUrl: url }).strict() }).strict(),
 ]);

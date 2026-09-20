@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseApplicationUrl, parseResendEnvironment, parseResendWebhookSecret } from "@/lib/resend-config";
+import { parseApplicationUrl, parseCronSecret, parseResendEnvironment, parseResendWebhookSecret } from "@/lib/resend-config";
 
 describe("Resend configuration", () => {
   it("parses server email configuration and normalizes the app URL", () => {
@@ -15,5 +15,10 @@ describe("Resend configuration", () => {
   it("validates the server-only webhook signing secret", () => {
     expect(parseResendWebhookSecret({ RESEND_WEBHOOK_SECRET: "whsec_test_secret" })).toBe("whsec_test_secret");
     expect(() => parseResendWebhookSecret({ RESEND_WEBHOOK_SECRET: "invalid" })).toThrow("not configured");
+  });
+  it("requires a strong server-only cron secret", () => {
+    const secret = "a-secure-cron-secret-that-is-long-enough";
+    expect(parseCronSecret({ CRON_SECRET: secret })).toBe(secret);
+    expect(() => parseCronSecret({ CRON_SECRET: "too-short" })).toThrow("not configured");
   });
 });

@@ -304,6 +304,9 @@ Rules:
 - Only sent, delivered, delivery-delayed, bounced, complained, failed, and suppressed events are processed. Opened and clicked events are intentionally ignored to avoid unnecessary engagement tracking.
 - Bounces and complaints create `emailSuppressions/{sha256(normalizedEmail)}` without storing the address. The send-time policy applies these records only to non-essential categories; invitations remain mandatory transactional mail.
 - Versioned personal preferences live at `users/{uid}/preferences/notifications`, are server-written, and include personal timezone, assignments, mentions, reminders, announcements, and `digestFrequency: off | daily | weekly`. Missing records inherit compatible onboarding values.
+- Configure `CRON_SECRET` as a random server-only value of at least 32 characters. Invoke `POST /api/cron/notifications` hourly with an exact `Authorization: Bearer <secret>` header; never expose this value through `NEXT_PUBLIC_*` configuration.
+- Deploy `firestore.indexes.json` before enabling scheduled retries because the due-retry collection-group query requires the `notifications(status, nextAttemptAt)` index.
+- Scheduled message records are created with deterministic IDs before immediate best-effort delivery. Repeated or overlapping runs safely observe the existing record, while the outbox claim lease prevents concurrent provider sends.
 
 Official references:
 

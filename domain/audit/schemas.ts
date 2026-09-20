@@ -30,6 +30,7 @@ export const auditTargetTypeSchema = z.enum([
   "connector",
   "agent-run",
   "preference",
+  "job-run",
 ]);
 
 const timestampSchema = z.custom<{ seconds: number; nanoseconds: number }>(

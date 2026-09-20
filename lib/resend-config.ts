@@ -5,6 +5,7 @@ const schema = z.object({
   RESEND_FROM_EMAIL: z.string().trim().min(1),
 });
 const webhookSchema = z.object({ RESEND_WEBHOOK_SECRET: z.string().trim().regex(/^whsec_/).min(12) });
+const cronSchema = z.object({ CRON_SECRET: z.string().min(32).max(512) });
 
 export type ResendEnvironment = {
   apiKey: string;
@@ -33,4 +34,8 @@ export function parseResendWebhookSecret(environment: Record<string, string | un
   const result = webhookSchema.safeParse(environment);
   if (!result.success) throw new Error("Resend webhook verification is not configured.");
   return result.data.RESEND_WEBHOOK_SECRET;
+}
+
+export function parseCronSecret(environment: Record<string, string | undefined>) {
+  const result = cronSchema.safeParse(environment); if (!result.success) throw new Error("Cron authentication is not configured."); return result.data.CRON_SECRET;
 }
