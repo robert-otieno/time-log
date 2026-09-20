@@ -257,8 +257,10 @@ type TimeEntry = {
   note: string | null;
   billable: boolean;
   clientReportingStatus: "internal" | "approved";
+  correctionCount: number;
   createdBy: string;
   createdAt: Timestamp;
+  updatedBy: string;
   updatedAt: Timestamp;
 };
 ```
@@ -266,6 +268,10 @@ type TimeEntry = {
 One-active-timer enforcement requires a transaction and a global pointer at `users/{uid}/runtime/activeTimer` referencing the project timer. The timer and pointer are server-owned, created atomically, and use one server-generated start timestamp captured for the command. Browser Firestore Rules deny direct reads and writes to both records. Do not rely on a UI check; concurrent tabs must not create two timers.
 
 The authenticated shell reads timer state through server actions. Browser tabs exchange invalidation signals through `BroadcastChannel`, refresh when focus or visibility returns, and poll conservatively while visible; every refresh re-reads the server-owned pointer. Browser time is used only to display elapsed time relative to the serialized server start instant. The interface retains its last known timer during network loss and never treats cross-tab messaging as authoritative state.
+
+Document Picture-in-Picture is a progressive enhancement for supported secure browsers and opens only from an explicit user gesture. Its always-on-top timer is a React portal over the same authenticated timer state, not a second source of truth. Closing it leaves the timer running; stopping from it invokes the normal audited server action and deliberately saves the existing note as internal, non-billable time. Unsupported browsers keep the in-page control, while all browsers receive a live elapsed-time and task browser-tab title during active tracking.
+
+Stopping a timer atomically creates its time entry and removes both active-timer records. Manual entries and corrections accept start/end instants, while the server calculates and validates integer duration seconds. New entries are non-billable and internal unless explicitly changed. Corrections update the record in a transaction, increment `correctionCount`, identify `updatedBy`, and append an audit event; the product never silently rewrites time history.
 
 ### Audit Event
 

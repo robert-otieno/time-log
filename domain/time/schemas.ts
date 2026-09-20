@@ -27,6 +27,49 @@ export const startTimerCommandSchema = z.object({
   note: z.string().trim().max(2000).nullable().default(null),
 }).strict();
 
+export const clientReportingStatusSchema = z.enum(["internal", "approved"]);
+
+export const timeEntrySchema = z.object({
+  id: idSchema,
+  organizationId: idSchema,
+  projectId: idSchema,
+  taskId: idSchema.nullable(),
+  userId: idSchema,
+  source: z.enum(["timer", "manual"]),
+  startedAt: timestampSchema,
+  endedAt: timestampSchema,
+  durationSeconds: z.number().int().positive().max(31_622_400),
+  note: z.string().trim().max(2000).nullable(),
+  billable: z.boolean(),
+  clientReportingStatus: clientReportingStatusSchema,
+  correctionCount: z.number().int().min(0),
+  createdBy: idSchema,
+  createdAt: timestampSchema,
+  updatedBy: idSchema,
+  updatedAt: timestampSchema,
+}).strict();
+
+const entryFields = {
+  note: z.string().trim().max(2000).nullable().default(null),
+  billable: z.boolean().default(false),
+  clientReportingStatus: clientReportingStatusSchema.default("internal"),
+};
+export const stopTimerCommandSchema = z.object(entryFields).strict();
+export const createManualEntryCommandSchema = z.object({
+  taskId: idSchema.nullable().default(null),
+  startedAt: z.string().datetime({ offset: true }),
+  endedAt: z.string().datetime({ offset: true }),
+  ...entryFields,
+}).strict();
+export const correctTimeEntryCommandSchema = z.object({
+  entryId: idSchema,
+  taskId: idSchema.nullable(),
+  startedAt: z.string().datetime({ offset: true }),
+  endedAt: z.string().datetime({ offset: true }),
+  ...entryFields,
+}).strict();
+
 export type ActiveTimer = z.infer<typeof activeTimerSchema>;
 export type ActiveTimerPointer = z.infer<typeof activeTimerPointerSchema>;
 export type StartTimerCommand = z.infer<typeof startTimerCommandSchema>;
+export type TimeEntry = z.infer<typeof timeEntrySchema>;

@@ -155,6 +155,13 @@ describe("organization Firestore rules", () => {
     await assertFails(getDoc(doc(memberDb, "organizations/org-a/projects/project-1/activeTimers/member")));
   });
 
+  it("keeps time entries server-authored", async () => {
+    const path = "organizations/org-a/projects/project-1/timeEntries/entry-1";
+    await assertFails(setDoc(doc(dbFor("member"), path), { durationSeconds: 60 }));
+    await assertFails(updateDoc(doc(dbFor("admin"), path), { durationSeconds: 120 }));
+    await assertFails(getDoc(doc(dbFor("client-user"), path)));
+  });
+
   it("preserves isolated legacy user data", async () => {
     await assertSucceeds(getDoc(doc(dbFor("member"), "users/member/daily_tasks/task-1")));
     await assertFails(getDoc(doc(dbFor("admin"), "users/member/daily_tasks/task-1")));

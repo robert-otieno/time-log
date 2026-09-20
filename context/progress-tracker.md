@@ -6,9 +6,9 @@ Update this file after every completed feature. A new session should be able to 
 
 **Phase:** Phase 5 — Time Tracking
 
-**Last completed:** 17 Active Timer Domain
+**Last completed:** 18 Global Timer UI
 
-**Current:** 18 Global Timer UI — implementation complete; authenticated browser and final production-build verification pending
+**Current:** 19 Stop Timer and Time Entries — implementation complete; authenticated browser and final production-build verification pending
 
 **Blockers:** None
 
@@ -64,7 +64,7 @@ Existing checkmarks describe repository presence, not production readiness for t
 ### Phase 5 — Time Tracking
 
 - [x] 17 Active Timer Domain
-- [ ] 18 Global Timer UI
+- [x] 18 Global Timer UI
 - [ ] 19 Stop Timer and Time Entries
 - [ ] 20 Time Views and Reports
 
@@ -146,6 +146,12 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-20 — Global timer enhancement — automated verification complete — added a capability-gated Document Picture-in-Picture “Keep timer visible” control, compact always-on-top active-task timer, audited Stop & save using explicit internal/non-billable defaults, PiP lifecycle cleanup, permission failure feedback, and a live elapsed/task browser-title fallback; 129 unit tests, typecheck, and lint (28 pre-existing warnings) pass — run authenticated supported-browser PiP/open/minimize/close/stop smoke alongside Feature 19 browser verification
+
+2026-09-20 — Feature 19 — verification pending — added atomic stop-to-entry conversion and timer cleanup, server-calculated durations, final notes, billable and client-reporting controls, manual entries, member/admin task policy, recent project entries, audited authorized corrections with correction counts, audited invalid-range failures, cross-tab stop invalidation, and server-only entry Rules; 129 unit tests, 18 Rules tests, typecheck, and lint (28 pre-existing warnings) pass — run authenticated stop/manual/correction/client-isolation smoke and rerun production build after stopping dev
+
+2026-09-20 — Feature 18 — completed — global timer placement refined to a bottom-center floating control with authenticated page clearance; user directed progression to the stop/time-entry lifecycle — start Feature 19
 
 2026-09-20 — Feature 18 — verification pending — added the persistent responsive timer control, lazy authorized project/task launcher, admin project-level option, member task requirement, audited inline task creation, server-authoritative elapsed display, active project/task/note/start context, duplicate-start recovery, BroadcastChannel/focus/visibility/30-second cross-tab refresh, retained state with Offline/Sign in feedback, My Work preselection, and a real project Time route; 124 unit tests, typecheck, and lint (28 pre-existing warnings) pass; production compilation passed but final build could not be rerun while the developer's Next dev process held `.next` — run authenticated start/refresh/navigation/second-tab/offline smoke and rerun build after stopping dev
 

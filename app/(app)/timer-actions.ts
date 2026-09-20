@@ -4,11 +4,12 @@ import { z } from "zod";
 import { createRequestCorrelation } from "@/domain/audit/correlation";
 import { AuditedCommandError } from "@/domain/audit/command";
 import { OrganizationRepository } from "@/domain/organizations/repository";
-import { listAccessibleProjects } from "@/domain/projects/service";
+import { getAccessibleProject, listAccessibleProjects } from "@/domain/projects/service";
 import { createTask } from "@/domain/tasks/service";
 import { TaskRepository } from "@/domain/tasks/repository";
-import { getActiveTimer, startTimer } from "@/domain/time/service";
-import type { ActiveTimer } from "@/domain/time/schemas";
+import { correctTimeEntry, createManualTimeEntry, getActiveTimer, startTimer, stopTimer } from "@/domain/time/service";
+import type { ActiveTimer, TimeEntry } from "@/domain/time/schemas";
+import { TimeRepository } from "@/domain/time/repository";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getActiveOrganizationId, getSessionActor } from "@/lib/server-session";
 
@@ -37,6 +38,8 @@ export type TimerLaunchOptions = {
   projects: TimerLaunchProject[];
 };
 
+export type TimeEntryView = { id: string; taskId: string | null; taskTitle: string | null; userId: string; source: "timer" | "manual"; startedAt: string; endedAt: string; durationSeconds: number; note: string | null; billable: boolean; clientReportingStatus: "internal" | "approved"; correctionCount: number; canCorrect: boolean };
+
 function timestampToIso(timestamp: { seconds: number; nanoseconds: number }) {
   return new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1_000_000).toISOString();
 }
@@ -58,6 +61,10 @@ async function toTimerView(timer: ActiveTimer): Promise<TimerView> {
     startedAt: timestampToIso(timer.startedAt),
     observedAt: new Date().toISOString(),
   };
+}
+
+function toEntryView(entry: TimeEntry, taskTitle: string | null, canCorrect: boolean): TimeEntryView {
+  return { id: entry.id, taskId: entry.taskId, taskTitle, userId: entry.userId, source: entry.source, startedAt: timestampToIso(entry.startedAt), endedAt: timestampToIso(entry.endedAt), durationSeconds: entry.durationSeconds, note: entry.note, billable: entry.billable, clientReportingStatus: entry.clientReportingStatus, correctionCount: entry.correctionCount, canCorrect };
 }
 
 export async function loadTimerStateAction() {
@@ -148,4 +155,38 @@ export async function createTimerTaskAction(raw: unknown) {
   } catch {
     return { ok: false as const, code: "task_create_failed" as const };
   }
+}
+
+const entrySettingsSchema = z.object({ note: z.string().trim().max(2000).nullable(), billable: z.boolean(), clientReportingStatus: z.enum(["internal", "approved"]) }).strict();
+
+export async function stopTimerAction(raw: unknown) {
+  const actor = await getSessionActor(); if (!actor) return { ok: false as const, code: "session_expired" as const };
+  try { const entry = await stopTimer(actor, entrySettingsSchema.parse(raw), createRequestCorrelation()); return { ok: true as const, entryId: entry.id }; }
+  catch (error) { if (error instanceof AuditedCommandError) return { ok: false as const, code: error.reasonCode }; return { ok: false as const, code: "timer_stop_failed" as const }; }
+}
+
+const manualActionSchema = entrySettingsSchema.extend({ projectId: z.string().min(1).max(128), taskId: z.string().min(1).max(128).nullable(), startedAt: z.string().datetime({ offset: true }), endedAt: z.string().datetime({ offset: true }) }).strict();
+export async function createManualTimeEntryAction(raw: unknown) {
+  const actor = await getSessionActor(); if (!actor) return { ok: false as const, code: "session_expired" as const };
+  try { const input = manualActionSchema.parse(raw); const organizationId = await getActiveOrganizationId(actor); const entry = await createManualTimeEntry(actor, organizationId, input.projectId, input, createRequestCorrelation()); return { ok: true as const, entryId: entry.id }; }
+  catch (error) { if (error instanceof AuditedCommandError) return { ok: false as const, code: error.reasonCode }; return { ok: false as const, code: "time_entry_failed" as const }; }
+}
+
+const correctionActionSchema = manualActionSchema.extend({ entryId: z.string().min(1).max(128) }).strict();
+export async function correctTimeEntryAction(raw: unknown) {
+  const actor = await getSessionActor(); if (!actor) return { ok: false as const, code: "session_expired" as const };
+  try { const input = correctionActionSchema.parse(raw); const organizationId = await getActiveOrganizationId(actor); const entry = await correctTimeEntry(actor, organizationId, input.projectId, input, createRequestCorrelation()); return { ok: true as const, entryId: entry.id }; }
+  catch (error) { if (error instanceof AuditedCommandError) return { ok: false as const, code: error.reasonCode }; return { ok: false as const, code: "time_correction_failed" as const }; }
+}
+
+export async function loadProjectTimeData(projectId: string) {
+  const actor = await getSessionActor(); if (!actor) return null;
+  const organizationId = await getActiveOrganizationId(actor); const access = await getAccessibleProject(actor, organizationId, projectId);
+  if (!access || access.role === "client" || !access.project.enabledTools.includes("time")) return null;
+  const [entries, tasks] = await Promise.all([
+    new TimeRepository().listRecentEntries(organizationId, projectId, 20),
+    new TaskRepository().list(organizationId, projectId, { includeArchived: false, limit: 100 }, { kind: "all" }),
+  ]);
+  const taskTitles = new Map(tasks.map((task) => [task.id, task.title]));
+  return { role: access.role, project: { id: projectId, name: access.project.name }, tasks: tasks.map(({ id, title }) => ({ id, title })), entries: entries.filter((entry) => access.role === "admin" || entry.userId === actor.uid).map((entry) => toEntryView(entry, entry.taskId ? taskTitles.get(entry.taskId) ?? "Unavailable task" : null, access.role === "admin" || entry.userId === actor.uid)) };
 }

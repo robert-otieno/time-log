@@ -414,12 +414,31 @@ Last updated: 2026-09-20
 | Border radius | Control `rounded-xl`; inset states `rounded-lg`; canonical form controls |
 | Text — primary | Active task `text-sm font-medium`; canonical Dialog title and labels |
 | Text — secondary | Project/start/note context `text-xs text-muted-foreground`; guidance `text-sm text-muted-foreground` |
-| Spacing | Control `gap-3 p-3`; launcher `space-y-4`; inline creation `space-y-2 p-3` |
-| Interactive state | Canonical Button/Select focus and pressed states; pending buttons disable and show `animate-spin` |
+| Spacing | Control `gap-3 p-3`; launcher `space-y-4`; inline creation `space-y-2 p-3`; authenticated content reserves `pb-28` |
+| Interactive state | Canonical Button/Select focus and pressed states; pending buttons disable and show `animate-spin`; supported active timers expose a labeled Picture-in-Picture icon button |
 | Shadow | Floating control `shadow-lg`; canonical Dialog/control shadows |
 | Accent usage | Semantic `bg-primary` live dot, secondary elapsed badge, destructive session badge |
 
-**Pattern notes:** The global timer remains compact and persistent: bottom floating on narrow screens and aligned within the header region on larger screens. A running state always shows project, task or project-level label, server start time, elapsed time, and optional note. Launcher failures stay inline, network loss retains the last known timer with an Offline badge, and session expiry exposes a direct Sign in action. Task creation remains internal by default and is completed before starting the timer.
+**Pattern notes:** The global timer remains compact, persistent, and centered above the bottom viewport edge at every breakpoint. Authenticated content reserves `pb-28` whenever the control is available so final rows and actions remain unobscured. A running state always shows project, task or project-level label, server start time, elapsed time, and optional note. Supported secure browsers expose “Keep timer visible,” which opens a compact Document Picture-in-Picture surface using the same semantic tokens and a direct Stop & save action. Unsupported browsers retain the normal timer without a disabled control, and every active timer updates the tab title with elapsed time and task as the universal fallback. Launcher failures stay inline, network loss retains the last known timer with an Offline badge, and session expiry exposes a direct Sign in action. Task creation remains internal by default and is completed before starting the timer.
+
+### Time entry stop, manual entry, and correction
+
+Files: `components/time/global-timer-control.tsx`, `components/time/project-time-entries.tsx`, `app/(app)/projects/[projectId]/time/page.tsx`
+Last updated: 2026-09-20
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical Card/Dialog; empty and inline guidance use `bg-muted/30` where appropriate |
+| Border | Entry rows and empty states use semantic `border` |
+| Border radius | Entry rows `rounded-lg`; canonical dialog and controls |
+| Text — primary | Entry task `font-medium`; canonical Card/Dialog titles |
+| Text — secondary | Entry metadata and policy guidance `text-sm text-muted-foreground` / `text-xs text-muted-foreground` |
+| Spacing | Entry list `space-y-3`; rows `gap-3 p-4`; forms `space-y-4` |
+| Interactive state | Stop/save actions disable with spinner and explicit pending text; correction uses labeled icon button |
+| Shadow | Canonical Card, Dialog, and control shadows |
+| Accent usage | Semantic billable/reporting badges; primary save/stop actions; destructive inline errors |
+
+**Pattern notes:** Stop confirmation preserves the running timer until the server atomically returns success. Manual entry and correction share the same task, Shadcn date/time, note, billable, and reporting controls. Duration is display-only in the browser and always derived by the server. Corrections remain compact entry-row actions and explicitly explain audit preservation.
 
 ## Patterns to Retire
 

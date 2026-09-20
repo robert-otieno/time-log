@@ -16,6 +16,8 @@ export default async function AuthenticatedLayout({
     loadTimerStateAction(),
     new OrganizationRepository().getMembership(organizationId, actor.uid),
   ]);
+  const canTrack = hasCapability(membership, "time.track");
+  const initialTimer = timerState.ok ? timerState.timer : null;
 
-  return <><GlobalTimerControl initialTimer={timerState.ok ? timerState.timer : null} canTrack={hasCapability(membership, "time.track")} />{children}</>;
+  return <><GlobalTimerControl initialTimer={initialTimer} canTrack={canTrack} /><div className={canTrack || initialTimer ? "pb-28" : undefined}>{children}</div></>;
 }
