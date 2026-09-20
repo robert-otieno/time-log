@@ -49,7 +49,7 @@ export default async function ProjectLayout({
           </Badge>
         </div>
         {access.role === "client" && <ClientPortalBanner />}
-        <ProjectToolNav projectId={projectId} availableTools={availableTools} />
+        <ProjectToolNav projectId={projectId} availableTools={availableTools} showActivity={access.role !== "client"} />
       </header>
       {access.project.status !== "active" && (
         <div className="rounded-lg border bg-muted/40 p-4 text-sm">

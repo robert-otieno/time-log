@@ -352,6 +352,8 @@ request or background invocation
 - Retention and export policy are organization settings introduced before production; security-critical events must not be silently expired.
 - High-volume UI telemetry such as hover, focus, keystroke, scroll, or each timer display tick is excluded. It belongs in optional analytics, not the audit trail.
 
+The activity viewer reads audit events only through server-authorized queries. Admins may inspect organization or project history; internal members are restricted to actively assigned projects; clients have no audit access. Viewer ranges are capped at one year and use opaque timestamp/document cursors with 50 visible results. Admin-only CSV/JSON exports are audited, capped at 90 days and 5,000 matching events, and CSV text is neutralized against spreadsheet formulas.
+
 ## Storage Architecture
 
 Binary objects live at opaque, tenant-scoped paths:
@@ -388,6 +390,9 @@ domain event
 - Webhook events can arrive out of order; compare event timestamps before moving status backward.
 - Unsubscribed or disabled notification categories are suppressed before send.
 - Invitation and security email are not mixed with marketing mail.
+- Notification documents use a typed category payload and a five-minute transactional claim lease. Completed and suppressed records are terminal; failed records retain a bounded `nextAttemptAt` for the scheduled retry worker.
+- Invitation and assignment delivery is active. Mention, reminder, announcement, and digest templates are versioned in the repository and remain dormant until their owning workflows enqueue them.
+- Assignment intent is created atomically with the task mutation only for newly added internal assignees. The delivery worker re-checks active membership, project assignment, task existence, archive state, and current assignment immediately before sending.
 
 ## AI Agent Architecture
 

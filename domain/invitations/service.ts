@@ -65,9 +65,10 @@ export async function createInvitation(actor: AuthActor, organizationId: string,
         createdBy: actor.uid, createdAt: now, updatedAt: now,
       });
       transaction.create(notificationRef, {
-        type: "invitation", recipientEmail: email,
+        type: "invitation", recipientEmail: email, recipientUserId: null,
         templateData: { organizationName: organization.name, inviterName: actor.displayName?.trim() || "An administrator", acceptUrl: `${appUrl}/invitations/${organizationId}/${invitationRef.id}?token=${encodeURIComponent(token)}` },
         status: "queued", idempotencyKey: `invitation/${invitationRef.id}`, providerMessageId: null, attemptCount: 0, lastErrorCode: null,
+        claimId: null, claimExpiresAt: null, nextAttemptAt: null,
         createdAt: now, updatedAt: now,
       });
       return { invitationId: invitationRef.id, notificationId: notificationRef.id, token, clientCreated: command.client.mode === "create", clientId: clientRef?.id ?? null };

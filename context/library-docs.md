@@ -295,6 +295,10 @@ Rules:
 - Invitation creation writes `organizations/{organizationId}/notifications/{invitationId}` in the same transaction as the hashed invitation. Provider delivery happens afterward through `deliverNotification`; failures retain durable retry state.
 - Invitation mail uses deterministic key `invitation/{invitationId}` and stores provider identifiers only in the server-only notification record.
 - `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are validated lazily on the server. `NEXT_PUBLIC_APP_URL` is mandatory in production and defaults to `http://localhost:3000` only in development. The API key never enters a client module.
+- Templates live in `emails/templates.ts`, render both escaped HTML and plain text, and accept only category-specific Zod-validated data. Resend-hosted templates are not required for application delivery.
+- The outbox uses a five-minute Firestore claim lease. A pending, failed, or expired-processing record may be claimed; sent and suppressed records are terminal, and active claims are skipped.
+- The worker resolves and re-authorizes recipients immediately before sending. Invitation state is rechecked; assignment delivery requires an active internal member with an email address, active project assignment, active non-archived task, and current assignee membership. Assignment intent is still persisted when the member has no stored email so suppression remains observable.
+- Failed provider attempts retain a safe error code and bounded exponential `nextAttemptAt`. Feature 25 owns scheduled retry scanning; interactive workflows only make an immediate best-effort attempt after their transaction commits.
 
 Official references:
 

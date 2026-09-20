@@ -478,6 +478,25 @@ Last updated: 2026-09-20
 
 **Pattern notes:** The console leads with four compact health totals, then gives people/access management the widest surface. Role, suspension, removal, project-access removal, and timezone changes explain consequences before consequential changes. Canonical project settings remain linked rather than duplicated. Recent administration is intentionally compact; full audit exploration belongs to the dedicated viewer.
 
+### Audit trail viewer
+
+Files: `components/audit/audit-viewer.tsx`, `app/(app)/activity/page.tsx`, `app/(app)/projects/[projectId]/activity/page.tsx`
+Last updated: 2026-09-20
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical Card; filters `bg-muted/20`; details `bg-muted/30` |
+| Border | Event rows and filter surface use semantic `border` |
+| Border radius | Events and filter surfaces use `rounded-lg`; details use `rounded-md` |
+| Text — primary | Event summaries `font-medium`; page title `text-3xl font-semibold tracking-tight` |
+| Text — secondary | Actor, project, timestamps, and support details use `text-muted-foreground` |
+| Spacing | Viewer `space-y-5`; event rows `p-4`; compact details `p-3` |
+| Interactive state | Canonical buttons and inputs; native selects match semantic control tokens |
+| Shadow | Canonical Card and control shadows only |
+| Accent usage | Outcome badges are outline by default and destructive for denied/failed events |
+
+**Pattern notes:** Audit events remain compact until correlation details are expanded. Filters precede results, empty states never imply hidden client data, pagination uses a single Next action, and exports remain admin-only adjacent actions.
+
 ## Patterns to Retire
 
 - Product name “Visio Genesis” in login, header, or metadata.

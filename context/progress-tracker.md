@@ -6,9 +6,9 @@ Update this file after every completed feature. A new session should be able to 
 
 **Phase:** Phase 6 — Admin and Email Foundation
 
-**Last completed:** 20 Time Views and Reports
+**Last completed:** 21 Admin Console
 
-**Current:** 21 Admin Console — implementation and automated verification complete; authenticated browser verification pending
+**Current:** 22 Audit Trail Viewer — implementation and automated verification complete; authenticated browser verification pending
 
 **Blockers:** None
 
@@ -70,7 +70,7 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ### Phase 6 — Admin and Email Foundation
 
-- [ ] 21 Admin Console
+- [x] 21 Admin Console
 - [ ] 22 Audit Trail Viewer
 - [ ] 23 Resend Outbox and Templates
 - [ ] 24 Resend Webhooks and Preferences
@@ -146,6 +146,12 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-20 — Feature 23 — browser verification pending — added typed invitation/assignment/mention/reminder/announcement/digest notification records, repository-owned branded HTML/text templates, transactional claim leases, permanent logical idempotency, recipient re-authorization and suppression, retry scheduling metadata, invitation migration, and atomic task-assignment email enqueue with immediate best-effort delivery; review fixes preserve email-less assignment intent and convert recipient-resolution faults into audited retryable failures; 150 unit tests, 18 Rules tests, typecheck, lint (28 pre-existing warnings), and production build pass — run invitation and assignment browser smoke
+
+2026-09-20 — Feature 22 — completed — organization and project activity views, guarded exports, correlation details, client denial, and export auditing accepted — start Feature 23 Resend Outbox and Templates
+
+2026-09-20 — Feature 22 — browser verification pending — added admin organization activity, assigned-member project activity, client denial, safe summaries, one-year filters, opaque cursor pagination, correlation details, admin-only CSV/JSON exports, 90-day/5,000-event export guards, CSV formula neutralization, and succeeded/denied/failed export audits; review fixes added the Admin Console entry point and denied-export auditing; 140 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass — run role/browser/export smoke
 
 2026-09-20 — Feature 21 — browser verification pending — added an audited admin-only organization console, organization/client health summaries, client-company directory, role management, last-active-admin protection, confirmed suspension/removal/demotion, atomic soft removal assignment cleanup, client-owned project assignment enforcement, archived-project assignment prevention, organization name/timezone settings with timezone confirmation, canonical project links, and recent administrative history; 140 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass — run admin/member/client browser smoke
 

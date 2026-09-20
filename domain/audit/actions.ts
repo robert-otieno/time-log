@@ -18,6 +18,8 @@ export const AUDIT_ACTIONS = [
   "organization.membership.removed",
   "organization.settings.updated",
   "organization.admin.viewed",
+  "audit.export.succeeded",
+  "audit.export.failed",
   "project.record.created",
   "project.record.updated",
   "project.record.archived",
@@ -43,6 +45,7 @@ export const AUDIT_ACTIONS = [
   "notification.email.queued",
   "notification.email.sent",
   "notification.email.failed",
+  "notification.email.suppressed",
   "approval.request.created",
   "approval.request.approved",
   "approval.request.rejected",
@@ -79,6 +82,7 @@ export const SAFE_AUDIT_FIELDS = [
   "projectCreated",
   "nameChanged",
   "timezoneChanged",
+  "exportFormat",
 ] as const;
 
 export type SafeAuditField = (typeof SAFE_AUDIT_FIELDS)[number];
@@ -106,6 +110,8 @@ export const AUDIT_CHANGE_ALLOWLIST = {
   "organization.membership.removed": ["membershipStatus"] as const,
   "organization.settings.updated": ["nameChanged", "timezoneChanged"] as const,
   "organization.admin.viewed": NONE,
+  "audit.export.succeeded": ["exportFormat"] as const,
+  "audit.export.failed": ["exportFormat"] as const,
   "project.record.created": ["projectStatus"] as const,
   "project.record.updated": ["projectStatus", "enabled"] as const,
   "project.record.archived": ["projectStatus"] as const,
@@ -131,6 +137,7 @@ export const AUDIT_CHANGE_ALLOWLIST = {
   "notification.email.queued": ["deliveryStatus"] as const,
   "notification.email.sent": ["deliveryStatus"] as const,
   "notification.email.failed": ["deliveryStatus"] as const,
+  "notification.email.suppressed": ["deliveryStatus"] as const,
   "approval.request.created": ["approvalStatus"] as const,
   "approval.request.approved": ["approvalStatus"] as const,
   "approval.request.rejected": ["approvalStatus"] as const,

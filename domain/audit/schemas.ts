@@ -79,6 +79,7 @@ const safeFieldValueSchemas = {
   projectCreated: z.boolean(),
   nameChanged: z.boolean(),
   timezoneChanged: z.boolean(),
+  exportFormat: z.enum(["csv", "json"]),
 } satisfies Record<SafeAuditField, z.ZodType>;
 
 export function safeAuditFieldValue(
