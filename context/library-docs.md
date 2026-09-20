@@ -204,6 +204,10 @@ Project task persistence pattern:
 - Internal task reads may request archived records for the explicit Archived view. Client queries must continue to constrain `archivedAt == null` and never disclose archived counts.
 - My Work starts from `listAccessibleProjects`, retains only active projects with To-dos enabled, then issues bounded per-project task queries constrained by the current user's `assigneeIds`. Completed and archived tasks are removed before grouping; never use a collection-group task query without independently preserving project authorization.
 - Group My Work deadlines with the organization's configured timezone. Prefer the timezone-free `dueDate` field; only derive a calendar date from `dueAt` for compatibility with older timed deadlines.
+- Legacy task migration reads only the authenticated user's `users/{uid}/daily_tasks` and `daily_subtasks`, validates records with permissive source/strict supported-field schemas, and never mutates those collections.
+- Destination IDs are deterministic SHA-256-derived IDs scoped by user, source collection, and source document ID. Every migrated task stores `migrationSource`; retries verify this metadata before treating an existing destination as already migrated.
+- Migration transactions are capped at 350 task writes so the destination records, migration marker, and correlated audit event remain within Firestore transaction limits. Large migrations return `pending` and continue safely in another run.
+- The first successful run locks the marker to its target project. Conflicting destination IDs and malformed/orphaned source records are skipped and reported; they are never overwritten or silently described as reconciled.
 
 Official references:
 

@@ -364,6 +364,25 @@ Last updated: 2026-09-18
 
 **Pattern notes:** Cross-project work is grouped by due state rather than project. Keep project identity visible on every row, use a secondary outline Track time action only when Time tracking is enabled, and omit empty groups. A completely empty queue uses one calm Card with a Projects action.
 
+### Legacy task migration card
+
+File: `components/tasks/legacy-migration-card.tsx`
+Last updated: 2026-09-18
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical Card; icon and result surfaces `bg-muted/40` / `bg-muted/30` |
+| Border | Canonical Card and summary/result `border` |
+| Border radius | Summary `rounded-md`; result `rounded-lg`; canonical dialog |
+| Text — primary | Canonical Card title; summary count `text-2xl font-semibold tabular-nums` |
+| Text — secondary | `text-sm text-muted-foreground` for safety guidance and reconciliation |
+| Spacing | Card body `space-y-4`; summary and form controls `gap-3`; inset results `p-4` |
+| Hover state | Canonical Select and Button states |
+| Shadow | Canonical Card, control, and dialog shadows |
+| Accent usage | Semantic primary confirmation; `text-destructive` safe errors |
+
+**Pattern notes:** Migration is preview-first and never starts from the project selector alone. Show source counts and unmapped-field summaries before confirmation, repeat the non-destructive guarantee in the dialog, disable dismissal while pending, and keep created/already-migrated/skipped/conflict/remaining reconciliation visible after every run.
+
 ## Patterns to Retire
 
 - Product name “Visio Genesis” in login, header, or metadata.

@@ -23,6 +23,7 @@ export const projectTaskSchema = z.object({
   sortOrder: z.number().finite().min(0),
   completedAt: timestamp.nullable(),
   archivedAt: timestamp.nullable(),
+  migrationSource: z.object({ kind: z.literal("legacy-user-v1"), sourceCollection: z.enum(["daily_tasks", "daily_subtasks"]), sourceId: id, sourcePath: z.string().trim().min(1).max(512), version: z.literal(1), migratedAt: timestamp }).strict().nullable().default(null),
   createdBy: id,
   createdAt: timestamp,
   updatedBy: id,

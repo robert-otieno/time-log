@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProjectForm } from "@/components/projects/project-form";
+import { LegacyMigrationCard } from "@/components/tasks/legacy-migration-card";
 import { OrganizationRepository } from "@/domain/organizations/repository";
 import { toProjectFormClient } from "@/domain/projects/form-data";
 import { listAccessibleProjects, listActiveProjectClients } from "@/domain/projects/service";
+import { previewLegacyTaskMigration } from "@/domain/tasks/migration";
 import { getActiveOrganizationId, getSessionActor } from "@/lib/server-session";
 
 export default async function ProjectsPage() {
@@ -21,6 +23,7 @@ export default async function ProjectsPage() {
   const active = projects.filter((project) => project.status !== "archived");
   const archived = projects.filter((project) => project.status === "archived");
   const isClient = membership.role === "client";
+  const migrationPreview = isClient ? null : await previewLegacyTaskMigration(actor, organizationId);
 
   return <main className="mx-auto max-w-7xl space-y-8 p-4 sm:p-6">
     <div><h1 className="text-3xl font-semibold tracking-tight">Projects</h1><p className="text-muted-foreground">{isClient ? "Projects shared with your client account." : "Create workspaces and choose the tools each project needs."}</p></div>
@@ -31,5 +34,6 @@ export default async function ProjectsPage() {
       </section>
       {membership.role === "admin" && <Card className="h-fit"><CardHeader><CardTitle>Create project</CardTitle><CardDescription>Starts blank with To-dos and Time tracking.</CardDescription></CardHeader><CardContent><ProjectForm clients={clients.map(toProjectFormClient)} /></CardContent></Card>}
     </div>
+    {migrationPreview && <LegacyMigrationCard preview={migrationPreview} projects={active.filter((project) => project.status === "active" && project.enabledTools.includes("todos")).map(({ id, name, key }) => ({ id, name, key }))} />}
   </main>;
 }

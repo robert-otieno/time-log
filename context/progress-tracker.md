@@ -8,7 +8,7 @@ Update this file after every completed feature. A new session should be able to 
 
 **Last completed:** 15 My Work
 
-**Current:** 16 Legacy Task Migration — planning
+**Current:** 16 Legacy Task Migration — implementation and automated verification in progress
 
 **Blockers:** None
 
@@ -142,6 +142,8 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-18 — Feature 16 — verification pending — added preview-first non-destructive legacy task/subtask migration, strict supported-field mapping, deterministic destination IDs, nested task conversion, internal visibility and self-assignment, unmapped/invalid reporting, bounded resumable transactions, target locking, reconciliation marker updates, correlated audit events, and Projects-page confirmation/results UI; 114 unit tests, typecheck, lint (28 legacy warnings), and production build pass — run authenticated browser smoke with empty, populated, retry, and issue-reporting states
 
 2026-09-18 — Feature 15 — completed — authenticated browser smoke accepted; My Work aggregation, due groups, navigation, timer handoff, empty state, and client redirect are ready — start Feature 16 Legacy Task Migration
 

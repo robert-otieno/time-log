@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createTaskCommandSchema, projectTaskSchema, taskQuerySchema } from "@/domain/tasks/schemas";
 
 const timestamp = { seconds: 1, nanoseconds: 0 };
-const task = { id: "t1", projectId: "p1", title: "Draft", description: null, assigneeIds: ["u1"], status: "todo", priority: "high", dueDate: null, dueAt: null, dueTimeSet: false, visibility: "internal", parentTaskId: null, boardColumnId: null, sortOrder: 1, completedAt: null, archivedAt: null, createdBy: "u1", createdAt: timestamp, updatedBy: "u1", updatedAt: timestamp };
+const task = { id: "t1", projectId: "p1", title: "Draft", description: null, assigneeIds: ["u1"], status: "todo", priority: "high", dueDate: null, dueAt: null, dueTimeSet: false, visibility: "internal", parentTaskId: null, boardColumnId: null, sortOrder: 1, completedAt: null, archivedAt: null, migrationSource: null, createdBy: "u1", createdAt: timestamp, updatedBy: "u1", updatedAt: timestamp };
 
 describe("project task schemas", () => {
   it("parses the canonical task document", () => expect(projectTaskSchema.parse(task)).toEqual(task));

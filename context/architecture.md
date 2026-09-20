@@ -215,6 +215,14 @@ type ProjectTask = {
   sortOrder: number;
   completedAt: Timestamp | null;
   archivedAt: Timestamp | null;
+  migrationSource: {
+    kind: "legacy-user-v1";
+    sourceCollection: "daily_tasks" | "daily_subtasks";
+    sourceId: string;
+    sourcePath: string;
+    version: 1;
+    migratedAt: Timestamp;
+  } | null;
   createdBy: string;
   createdAt: Timestamp;
   updatedBy: string;
@@ -426,7 +434,7 @@ verify client session
 2. Add Firebase Admin and server sessions without changing existing UI behavior.
 3. Create organization/project collections and security rules beside legacy collections.
 4. Bootstrap each existing user into a personal organization and migration project.
-5. Copy or transform legacy tasks only through an idempotent migration with reconciliation counts.
+5. Copy or transform legacy tasks only through the preview-first, idempotent migration. Deterministic destination IDs and `migrationSource` metadata prevent duplicates; the source remains untouched. Runs are bounded and resumable, lock to the first selected target project, and record created/already-migrated/skipped/conflict/remaining reconciliation counts.
 6. Keep legacy reads available behind a temporary compatibility layer.
 7. Cut features to project collections one slice at a time; remove legacy writes after verification.
 
