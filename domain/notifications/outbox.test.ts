@@ -52,4 +52,16 @@ describe("notification delivery", () => {
     expect(send).not.toHaveBeenCalled();
     expect(env.records["organizations/o1/notifications/n1"]).toMatchObject({ status: "failed", lastErrorCode: "recipient_resolution_error", claimId: null });
   });
+
+  it("suppresses a non-essential assignment disabled in user preferences", async () => {
+    const assignmentNotice = { ...notification, type: "assignment", recipientEmail: "person@example.com", recipientUserId: "u2", projectId: "p1", taskId: "t1", idempotencyKey: "assignment/n1", templateData: { organizationName: "Acme", projectName: "Site", taskTitle: "Draft", assignedByName: "Casey", taskUrl: "https://example.com/task" } };
+    const env = environment(assignmentNotice);
+    env.records["organizations/o1/members/u2"] = { userId: "u2", email: "person@example.com", displayName: "Person", role: "member", status: "active", clientId: null, joinedAt: timestamp };
+    env.records["organizations/o1/projects/p1/projectMembers/u2"] = { userId: "u2", status: "active", assignedBy: "u1", assignedAt: timestamp, removedAt: null };
+    env.records["organizations/o1/projects/p1/tasks/t1"] = { projectId: "p1", title: "Draft", description: null, assigneeIds: ["u2"], status: "todo", priority: "medium", dueDate: null, dueAt: null, dueTimeSet: false, visibility: "internal", parentTaskId: null, boardColumnId: null, sortOrder: 0, completedAt: null, archivedAt: null, migrationSource: null, createdBy: "u1", createdAt: timestamp, updatedBy: "u1", updatedAt: timestamp };
+    env.records["users/u2/preferences/notifications"] = { schemaVersion: 1, userId: "u2", timezone: "UTC", email: { assignments: false, mentions: true, reminders: true, announcements: true, digestFrequency: "weekly" }, updatedAt: timestamp };
+    const send = vi.fn();
+    await expect(deliverNotification("o1", "n1", { db: env.db, resend: { emails: { send } } as never, now: () => new Date("2026-09-20T12:00:00Z"), claimId: () => "claim-1" })).resolves.toEqual({ ok: false, code: "suppressed" });
+    expect(send).not.toHaveBeenCalled();
+  });
 });

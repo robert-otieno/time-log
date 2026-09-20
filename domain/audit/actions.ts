@@ -20,6 +20,7 @@ export const AUDIT_ACTIONS = [
   "organization.admin.viewed",
   "audit.export.succeeded",
   "audit.export.failed",
+  "user.preferences.updated",
   "project.record.created",
   "project.record.updated",
   "project.record.archived",
@@ -46,6 +47,7 @@ export const AUDIT_ACTIONS = [
   "notification.email.sent",
   "notification.email.failed",
   "notification.email.suppressed",
+  "notification.delivery.updated",
   "approval.request.created",
   "approval.request.approved",
   "approval.request.rejected",
@@ -83,6 +85,8 @@ export const SAFE_AUDIT_FIELDS = [
   "nameChanged",
   "timezoneChanged",
   "exportFormat",
+  "notificationPreferencesChanged",
+  "webhookOutcome",
 ] as const;
 
 export type SafeAuditField = (typeof SAFE_AUDIT_FIELDS)[number];
@@ -112,6 +116,7 @@ export const AUDIT_CHANGE_ALLOWLIST = {
   "organization.admin.viewed": NONE,
   "audit.export.succeeded": ["exportFormat"] as const,
   "audit.export.failed": ["exportFormat"] as const,
+  "user.preferences.updated": ["timezoneChanged", "notificationPreferencesChanged"] as const,
   "project.record.created": ["projectStatus"] as const,
   "project.record.updated": ["projectStatus", "enabled"] as const,
   "project.record.archived": ["projectStatus"] as const,
@@ -138,6 +143,7 @@ export const AUDIT_CHANGE_ALLOWLIST = {
   "notification.email.sent": ["deliveryStatus"] as const,
   "notification.email.failed": ["deliveryStatus"] as const,
   "notification.email.suppressed": ["deliveryStatus"] as const,
+  "notification.delivery.updated": ["webhookOutcome"] as const,
   "approval.request.created": ["approvalStatus"] as const,
   "approval.request.approved": ["approvalStatus"] as const,
   "approval.request.rejected": ["approvalStatus"] as const,

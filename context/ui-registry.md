@@ -497,6 +497,25 @@ Last updated: 2026-09-20
 
 **Pattern notes:** Audit events remain compact until correlation details are expanded. Filters precede results, empty states never imply hidden client data, pagination uses a single Next action, and exports remain admin-only adjacent actions.
 
+### Personal notification settings
+
+Files: `components/settings/notification-preferences-form.tsx`, `app/(app)/settings/page.tsx`
+Last updated: 2026-09-20
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical Card; mandatory-mail guidance uses `bg-muted/30` |
+| Border | Category rows and guidance use semantic `border` |
+| Border radius | Category rows and guidance use `rounded-lg`; canonical controls |
+| Text — primary | Page `text-3xl font-semibold tracking-tight`; category labels `text-sm font-medium` |
+| Text — secondary | Descriptions and scheduling guidance use `text-muted-foreground` |
+| Spacing | Page and form `space-y-6`; category rows `gap-3 p-4` |
+| Interactive state | Canonical Checkbox, Select, TimezoneCombobox, and pending Button states |
+| Shadow | Canonical Card and control shadows only |
+| Accent usage | Primary settings eyebrow; muted mandatory-delivery explanation |
+
+**Pattern notes:** Personal timezone is distinct from organization reporting timezone. Non-essential email categories use explicit labeled rows, digest frequency is one mutually exclusive value, and mandatory invitation/security mail is explained but not rendered as a disabled preference.
+
 ## Patterns to Retire
 
 - Product name “Visio Genesis” in login, header, or metadata.

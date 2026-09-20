@@ -147,6 +147,10 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ## Session Log
 
+2026-09-20 — Feature 24 — browser verification pending — added personal timezone/category settings, legacy preference compatibility, signed raw-body Resend webhooks, hashed receipt deduplication, out-of-order event protection, operational delivery states, privacy-preserving engagement-event omission, and hashed bounce/complaint suppression enforced immediately before non-essential delivery; review fixes keep provider outcomes separate from outbox retry state and audit the actual applied/stale/duplicate webhook result; 162 unit tests, 19 Rules tests, typecheck, lint (28 pre-existing warnings), and production build pass — configure webhook secret/endpoint and run settings plus Resend delivery-event smoke
+
+2026-09-20 — Feature 23 — completed — typed Resend outbox, repository templates, assignment delivery, claim leases, retry metadata, recipient authorization, and suppression accepted — start Feature 24 Resend Webhooks and Preferences
+
 2026-09-20 — Feature 23 — browser verification pending — added typed invitation/assignment/mention/reminder/announcement/digest notification records, repository-owned branded HTML/text templates, transactional claim leases, permanent logical idempotency, recipient re-authorization and suppression, retry scheduling metadata, invitation migration, and atomic task-assignment email enqueue with immediate best-effort delivery; review fixes preserve email-less assignment intent and convert recipient-resolution faults into audited retryable failures; 150 unit tests, 18 Rules tests, typecheck, lint (28 pre-existing warnings), and production build pass — run invitation and assignment browser smoke
 
 2026-09-20 — Feature 22 — completed — organization and project activity views, guarded exports, correlation details, client denial, and export auditing accepted — start Feature 23 Resend Outbox and Templates

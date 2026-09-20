@@ -147,6 +147,12 @@ describe("organization Firestore rules", () => {
     await assertFails(setDoc(doc(dbFor("admin"), path), { status: "sent" }));
   });
 
+  it("keeps notification preferences server-controlled", async () => {
+    const path = "users/admin/preferences/notifications";
+    await assertFails(getDoc(doc(dbFor("admin"), path)));
+    await assertFails(setDoc(doc(dbFor("admin"), path), { timezone: "UTC" }));
+  });
+
   it("keeps active timers and global timer pointers server-only", async () => {
     const memberDb = dbFor("member");
     await assertFails(setDoc(doc(memberDb, "users/member/runtime/activeTimer"), { projectId: "project-1" }));

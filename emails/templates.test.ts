@@ -3,7 +3,7 @@ import type { Notification } from "@/domain/notifications/schemas";
 import { renderNotification } from "@/emails/templates";
 
 const timestamp = { seconds: 1, nanoseconds: 0 };
-const base = { id: "n1", recipientEmail: "person@example.com", recipientUserId: null, status: "queued" as const, idempotencyKey: "key", providerMessageId: null, attemptCount: 0, lastErrorCode: null, claimId: null, claimExpiresAt: null, nextAttemptAt: null, createdAt: timestamp, updatedAt: timestamp };
+const base = { id: "n1", recipientEmail: "person@example.com", recipientUserId: null, status: "queued" as const, idempotencyKey: "key", providerMessageId: null, providerStatus: null, providerEventAt: null, attemptCount: 0, lastErrorCode: null, claimId: null, claimExpiresAt: null, nextAttemptAt: null, createdAt: timestamp, updatedAt: timestamp };
 
 describe("email templates", () => {
   it("renders escaped HTML and a plain-text invitation", () => {

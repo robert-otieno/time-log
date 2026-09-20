@@ -393,6 +393,9 @@ domain event
 - Notification documents use a typed category payload and a five-minute transactional claim lease. Completed and suppressed records are terminal; failed records retain a bounded `nextAttemptAt` for the scheduled retry worker.
 - Invitation and assignment delivery is active. Mention, reminder, announcement, and digest templates are versioned in the repository and remain dormant until their owning workflows enqueue them.
 - Assignment intent is created atomically with the task mutation only for newly added internal assignees. The delivery worker re-checks active membership, project assignment, task existence, archive state, and current assignment immediately before sending.
+- `/api/resend/webhook` verifies the untouched request body with `RESEND_WEBHOOK_SECRET` and the three `svix-*` headers before parsing. Operational events are deduplicated by a hashed event ID and update the separate provider delivery state only when their timestamp is newer; engagement events are ignored. Provider outcomes never make an already-submitted outbox item retryable.
+- Bounce and complaint events create a deterministic, hashed-email suppression record. Non-essential mail checks this suppression plus the recipient's current category preference immediately before send; invitations bypass editable preferences and recipient suppression.
+- Personal timezone and email preferences live in the server-controlled `users/{uid}/preferences/notifications` document. Legacy onboarding `digest` booleans are interpreted as `weekly` or `off` until the user saves the versioned preference record.
 
 ## AI Agent Architecture
 

@@ -13,6 +13,8 @@ const common = {
   status: z.enum(["queued", "processing", "sent", "failed", "suppressed"]),
   idempotencyKey: z.string().trim().min(1).max(256),
   providerMessageId: z.string().min(1).nullable(),
+  providerStatus: z.enum(["sent", "delivered", "delivery_delayed", "bounced", "complained", "failed", "suppressed"]).nullable().default(null),
+  providerEventAt: nullableTimestamp,
   attemptCount: z.number().int().min(0).max(20),
   lastErrorCode: z.string().trim().min(1).max(64).nullable(),
   claimId: id.nullable().default(null),

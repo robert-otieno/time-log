@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseApplicationUrl, parseResendEnvironment } from "@/lib/resend-config";
+import { parseApplicationUrl, parseResendEnvironment, parseResendWebhookSecret } from "@/lib/resend-config";
 
 describe("Resend configuration", () => {
   it("parses server email configuration and normalizes the app URL", () => {
@@ -11,5 +11,9 @@ describe("Resend configuration", () => {
   it("uses localhost only outside production when the public URL is absent", () => {
     expect(parseApplicationUrl({ NODE_ENV: "development" })).toBe("http://localhost:3000");
     expect(() => parseApplicationUrl({ NODE_ENV: "production" })).toThrow("Application URL is not configured");
+  });
+  it("validates the server-only webhook signing secret", () => {
+    expect(parseResendWebhookSecret({ RESEND_WEBHOOK_SECRET: "whsec_test_secret" })).toBe("whsec_test_secret");
+    expect(() => parseResendWebhookSecret({ RESEND_WEBHOOK_SECRET: "invalid" })).toThrow("not configured");
   });
 });

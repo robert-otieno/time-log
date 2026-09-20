@@ -299,6 +299,11 @@ Rules:
 - The outbox uses a five-minute Firestore claim lease. A pending, failed, or expired-processing record may be claimed; sent and suppressed records are terminal, and active claims are skipped.
 - The worker resolves and re-authorizes recipients immediately before sending. Invitation state is rechecked; assignment delivery requires an active internal member with an email address, active project assignment, active non-archived task, and current assignee membership. Assignment intent is still persisted when the member has no stored email so suppression remains observable.
 - Failed provider attempts retain a safe error code and bounded exponential `nextAttemptAt`. Feature 25 owns scheduled retry scanning; interactive workflows only make an immediate best-effort attempt after their transaction commits.
+- Webhook routes must call `request.text()` once and pass the exact raw value plus `svix-id`, `svix-timestamp`, and `svix-signature` to `resend.webhooks.verify`. Signature failures return 400; verified processing failures return 500 so Resend retries.
+- Persist only minimal operational webhook metadata. `resendWebhookEvents/{sha256(svix-id)}` deduplicates events; notification lookup uses the provider message ID; `providerEventAt` prevents older events from moving delivery state backward. Webhooks update `providerStatus` but never revert the independent outbox `status`; audits record whether processing applied, ignored a stale event, or encountered a transaction-racing duplicate.
+- Only sent, delivered, delivery-delayed, bounced, complained, failed, and suppressed events are processed. Opened and clicked events are intentionally ignored to avoid unnecessary engagement tracking.
+- Bounces and complaints create `emailSuppressions/{sha256(normalizedEmail)}` without storing the address. The send-time policy applies these records only to non-essential categories; invitations remain mandatory transactional mail.
+- Versioned personal preferences live at `users/{uid}/preferences/notifications`, are server-written, and include personal timezone, assignments, mentions, reminders, announcements, and `digestFrequency: off | daily | weekly`. Missing records inherit compatible onboarding values.
 
 Official references:
 

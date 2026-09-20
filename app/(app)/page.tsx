@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BriefcaseBusiness, FolderKanban, Settings, Users } from "lucide-react";
+import { BriefcaseBusiness, FolderKanban, Settings, UserRoundCog, Users } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { MyWork } from "@/components/tasks/my-work";
 import ThemeSwitch from "@/components/theme-switch";
@@ -39,6 +39,7 @@ export default async function Page() {
             >
               <Users className="size-4" />
             </Link>
+            <Link href="/settings" className="hover:bg-accent rounded-md p-2" aria-label="Personal settings"><UserRoundCog className="size-4" /></Link>
             {work.role === "admin" && (
               <Link
                 href="/admin"

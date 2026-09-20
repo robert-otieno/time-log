@@ -41,9 +41,17 @@ service cloud.firestore {
       allow read, write: if signedIn() && request.auth.uid == userId;
 
       match /{collectionId}/{document=**} {
-        allow read, write: if collectionId != 'runtime'
+        allow read, write: if collectionId != 'runtime' && collectionId != 'preferences'
           && signedIn()
           && request.auth.uid == userId;
+      }
+
+      match /preferences/workspace {
+        allow read, write: if signedIn() && request.auth.uid == userId;
+      }
+
+      match /preferences/notifications {
+        allow read, write: if false;
       }
 
       match /runtime/{document=**} {

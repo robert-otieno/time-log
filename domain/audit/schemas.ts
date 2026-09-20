@@ -29,6 +29,7 @@ export const auditTargetTypeSchema = z.enum([
   "approval",
   "connector",
   "agent-run",
+  "preference",
 ]);
 
 const timestampSchema = z.custom<{ seconds: number; nanoseconds: number }>(
@@ -68,7 +69,7 @@ const safeFieldValueSchemas = {
   projectStatus: z.enum(["active", "on_hold", "completed", "archived"]),
   membershipStatus: z.enum(["invited", "active", "suspended", "removed"]),
   clientReportingStatus: z.enum(["internal", "approved"]),
-  deliveryStatus: z.enum(["queued", "sent", "delivered", "bounced", "failed", "suppressed"]),
+  deliveryStatus: z.enum(["queued", "sent", "delivered", "delivery_delayed", "bounced", "complained", "failed", "suppressed"]),
   approvalStatus: z.enum(["pending", "approved", "rejected", "expired", "executed", "failed"]),
   organizationCreated: z.boolean(),
   membershipCreated: z.boolean(),
@@ -80,6 +81,8 @@ const safeFieldValueSchemas = {
   nameChanged: z.boolean(),
   timezoneChanged: z.boolean(),
   exportFormat: z.enum(["csv", "json"]),
+  notificationPreferencesChanged: z.boolean(),
+  webhookOutcome: z.enum(["applied", "stale", "duplicate"]),
 } satisfies Record<SafeAuditField, z.ZodType>;
 
 export function safeAuditFieldValue(

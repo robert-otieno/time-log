@@ -1,11 +1,12 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore";
 import { createRequestCorrelation } from "@/domain/audit/correlation";
 import { executeAuditedCommand } from "@/domain/audit/command";
 import { invitationSchema, organizationMemberSchema, projectAssignmentSchema } from "@/domain/organizations/schemas";
 import { notificationSchema, type Notification } from "@/domain/notifications/schemas";
+import { categoryEnabled, getEffectiveNotificationPreferences } from "@/domain/notifications/preferences";
 import { projectTaskSchema } from "@/domain/tasks/schemas";
 import { renderNotification } from "@/emails/templates";
 import { getAdminDb } from "@/lib/firebase-admin";
@@ -15,6 +16,7 @@ import { parseResendEnvironment } from "@/lib/resend-config";
 const CLAIM_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 20;
 type DeliveryDependencies = { db?: Firestore; resend?: ReturnType<typeof getResendClient>; now?: () => Date; claimId?: () => string };
+const emailHash = (email: string) => createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
 
 function canClaim(notification: Notification, now: Date) {
   if (notification.status === "sent" || notification.status === "suppressed" || notification.attemptCount >= MAX_ATTEMPTS) return false;
@@ -79,6 +81,7 @@ export async function deliverNotification(organizationId: string, notificationId
   const notification = claimed.notification;
   const projectId = "projectId" in notification ? notification.projectId : null;
   let recipientEmail: string | null;
+  let suppressionCode = "recipient_ineligible";
   try {
     recipientEmail = await resolveRecipient(db, organizationId, notification, now);
   } catch {
@@ -86,15 +89,29 @@ export async function deliverNotification(organizationId: string, notificationId
     await complete(db, organizationId, projectId, notificationId, claimId, "failed", { lastErrorCode: "recipient_resolution_error", nextAttemptAt: Timestamp.fromMillis(now.getTime() + delayMinutes * 60_000) });
     return { ok: false as const, code: "recipient_resolution_error" as const };
   }
+  if (recipientEmail && notification.type !== "invitation") {
+    try {
+      const [preferences, suppression] = await Promise.all([
+        getEffectiveNotificationPreferences(notification.recipientUserId!, organizationId, db),
+        db.doc(`emailSuppressions/${emailHash(recipientEmail)}`).get(),
+      ]);
+      if (suppression.exists) { recipientEmail = null; suppressionCode = "email_suppressed"; }
+      else if (!categoryEnabled(preferences, notification.type)) { recipientEmail = null; suppressionCode = "preference_disabled"; }
+    } catch {
+      const delayMinutes = Math.min(60, 2 ** Math.min(notification.attemptCount, 6));
+      await complete(db, organizationId, projectId, notificationId, claimId, "failed", { lastErrorCode: "recipient_policy_error", nextAttemptAt: Timestamp.fromMillis(now.getTime() + delayMinutes * 60_000) });
+      return { ok: false as const, code: "recipient_policy_error" as const };
+    }
+  }
   if (!recipientEmail) {
-    await complete(db, organizationId, projectId, notificationId, claimId, "suppressed", { lastErrorCode: "recipient_ineligible", nextAttemptAt: null });
+    await complete(db, organizationId, projectId, notificationId, claimId, "suppressed", { lastErrorCode: suppressionCode, nextAttemptAt: null });
     return { ok: false as const, code: "suppressed" as const };
   }
   try {
     const rendered = renderNotification(notification);
     const { data, error } = await (dependencies.resend ?? getResendClient()).emails.send({ from: parseResendEnvironment(process.env).fromEmail, to: [recipientEmail], ...rendered }, { idempotencyKey: notification.idempotencyKey });
     if (error || !data?.id) throw new Error("provider_error");
-    await complete(db, organizationId, projectId, notificationId, claimId, "sent", { providerMessageId: data.id, lastErrorCode: null, nextAttemptAt: null });
+    await complete(db, organizationId, projectId, notificationId, claimId, "sent", { providerMessageId: data.id, providerStatus: "sent", providerEventAt: Timestamp.fromDate(now), lastErrorCode: null, nextAttemptAt: null });
     return { ok: true as const, alreadySent: false };
   } catch {
     const delayMinutes = Math.min(60, 2 ** Math.min(notification.attemptCount, 6));
