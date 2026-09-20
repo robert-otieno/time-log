@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { FieldValue, type DocumentReference, type Firestore } from "firebase-admin/firestore";
 import type { AuditCorrelation } from "@/domain/audit/correlation";
 import { AuditedCommandError, executeAuditedCommand, type AuditWriter } from "@/domain/audit/command";
@@ -69,11 +70,11 @@ export async function changeProjectStatus(actor: AuthActor, organizationId: stri
   return executeAuditedCommand({ db, auditRepository: dependencies.auditRepository, organizationId, projectId: command.projectId, actor: { type: "user", id: actor.uid, role: "admin" }, action: command.status === "archived" ? "project.record.archived" : "project.record.updated", target: { type: "project", id: command.projectId }, correlation, changes: [{ field: "projectStatus", to: command.status }], execute: async (transaction) => { await requireAdmin(transaction, db, organizationId, actor.uid); const snapshot = await transaction.get(reference); if (!snapshot.exists) throw new AuditedCommandError("failed", "project_not_found", "Project not found"); transaction.update(reference, { status: command.status, updatedBy: actor.uid, updatedAt: FieldValue.serverTimestamp() }); }});
 }
 
-export async function listAccessibleProjects(actor: AuthActor, organizationId: string, db: Firestore = getAdminDb()) {
+async function listAccessibleProjectsFromDb(actor: Pick<AuthActor, "uid">, organizationId: string, db: Firestore) {
   const membershipSnapshot = await db.doc(`organizations/${organizationId}/members/${actor.uid}`).get();
   const member = membershipSnapshot.exists ? organizationMemberSchema.parse(membershipSnapshot.data()) : null;
   if (!member || member.status !== "active") return null;
-  if (member.role === "client") {
+  if (member.role !== "admin") {
     const assignments = await db.collectionGroup("projectMembers")
       .where("userId", "==", actor.uid)
       .where("status", "==", "active")
@@ -88,12 +89,20 @@ export async function listAccessibleProjects(actor: AuthActor, organizationId: s
       .map((project) => projectSchema.parse({ id: project.id, ...project.data() }));
   }
   const projects = await db.collection(`organizations/${organizationId}/projects`).get();
-  if (member.role === "admin") return projects.docs.map((document) => projectSchema.parse({ id: document.id, ...document.data() }));
-  const assignments = await Promise.all(projects.docs.map((project) => db.doc(`${project.ref.path}/projectMembers/${actor.uid}`).get()));
-  return projects.docs.filter((_, index) => assignments[index].data()?.status === "active").map((document) => projectSchema.parse({ id: document.id, ...document.data() }));
+  return projects.docs.map((document) => projectSchema.parse({ id: document.id, ...document.data() }));
 }
 
-export async function getAccessibleProject(actor: AuthActor, organizationId: string, projectId: string, db: Firestore = getAdminDb()) {
+const listAccessibleProjectsCached = cache(async (uid: string, organizationId: string) =>
+  listAccessibleProjectsFromDb({ uid }, organizationId, getAdminDb()),
+);
+
+export async function listAccessibleProjects(actor: AuthActor, organizationId: string, db?: Firestore) {
+  return db
+    ? listAccessibleProjectsFromDb(actor, organizationId, db)
+    : listAccessibleProjectsCached(actor.uid, organizationId);
+}
+
+async function getAccessibleProjectFromDb(actor: Pick<AuthActor, "uid">, organizationId: string, projectId: string, db: Firestore) {
   const [membershipSnapshot, projectSnapshot, assignmentSnapshot] = await Promise.all([
     db.doc(`organizations/${organizationId}/members/${actor.uid}`).get(),
     db.doc(`organizations/${organizationId}/projects/${projectId}`).get(),
@@ -103,6 +112,16 @@ export async function getAccessibleProject(actor: AuthActor, organizationId: str
   if (!member || member.status !== "active" || !projectSnapshot.exists) return null;
   if (member.role !== "admin" && assignmentSnapshot.data()?.status !== "active") return null;
   return { project: projectSchema.parse({ id: projectSnapshot.id, ...projectSnapshot.data() }), role: member.role };
+}
+
+const getAccessibleProjectCached = cache(async (uid: string, organizationId: string, projectId: string) =>
+  getAccessibleProjectFromDb({ uid }, organizationId, projectId, getAdminDb()),
+);
+
+export async function getAccessibleProject(actor: AuthActor, organizationId: string, projectId: string, db?: Firestore) {
+  return db
+    ? getAccessibleProjectFromDb(actor, organizationId, projectId, db)
+    : getAccessibleProjectCached(actor.uid, organizationId, projectId);
 }
 
 export async function selectActiveProject(actor: AuthActor, organizationId: string, raw: unknown, dependencies: Dependencies = {}) {

@@ -26,7 +26,7 @@ export class AuthenticationError extends Error {
   }
 }
 
-function toActor(token: DecodedIdToken): AuthActor {
+export function authActorFromClaims(token: DecodedIdToken): AuthActor {
   return {
     type: "user",
     uid: token.uid,
@@ -46,7 +46,7 @@ export async function verifyFirebaseIdToken(
   idToken: string,
   options: { checkRevoked?: boolean; verifier?: TokenVerifier } = {},
 ): Promise<AuthActor> {
-  return toActor(await verifyFirebaseIdTokenClaims(idToken, options));
+  return authActorFromClaims(await verifyFirebaseIdTokenClaims(idToken, options));
 }
 
 export async function verifyFirebaseIdTokenClaims(
@@ -71,7 +71,7 @@ export async function verifyFirebaseSessionCookie(
   const verifier = options.verifier ?? getAdminAuth();
 
   try {
-    return toActor(await verifier.verifySessionCookie(cookie, options.checkRevoked ?? true));
+    return authActorFromClaims(await verifier.verifySessionCookie(cookie, options.checkRevoked ?? true));
   } catch {
     throw new AuthenticationError();
   }

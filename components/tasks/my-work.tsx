@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CalendarClock, Clock3, FolderKanban } from "lucide-react";
+import { CalendarClock, FolderKanban } from "lucide-react";
+import { TimerStartButton } from "@/components/time/timer-start-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +30,7 @@ function WorkRow({ task, timezone }: { task: MyWorkTask; timezone: string }) {
         <div className="flex flex-wrap items-center gap-2"><Link className="font-medium hover:underline" href={`/projects/${task.project.id}/todos#task-${task.id}`}>{task.title}</Link><Badge variant="outline" className="capitalize">{task.status.replace("_", " ")}</Badge><Badge variant="secondary" className="capitalize">{task.priority}</Badge></div>
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground"><Link className="inline-flex items-center gap-1 hover:text-foreground" href={`/projects/${task.project.id}`}><FolderKanban className="size-4" />{task.project.name} ({task.project.key})</Link>{due && <span className="inline-flex items-center gap-1"><CalendarClock className="size-4" />Due {due}</span>}</div>
       </div>
-      {task.project.timeEnabled && <Button asChild size="sm" variant="outline"><Link href={`/projects/${task.project.id}/time?taskId=${encodeURIComponent(task.id)}`}><Clock3 />Track time</Link></Button>}
+      {task.project.timeEnabled && <TimerStartButton projectId={task.project.id} taskId={task.id} />}
     </div>
   </div>;
 }

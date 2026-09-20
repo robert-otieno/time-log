@@ -71,6 +71,14 @@ export async function previewLegacyTaskMigration(actor: AuthActor, organizationI
   return (await readSources(actor, organizationSchema.parse({ id: organization.id, ...organization.data() }).timezone, db)).preview;
 }
 
+export async function previewPendingLegacyTaskMigration(actor: AuthActor, organizationId: string, db: Firestore = getAdminDb()): Promise<MigrationPreview | null> {
+  const marker = await db.doc(`organizations/${organizationId}/migrations/legacy-user-v1`).get();
+  if (marker.exists && ["completed", "completed_with_issues"].includes(String(marker.data()?.status))) {
+    return null;
+  }
+  return previewLegacyTaskMigration(actor, organizationId, db);
+}
+
 export async function migrateLegacyTasks(actor: AuthActor, organizationId: string, projectId: string, correlation: AuditCorrelation, dependencies: Dependencies = {}): Promise<MigrationResult> {
   const db = dependencies.db ?? getAdminDb();
   const markerRef = db.doc(`organizations/${organizationId}/migrations/legacy-user-v1`);

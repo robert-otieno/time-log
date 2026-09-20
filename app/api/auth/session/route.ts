@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import {
+  authActorFromClaims,
   AuthenticationError,
   verifyFirebaseIdTokenClaims,
 } from "@/lib/auth-server";
+import { createRequestCorrelation } from "@/domain/audit/correlation";
+import { ensurePersonalOrganization } from "@/domain/organizations/bootstrap";
 import {
   isRecentSignIn,
   isSameOriginJsonRequest,
@@ -53,6 +56,13 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
+
+    // Bootstrap once when the authenticated session is established. Running this
+    // transaction from the protected layout made every navigation pay four reads.
+    await ensurePersonalOrganization(
+      authActorFromClaims(claims),
+      createRequestCorrelation(),
+    );
 
     const sessionCookie = await getAdminAuth().createSessionCookie(
       parsed.data.idToken,

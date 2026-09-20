@@ -37,8 +37,18 @@ service cloud.firestore {
       return activeAdmin(organizationId) || assignedToProject(organizationId, projectId);
     }
 
-    match /users/{userId}/{document=**} {
+    match /users/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
+
+      match /{collectionId}/{document=**} {
+        allow read, write: if collectionId != 'runtime'
+          && signedIn()
+          && request.auth.uid == userId;
+      }
+
+      match /runtime/{document=**} {
+        allow read, write: if false;
+      }
     }
 
     match /organizations/{organizationId} {

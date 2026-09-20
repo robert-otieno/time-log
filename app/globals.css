@@ -119,4 +119,16 @@
   body {
     @apply bg-background text-foreground;
   }
+  a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]) {
+    @apply cursor-pointer;
+  }
+}
+
+@keyframes navigation-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+
+@utility animate-navigation-progress {
+  animation: navigation-progress 1.15s ease-in-out infinite;
 }

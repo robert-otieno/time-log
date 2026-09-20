@@ -12,9 +12,10 @@ function projectReference(organizationId: string, id: string) {
   return { id, path: `organizations/${organizationId}/projects/${id}`, parent: { parent: { id: organizationId } } };
 }
 
-function clientDatabase(options: { assigned?: boolean; membershipStatus?: "active" | "suspended" } = {}) {
+function clientDatabase(options: { assigned?: boolean; membershipStatus?: "active" | "suspended"; role?: "client" | "member" } = {}) {
   const assigned = options.assigned ?? true;
-  const membership = { userId: actor.uid, role: "client", status: options.membershipStatus ?? "active", clientId: "client-1", joinedAt: options.membershipStatus === "suspended" ? null : timestamp };
+  const role = options.role ?? "client";
+  const membership = { userId: actor.uid, role, status: options.membershipStatus ?? "active", clientId: role === "client" ? "client-1" : null, joinedAt: options.membershipStatus === "suspended" ? null : timestamp };
   const projectRef = projectReference("org-1", "project-1");
   const otherProjectRef = projectReference("org-2", "other-project");
   const assignment = { userId: actor.uid, status: "active", assignedBy: "admin", assignedAt: timestamp, removedAt: null };
@@ -56,5 +57,11 @@ describe("client project access", () => {
     await expect(getAccessibleProject(actor, "org-1", "project-1", clientDatabase())).resolves.toMatchObject({ role: "client", project: { id: "project-1" } });
     await expect(getAccessibleProject(actor, "org-1", "project-1", clientDatabase({ assigned: false }))).resolves.toBeNull();
   });
-});
 
+  it("discovers member projects from assignments without scanning every project", async () => {
+    const db = clientDatabase({ role: "member" });
+    await expect(listAccessibleProjects(actor, "org-1", db)).resolves.toHaveLength(1);
+    expect(db.collectionGroup).toHaveBeenCalledWith("projectMembers");
+    expect(db.getAll).toHaveBeenCalledTimes(1);
+  });
+});

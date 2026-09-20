@@ -383,6 +383,44 @@ Last updated: 2026-09-18
 
 **Pattern notes:** Migration is preview-first and never starts from the project selector alone. Show source counts and unmapped-field summaries before confirmation, repeat the non-destructive guarantee in the dialog, disable dismissal while pending, and keep created/already-migrated/skipped/conflict/remaining reconciliation visible after every run.
 
+### Navigation progress and loading feedback
+
+Files: `components/navigation-feedback.tsx`, `app/(app)/loading.tsx`, `app/(app)/projects/[projectId]/loading.tsx`, `components/projects/project-switcher.tsx`
+Last updated: 2026-09-20
+
+| Property | Class |
+| --- | --- |
+| Background | Progress track `bg-primary/15`; skeletons use canonical muted animation |
+| Border | Loading surfaces inherit canonical Skeleton/Card borders and radii |
+| Border radius | Content skeletons `rounded-xl` / `rounded-lg`; canonical control radius |
+| Text — primary | Existing page hierarchy is represented by proportionate skeleton bars |
+| Text — secondary | Project-switch failure uses a concise Sonner message |
+| Spacing | Page `space-y-6 p-4 sm:p-6`; loading grids `gap-4` |
+| Interactive state | Buttons use `active:scale-[0.98]`; async switcher shows `animate-spin` and disables duplicate selection |
+| Shadow | None beyond canonical controls |
+| Accent usage | Fixed top progress indicator uses semantic `bg-primary` |
+
+**Pattern notes:** Every internal route transition must acknowledge the click immediately. Use the global top progress bar for links, nested route skeletons for server-rendered content, and a local spinner plus `aria-busy` for imperative navigation or server actions. Pending controls prevent duplicate actions; reduced-motion users receive a pulse instead of translated movement.
+
+### Global timer control and launcher
+
+Files: `components/time/global-timer-control.tsx`, `components/time/timer-start-button.tsx`, `app/(app)/projects/[projectId]/time/page.tsx`
+Last updated: 2026-09-20
+
+| Property | Class |
+| --- | --- |
+| Background | Control `bg-background/95 backdrop-blur`; inline task surface `bg-muted/30`; canonical Dialog |
+| Border | Control, status surfaces, and inline creation use semantic `border` |
+| Border radius | Control `rounded-xl`; inset states `rounded-lg`; canonical form controls |
+| Text — primary | Active task `text-sm font-medium`; canonical Dialog title and labels |
+| Text — secondary | Project/start/note context `text-xs text-muted-foreground`; guidance `text-sm text-muted-foreground` |
+| Spacing | Control `gap-3 p-3`; launcher `space-y-4`; inline creation `space-y-2 p-3` |
+| Interactive state | Canonical Button/Select focus and pressed states; pending buttons disable and show `animate-spin` |
+| Shadow | Floating control `shadow-lg`; canonical Dialog/control shadows |
+| Accent usage | Semantic `bg-primary` live dot, secondary elapsed badge, destructive session badge |
+
+**Pattern notes:** The global timer remains compact and persistent: bottom floating on narrow screens and aligned within the header region on larger screens. A running state always shows project, task or project-level label, server start time, elapsed time, and optional note. Launcher failures stay inline, network loss retains the last known timer with an Offline badge, and session expiry exposes a direct Sign in action. Task creation remains internal by default and is completed before starting the timer.
+
 ## Patterns to Retire
 
 - Product name “Visio Genesis” in login, header, or metadata.

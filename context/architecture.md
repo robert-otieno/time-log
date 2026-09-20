@@ -263,7 +263,9 @@ type TimeEntry = {
 };
 ```
 
-One-active-timer enforcement requires a transaction and a global pointer at `users/{uid}/runtime/activeTimer` referencing the project timer. Do not rely on a UI check; concurrent tabs must not create two timers.
+One-active-timer enforcement requires a transaction and a global pointer at `users/{uid}/runtime/activeTimer` referencing the project timer. The timer and pointer are server-owned, created atomically, and use one server-generated start timestamp captured for the command. Browser Firestore Rules deny direct reads and writes to both records. Do not rely on a UI check; concurrent tabs must not create two timers.
+
+The authenticated shell reads timer state through server actions. Browser tabs exchange invalidation signals through `BroadcastChannel`, refresh when focus or visibility returns, and poll conservatively while visible; every refresh re-reads the server-owned pointer. Browser time is used only to display elapsed time relative to the serialized server start instant. The interface retains its last known timer during network loss and never treats cross-tab messaging as authoritative state.
 
 ### Audit Event
 

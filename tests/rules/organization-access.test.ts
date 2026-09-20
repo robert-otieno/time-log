@@ -147,6 +147,14 @@ describe("organization Firestore rules", () => {
     await assertFails(setDoc(doc(dbFor("admin"), path), { status: "sent" }));
   });
 
+  it("keeps active timers and global timer pointers server-only", async () => {
+    const memberDb = dbFor("member");
+    await assertFails(setDoc(doc(memberDb, "users/member/runtime/activeTimer"), { projectId: "project-1" }));
+    await assertFails(getDoc(doc(memberDb, "users/member/runtime/activeTimer")));
+    await assertFails(setDoc(doc(memberDb, "organizations/org-a/projects/project-1/activeTimers/member"), { userId: "member" }));
+    await assertFails(getDoc(doc(memberDb, "organizations/org-a/projects/project-1/activeTimers/member")));
+  });
+
   it("preserves isolated legacy user data", async () => {
     await assertSucceeds(getDoc(doc(dbFor("member"), "users/member/daily_tasks/task-1")));
     await assertFails(getDoc(doc(dbFor("admin"), "users/member/daily_tasks/task-1")));

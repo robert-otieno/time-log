@@ -9,6 +9,7 @@ import { AuthProvider } from "@/components/auth-provider";
 import AuthGuard from "@/components/auth-guard";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/next";
+import { NavigationFeedback } from "@/components/navigation-feedback";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default function RootLayout({
               <SelectedDateProvider>
                 <FocusModeProvider>
                   <NudgeBanner />
+                  <NavigationFeedback />
                   {children}
                   <Analytics />
                 </FocusModeProvider>

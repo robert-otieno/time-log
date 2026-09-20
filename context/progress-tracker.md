@@ -4,11 +4,11 @@ Update this file after every completed feature. A new session should be able to 
 
 ## Current Status
 
-**Phase:** Phase 4 — To-Dos
+**Phase:** Phase 5 — Time Tracking
 
-**Last completed:** 15 My Work
+**Last completed:** 17 Active Timer Domain
 
-**Current:** 16 Legacy Task Migration — implementation and automated verification in progress
+**Current:** 18 Global Timer UI — implementation complete; authenticated browser and final production-build verification pending
 
 **Blockers:** None
 
@@ -59,11 +59,11 @@ Existing checkmarks describe repository presence, not production readiness for t
 - [x] 13 Project Task Schema and Repository
 - [x] 14 To-Do List UI
 - [x] 15 My Work
-- [ ] 16 Legacy Task Migration
+- [x] 16 Legacy Task Migration
 
 ### Phase 5 — Time Tracking
 
-- [ ] 17 Active Timer Domain
+- [x] 17 Active Timer Domain
 - [ ] 18 Global Timer UI
 - [ ] 19 Stop Timer and Time Entries
 - [ ] 20 Time Views and Reports
@@ -134,6 +134,10 @@ Existing checkmarks describe repository presence, not production readiness for t
 | 2026-09-16 | Persist onboarding state inside the organization tenant | Keeps onboarding writes server-controlled and aligned with membership authorization |
 | 2026-09-16 | Use a deterministic onboarding first-project record | Makes repeated project submissions safe without duplicate workspaces |
 | 2026-09-16 | Keep task/timer onboarding educational until their numbered features | Avoid disposable implementations while teaching the required task-first workflow |
+| 2026-09-20 | Bootstrap personal organizations when the secure session is created | Removes an unnecessary four-document transaction from every protected navigation while retaining idempotent onboarding |
+| 2026-09-20 | Memoize authenticated request reads and discover member projects assignment-first | Prevents repeated session/access reads and project-list N+1 queries without weakening authorization |
+| 2026-09-20 | Store a server-only global active-timer pointer under each user | Enforces one active timer across organizations, projects, tabs, and browsers without relying on UI state |
+| 2026-09-20 | Use a server-generated Firestore Timestamp captured once per start command | Provides an authoritative, deterministic start instant across transaction retries and elapsed-time displays |
 
 ## Active Notes
 
@@ -142,6 +146,14 @@ Existing checkmarks describe repository presence, not production readiness for t
 - `docs/feature-upgrade.md` is legacy product guidance, not the source of truth for the new build.
 
 ## Session Log
+
+2026-09-20 — Feature 18 — verification pending — added the persistent responsive timer control, lazy authorized project/task launcher, admin project-level option, member task requirement, audited inline task creation, server-authoritative elapsed display, active project/task/note/start context, duplicate-start recovery, BroadcastChannel/focus/visibility/30-second cross-tab refresh, retained state with Offline/Sign in feedback, My Work preselection, and a real project Time route; 124 unit tests, typecheck, and lint (28 pre-existing warnings) pass; production compilation passed but final build could not be rerun while the developer's Next dev process held `.next` — run authenticated start/refresh/navigation/second-tab/offline smoke and rerun build after stopping dev
+
+2026-09-20 — Feature 17 — completed — added strict active-timer and pointer schemas, transactional one-timer-per-user enforcement, member task requirement, admin project-level timers, client/project/task authorization, server-derived elapsed time, pointer integrity checks, atomic start audit events, and server-only Firestore Rules for timer state; 122 unit tests, 17 Rules tests, typecheck, lint (28 pre-existing warnings), and production build pass — start Feature 18 Global Timer UI
+
+2026-09-20 — Navigation performance recovery — implementation verified — moved organization bootstrap to secure session creation, request-memoized session/organization/project access, replaced member project N+1 reads with assignment-first discovery, skipped completed legacy migration scans, added route progress, nested loading skeletons, pressed button states, and immediate project-switch feedback; 115 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass — run authenticated navigation smoke, then start Feature 17 Active Timer Domain
+
+2026-09-20 — Feature 16 — completed — authenticated legacy task import accepted by the user; source preservation and reconciliation behavior confirmed — performance recovery requested before Feature 17
 
 2026-09-18 — Feature 16 — verification pending — added preview-first non-destructive legacy task/subtask migration, strict supported-field mapping, deterministic destination IDs, nested task conversion, internal visibility and self-assignment, unmapped/invalid reporting, bounded resumable transactions, target locking, reconciliation marker updates, correlated audit events, and Projects-page confirmation/results UI; 114 unit tests, typecheck, lint (28 legacy warnings), and production build pass — run authenticated browser smoke with empty, populated, retry, and issue-reporting states
 
