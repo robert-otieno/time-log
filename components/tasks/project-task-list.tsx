@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Archive,
@@ -70,6 +70,8 @@ const blank = (parentTaskId = "none"): Draft => ({
   visibility: "internal",
   parentTaskId,
 });
+
+const TASK_COMPLETED_EVENT = "time-log:task-completed";
 
 function localParts(dueDate: string | null, dueAt: string | null) {
   if (!dueAt) return { dueDate: dueDate ?? "", dueTime: "09:00" };
@@ -150,6 +152,15 @@ export function ProjectTaskList({
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
 
+  useEffect(() => {
+    const onCompleted = (event: Event) => {
+      const taskId = (event as CustomEvent<{ taskId?: string }>).detail?.taskId;
+      if (taskId) setTasks((current) => current.map((task) => task.id === taskId ? { ...task, status: "done" } : task));
+    };
+    window.addEventListener(TASK_COMPLETED_EVENT, onCompleted);
+    return () => window.removeEventListener(TASK_COMPLETED_EVENT, onCompleted);
+  }, []);
+
   const scoped = useMemo(
     () => tasks.filter((task) => Boolean(task.archivedAt) === showArchived),
     [tasks, showArchived],
@@ -158,18 +169,20 @@ export function ProjectTaskList({
     () =>
       scoped.filter(
         (task) =>
-          (statusFilter === "all" || task.status === statusFilter) &&
+          (statusFilter === "all"
+            ? showArchived || task.status !== "done"
+            : task.status === statusFilter) &&
           (priorityFilter === "all" || task.priority === priorityFilter) &&
           (assigneeFilter === "all" ||
             task.assigneeIds.includes(assigneeFilter)) &&
           (visibilityFilter === "all" || task.visibility === visibilityFilter),
       ),
-    [scoped, statusFilter, priorityFilter, assigneeFilter, visibilityFilter],
+    [scoped, showArchived, statusFilter, priorityFilter, assigneeFilter, visibilityFilter],
   );
   const top = visible.filter(
     (task) =>
       !task.parentTaskId ||
-      !scoped.some((parent) => parent.id === task.parentTaskId),
+      !visible.some((parent) => parent.id === task.parentTaskId),
   );
   const archivedCount = tasks.filter((task) => task.archivedAt).length;
 
@@ -401,7 +414,7 @@ export function ProjectTaskList({
           {scoped.length === 0
             ? showArchived
               ? "No archived tasks."
-              : "No tasks yet."
+              : "No active tasks."
             : "No tasks match these filters."}
         </div>
       ) : (

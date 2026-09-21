@@ -54,7 +54,7 @@ const entryFields = {
   billable: z.boolean().default(false),
   clientReportingStatus: clientReportingStatusSchema.default("internal"),
 };
-export const stopTimerCommandSchema = z.object(entryFields).strict();
+export const stopTimerCommandSchema = z.object({ ...entryFields, completeTask: z.boolean().default(false) }).strict();
 export const createManualEntryCommandSchema = z.object({
   taskId: idSchema.nullable().default(null),
   startedAt: z.string().datetime({ offset: true }),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeTimerSchema, startTimerCommandSchema } from "@/domain/time/schemas";
+import { activeTimerSchema, startTimerCommandSchema, stopTimerCommandSchema } from "@/domain/time/schemas";
 
 const timestamp = { seconds: 10, nanoseconds: 0 };
 
@@ -12,5 +12,10 @@ describe("active timer schemas", () => {
   it("rejects unknown fields and oversized notes", () => {
     expect(() => startTimerCommandSchema.parse({ unexpected: true })).toThrow();
     expect(() => startTimerCommandSchema.parse({ taskId: "t1", note: "x".repeat(2001) })).toThrow();
+  });
+
+  it("defaults task completion off when stopping a timer", () => {
+    expect(stopTimerCommandSchema.parse({})).toMatchObject({ completeTask: false, billable: false, clientReportingStatus: "internal" });
+    expect(stopTimerCommandSchema.parse({ completeTask: true })).toMatchObject({ completeTask: true });
   });
 });

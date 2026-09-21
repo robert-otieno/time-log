@@ -21,7 +21,7 @@ export async function updateOrganizationSettingsAction(raw: unknown) {
 
 export async function changeMemberRoleAction(raw: unknown) {
   const actor = await getSessionActor(); if (!actor) return { ok: false as const, error: "Your session expired." };
-  try { await changeMemberRole(actor, await getActiveOrganizationId(actor), raw, createRequestCorrelation()); revalidatePath("/admin"); revalidatePath("/people"); return { ok: true as const }; }
+  try { await changeMemberRole(actor, await getActiveOrganizationId(actor), raw, createRequestCorrelation()); revalidatePath("/admin"); revalidatePath("/admin/people"); return { ok: true as const }; }
   catch (error) { return { ok: false as const, error: safeError(error) }; }
 }
 

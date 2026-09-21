@@ -28,9 +28,38 @@ describe("time entries", () => {
   it("stops a timer into an authoritative entry and clears both timer records", async () => {
     const environment = env({ "users/u1/runtime/activeTimer": { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: stamp }, "organizations/o1/projects/p1/activeTimers/u1": { userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: stamp, note: null } });
     const result = await stopTimer(actor, { note: "Done", billable: true, clientReportingStatus: "internal" }, correlation, { ...environment, now: () => new Timestamp(160, 0) });
-    expect(result.durationSeconds).toBe(60);
+    expect(result.entry.durationSeconds).toBe(60);
+    expect(result.taskCompleted).toBe(false);
     expect(environment.writes.map(({ method, path }) => ({ method, path }))).toEqual([{ method: "create", path: "organizations/o1/projects/p1/timeEntries/entry-1" }, { method: "delete", path: "organizations/o1/projects/p1/activeTimers/u1" }, { method: "delete", path: "users/u1/runtime/activeTimer" }]);
     expect(environment.audits.map(({ action }) => action)).toEqual(["time.timer.stopped", "time.entry.created"]);
+  });
+
+  it("atomically stops the timer and completes its task when requested", async () => {
+    const environment = env({ "users/u1/runtime/activeTimer": { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: stamp }, "organizations/o1/projects/p1/activeTimers/u1": { userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: stamp, note: null } });
+    const result = await stopTimer(actor, { note: "Done", billable: false, clientReportingStatus: "internal", completeTask: true }, correlation, { ...environment, now: () => new Timestamp(160, 0) });
+    expect(result.taskCompleted).toBe(true);
+    expect(environment.writes.map(({ method, path }) => ({ method, path }))).toEqual([
+      { method: "update", path: "organizations/o1/projects/p1/tasks/t1" },
+      { method: "create", path: "organizations/o1/projects/p1/timeEntries/entry-1" },
+      { method: "delete", path: "organizations/o1/projects/p1/activeTimers/u1" },
+      { method: "delete", path: "users/u1/runtime/activeTimer" },
+    ]);
+    expect(environment.audits.map(({ action }) => action)).toEqual(["time.timer.stopped", "time.entry.created", "task.record.completed"]);
+  });
+
+  it("stops safely without duplicating completion when the task is already done", async () => {
+    const environment = env({ "organizations/o1/projects/p1/tasks/t1": { ...task, status: "done", completedAt: stamp }, "users/u1/runtime/activeTimer": { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: stamp }, "organizations/o1/projects/p1/activeTimers/u1": { userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: stamp, note: null } });
+    const result = await stopTimer(actor, { note: null, billable: false, clientReportingStatus: "internal", completeTask: true }, correlation, { ...environment, now: () => new Timestamp(160, 0) });
+    expect(result.taskCompleted).toBe(false);
+    expect(environment.writes.some(({ method, path }) => method === "update" && path.endsWith("/tasks/t1"))).toBe(false);
+    expect(environment.audits.map(({ action }) => action)).toEqual(["time.timer.stopped", "time.entry.created"]);
+  });
+
+  it("leaves the timer intact when completion targets an archived task", async () => {
+    const environment = env({ "organizations/o1/projects/p1/tasks/t1": { ...task, archivedAt: stamp }, "users/u1/runtime/activeTimer": { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: stamp }, "organizations/o1/projects/p1/activeTimers/u1": { userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: stamp, note: null } });
+    await expect(stopTimer(actor, { note: null, billable: false, clientReportingStatus: "internal", completeTask: true }, correlation, { ...environment, now: () => new Timestamp(160, 0) })).rejects.toThrow("read-only");
+    expect(environment.writes).toHaveLength(0);
+    expect(environment.audits).toMatchObject([{ action: "time.timer.stopped", outcome: "denied", reasonCode: "task_archived" }]);
   });
 
   it("calculates manual duration on the server and requires member tasks", async () => {

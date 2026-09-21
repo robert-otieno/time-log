@@ -77,7 +77,7 @@ export async function startTimer(
       if (command.taskId) {
         if (!taskSnapshot?.exists) throw new AuditedCommandError("failed", "timer_task_not_found", "Task not found");
         const task = projectTaskSchema.parse({ id: taskSnapshot.id, ...taskSnapshot.data() });
-        if (task.projectId !== projectId || task.archivedAt) {
+        if (task.projectId !== projectId || task.archivedAt || task.status === "done") {
           throw new AuditedCommandError("denied", "timer_task_unavailable", "Task is unavailable");
         }
       }
@@ -140,7 +140,7 @@ async function requireTimeWriter(transaction: Transaction, db: Firestore, organi
   return member!;
 }
 
-export async function stopTimer(actor: AuthActor, raw: unknown, correlation: AuditCorrelation, dependencies: Dependencies = {}): Promise<TimeEntry> {
+export async function stopTimer(actor: AuthActor, raw: unknown, correlation: AuditCorrelation, dependencies: Dependencies = {}): Promise<{ entry: TimeEntry; taskCompleted: boolean }> {
   const command = stopTimerCommandSchema.parse(raw);
   const db = dependencies.db ?? getAdminDb();
   const repository = new TimeRepository(db);
@@ -150,23 +150,43 @@ export async function stopTimer(actor: AuthActor, raw: unknown, correlation: Aud
   const pointerRef = repository.activeTimerPointerReference(actor.uid);
   const entryRef = repository.timeEntriesCollection(pointer.organizationId, pointer.projectId).doc();
   const endedAt = (dependencies.now ?? Timestamp.now)();
-  return executeAuditedCommand<TimeEntry>({
+  return executeAuditedCommand<{ entry: TimeEntry; taskCompleted: boolean }>({
     db, auditRepository: dependencies.auditRepository, organizationId: pointer.organizationId, projectId: pointer.projectId,
     actor: { type: "user", id: actor.uid, role: null }, action: "time.timer.stopped", target: { type: "timer", id: actor.uid }, correlation,
-    additionalSuccessAudits: (entry) => [{ action: "time.entry.created", target: { type: "time-entry", id: entry.id }, changes: [{ field: "billable", to: entry.billable }, { field: "clientReportingStatus", to: entry.clientReportingStatus }] }],
+    additionalSuccessAudits: ({ entry, taskCompleted }) => [{ action: "time.entry.created", target: { type: "time-entry", id: entry.id }, changes: [{ field: "billable", to: entry.billable }, { field: "clientReportingStatus", to: entry.clientReportingStatus }] }, ...(taskCompleted && entry.taskId ? [{ action: "task.record.completed" as const, target: { type: "task" as const, id: entry.taskId }, changes: [{ field: "status" as const, to: "done" }] }] : [])],
     execute: async (transaction) => {
       const [currentPointer, timerDoc] = await Promise.all([transaction.get(pointerRef), transaction.get(timerRef)]);
       if (!currentPointer.exists || !timerDoc.exists) throw new AuditedCommandError("failed", "timer_not_active", "No timer is active");
       const parsedPointer = activeTimerPointerSchema.parse(currentPointer.data());
       const timer = activeTimerSchema.parse(timerDoc.data());
       if (parsedPointer.organizationId !== pointer.organizationId || parsedPointer.projectId !== pointer.projectId || timer.userId !== actor.uid) throw new AuditedCommandError("failed", "timer_state_conflict", "Timer state changed");
+      let taskCompleted = false;
+      if (command.completeTask) {
+        if (!timer.taskId) throw new AuditedCommandError("failed", "timer_task_required", "This timer has no task to complete");
+        const taskRef = db.doc(`organizations/${timer.organizationId}/projects/${timer.projectId}/tasks/${timer.taskId}`);
+        const [memberDoc, assignmentDoc, projectDoc, taskDoc] = await Promise.all([
+          transaction.get(db.doc(`organizations/${timer.organizationId}/members/${actor.uid}`)),
+          transaction.get(db.doc(`organizations/${timer.organizationId}/projects/${timer.projectId}/projectMembers/${actor.uid}`)),
+          transaction.get(db.doc(`organizations/${timer.organizationId}/projects/${timer.projectId}`)),
+          transaction.get(taskRef),
+        ]);
+        const member = memberDoc.exists ? organizationMemberSchema.parse(memberDoc.data()) : null; const assignment = assignmentDoc.exists ? projectAssignmentSchema.parse(assignmentDoc.data()) : null;
+        if (!hasCapability(member, "tasks.manage") || !canAccessProject(member, assignment)) throw new AuditedCommandError("denied", "task_manage_denied", "Task management denied");
+        if (!projectDoc.exists) throw new AuditedCommandError("failed", "project_not_found", "Project not found");
+        const project = projectSchema.parse({ id: projectDoc.id, ...projectDoc.data() });
+        if (project.status !== "active" || !project.enabledTools.includes("todos")) throw new AuditedCommandError("denied", "project_tasks_read_only", "Project tasks are unavailable");
+        if (!taskDoc.exists) throw new AuditedCommandError("failed", "timer_task_not_found", "Task not found");
+        const task = projectTaskSchema.parse({ id: taskDoc.id, ...taskDoc.data() });
+        if (task.archivedAt) throw new AuditedCommandError("denied", "task_archived", "Archived tasks are read-only");
+        if (task.status !== "done") { transaction.update(taskRef, { status: "done", completedAt: FieldValue.serverTimestamp(), updatedBy: actor.uid, updatedAt: FieldValue.serverTimestamp() }); taskCompleted = true; }
+      }
       const duration = durationSeconds(Timestamp.fromMillis(timer.startedAt.seconds * 1000 + timer.startedAt.nanoseconds / 1_000_000), endedAt, endedAt);
       const now = FieldValue.serverTimestamp();
       const entry = timeEntrySchema.parse({ id: entryRef.id, organizationId: timer.organizationId, projectId: timer.projectId, taskId: timer.taskId, userId: actor.uid, source: "timer", startedAt: timer.startedAt, endedAt, durationSeconds: duration, note: command.note, billable: command.billable, clientReportingStatus: command.clientReportingStatus, correctionCount: 0, createdBy: actor.uid, createdAt: endedAt, updatedBy: actor.uid, updatedAt: endedAt });
       const { id: _entryId, ...storedEntry } = entry; void _entryId;
       transaction.create(entryRef, { ...storedEntry, createdAt: now, updatedAt: now });
       transaction.delete(timerRef); transaction.delete(pointerRef);
-      return entry;
+      return { entry, taskCompleted };
     },
   });
 }

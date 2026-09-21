@@ -324,7 +324,7 @@ Last updated: 2026-09-18
 | Shadow | Canonical control shadows; no additional row shadow |
 | Accent usage | Semantic status/priority/visibility badges and destructive archive confirmation |
 
-**Pattern notes:** Keep rows compact until explicitly expanded for inline editing. Creation and completion are optimistic; pending creation uses an outline Saving badge and rolls back on failure. Archive uses confirmation and moves records into an explicit Archived view with Restore. Direct subtask creation appears beneath the parent on a `bg-muted/30` inset surface; saved subtasks use indentation plus a left border. Client mode is read-only and omits archived counts, assignees, visibility filters, and every mutation control.
+**Pattern notes:** Keep rows compact until explicitly expanded for inline editing. The default Active view hides completed tasks immediately; users can deliberately select the Done status filter to review or reopen them. Active children whose completed parent is hidden remain promoted into view rather than disappearing with the parent. Creation and completion are optimistic; timer-driven completion broadcasts into an open list before server refresh. Pending creation uses an outline Saving badge and rolls back on failure. Archive uses confirmation and moves records into an explicit Archived view with Restore. Direct subtask creation appears beneath the parent on a `bg-muted/30` inset surface; saved subtasks use indentation plus a left border. Client mode is read-only and omits archived counts, assignees, visibility filters, and every mutation control.
 
 ### Project workspace header
 
@@ -438,7 +438,7 @@ Last updated: 2026-09-20
 | Shadow | Floating control `shadow-lg`; canonical Dialog/control shadows |
 | Accent usage | Semantic `bg-primary` live dot, secondary elapsed badge, destructive session badge |
 
-**Pattern notes:** The global timer remains compact, persistent, and centered above the bottom viewport edge at every breakpoint. Authenticated content reserves `pb-28` whenever the control is available so final rows and actions remain unobscured. A running state always shows project, task or project-level label, server start time, elapsed time, and optional note. Supported secure browsers expose “Keep timer visible,” which opens a compact Document Picture-in-Picture surface using the same semantic tokens and a direct Stop & save action. Unsupported browsers retain the normal timer without a disabled control, and every active timer updates the tab title with elapsed time and task as the universal fallback. Launcher failures stay inline, network loss retains the last known timer with an Offline badge, and session expiry exposes a direct Sign in action. Task creation remains internal by default and is completed before starting the timer.
+**Pattern notes:** The global timer remains compact, persistent, and centered above the bottom viewport edge at every breakpoint. Authenticated content reserves `pb-28` whenever the control is available so final rows and actions remain unobscured. A running state always shows project, task or project-level label, server start time, elapsed time, and optional note. Timer launch choices contain only unfinished, non-archived tasks; completed tasks are neither suggested nor accepted by the server. Supported secure browsers expose “Keep timer visible,” which opens a compact Document Picture-in-Picture surface using the same semantic tokens and a direct Stop & save action. Unsupported browsers retain the normal timer without a disabled control, and every active timer updates the tab title with elapsed time and task as the universal fallback. Launcher failures stay inline, network loss retains the last known timer with an Offline badge, and session expiry exposes a direct Sign in action. Task creation remains internal by default and is completed before starting the timer.
 
 ### Time entry stop, manual entry, and correction
 
@@ -457,7 +457,7 @@ Last updated: 2026-09-20
 | Shadow | Canonical Card, Dialog, and control shadows |
 | Accent usage | Semantic billable/reporting badges; primary save/stop actions; destructive inline errors |
 
-**Pattern notes:** Stop confirmation preserves the running timer until the server atomically returns success. Manual entry and correction share the same task, Shadcn date/time, note, billable, and reporting controls. Duration is display-only in the browser and always derived by the server. Corrections remain compact entry-row actions and explicitly explain audit preservation.
+**Pattern notes:** Stop confirmation preserves the running timer until the server atomically returns success. A linked-task timer includes an unchecked, inset completion choice naming the task; selecting it changes the primary label to “Stop, save & complete” and commits time plus task completion together. Project-level and Picture-in-Picture quick stops omit completion. Manual entry and correction share the same task, Shadcn date/time, note, billable, and reporting controls. Duration is display-only in the browser and always derived by the server. Corrections remain compact entry-row actions and explicitly explain audit preservation.
 
 ### Time views and client-safe reports
 
@@ -496,6 +496,25 @@ Last updated: 2026-09-20
 | Accent usage | Primary administration eyebrow; semantic role/status badges; destructive confirmation actions |
 
 **Pattern notes:** The console leads with four compact health totals, then gives people/access management the widest surface. Role, suspension, removal, project-access removal, and timezone changes explain consequences before consequential changes. Canonical project settings remain linked rather than duplicated. Recent administration is intentionally compact; full audit exploration belongs to the dedicated viewer.
+
+### Administration secondary navigation
+
+File: `components/admin/admin-nav.tsx`
+Last updated: 2026-09-21
+
+| Property | Class |
+| --- | --- |
+| Background | `bg-background` |
+| Border | Container `border-b`; active item `border-b-2 border-primary` |
+| Border radius | None; this is a section-level tab rail |
+| Text — primary | Active `font-medium text-foreground` |
+| Text — secondary | Inactive `text-sm text-muted-foreground` |
+| Spacing | Rail `gap-1 px-4`; items `gap-2 px-3 py-3` |
+| Hover state | `hover:text-foreground` |
+| Shadow | None |
+| Accent usage | Active underline uses semantic `border-primary` |
+
+**Pattern notes:** People management is an Admin subsection, not a primary application destination. Overview, People, and Activity retain the secondary rail across their pages. Legacy `/people` requests redirect to `/admin/people`; focused invitation and access changes remain forms or dialogs inside the People subsection.
 
 ### Audit trail viewer
 

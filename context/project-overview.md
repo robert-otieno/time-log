@@ -98,6 +98,7 @@ Only routes for enabled tools appear in a project. A compact project switcher an
 - The system allows at most one active timer per user across all organizations.
 - The timer persists across navigation and page refreshes.
 - Stopping the timer creates a time entry containing project, task, user, start, end, duration, notes, billable flag, and audit timestamps.
+- When a timer references a task, the stop confirmation can optionally mark that task complete in the same atomic operation. It defaults off to prevent accidental completion.
 - Admins may start a project-level timer without a task; the UI should still encourage task selection.
 - Manual entries require project, task for non-admins, date, duration or start/end, and optional notes.
 - Internal entries are not exposed to clients by default. Client reports include only entries explicitly approved or included by an authorized member.

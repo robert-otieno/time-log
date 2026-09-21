@@ -91,7 +91,7 @@ export async function loadTimerLaunchOptionsAction() {
     const repository = new TaskRepository();
     const availableProjects = projects.filter((project) => project.status === "active" && project.enabledTools.includes("time"));
     const options = await Promise.all(availableProjects.map(async (project) => {
-      const tasks = await repository.list(organizationId, project.id, { includeArchived: false, limit: 100 }, { kind: "all" });
+      const tasks = await repository.list(organizationId, project.id, { includeArchived: false, statuses: ["backlog", "todo", "in_progress", "blocked"], limit: 100 }, { kind: "all" });
       return {
         id: project.id,
         name: project.name,
@@ -157,11 +157,11 @@ export async function createTimerTaskAction(raw: unknown) {
   }
 }
 
-const entrySettingsSchema = z.object({ note: z.string().trim().max(2000).nullable(), billable: z.boolean(), clientReportingStatus: z.enum(["internal", "approved"]) }).strict();
+const entrySettingsSchema = z.object({ note: z.string().trim().max(2000).nullable(), billable: z.boolean(), clientReportingStatus: z.enum(["internal", "approved"]), completeTask: z.boolean().default(false) }).strict();
 
 export async function stopTimerAction(raw: unknown) {
   const actor = await getSessionActor(); if (!actor) return { ok: false as const, code: "session_expired" as const };
-  try { const entry = await stopTimer(actor, entrySettingsSchema.parse(raw), createRequestCorrelation()); return { ok: true as const, entryId: entry.id }; }
+  try { const result = await stopTimer(actor, entrySettingsSchema.parse(raw), createRequestCorrelation()); return { ok: true as const, entryId: result.entry.id, taskCompleted: result.taskCompleted }; }
   catch (error) { if (error instanceof AuditedCommandError) return { ok: false as const, code: error.reasonCode }; return { ok: false as const, code: "timer_stop_failed" as const }; }
 }
 

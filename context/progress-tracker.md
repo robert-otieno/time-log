@@ -147,6 +147,12 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ## Session Log
 
+2026-09-21 — Completed-task flow — hid completed work from the default To-dos view while retaining explicit Done-filter recovery, promoted visible children of hidden completed parents, synchronized timer-driven completion into open lists, excluded completed tasks from timer launch queries, and rejected completed task IDs at timer start; added the required task status query index — deploy Firestore indexes and verify completion disappearance plus timer choices
+
+2026-09-21 — Timer completion workflow — added an optional unchecked “Mark task completed” choice to the stop dialog; stopping, time-entry creation, eligible task completion, timer cleanup, and correlated audits now commit atomically, while already-completed tasks remain idempotent and Picture-in-Picture quick stop remains completion-free — verify stop-only, stop-and-complete, archived-task retry, and project-level timer flows
+
+2026-09-21 — Admin information architecture — removed People from primary navigation, moved invitations and membership access to `/admin/people`, added persistent Overview/People/Activity administration navigation, and retained `/people` as a compatibility redirect — verify admin navigation, invitation result redirects, and non-admin denial
+
 2026-09-20 — Unified application shell — moved the shared role-aware header to the authenticated layout so My Work, Projects, People, Settings, Admin, Activity, and Time use one navigation implementation; added active-route states and a deliberate mobile menu while suppressing chrome during onboarding — verify desktop/mobile navigation for admin, member, and client roles
 
 2026-09-20 — Shared navigation recovery — replaced the divergent My Work and Projects header implementations with one role-aware `AppHeader`, including the same project switcher, icon map, label rules, brand route, and utilities — verify transitions between My Work, Projects, and project detail routes

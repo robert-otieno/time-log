@@ -273,7 +273,7 @@ The authenticated shell reads timer state through server actions. Browser tabs e
 
 Document Picture-in-Picture is a progressive enhancement for supported secure browsers and opens only from an explicit user gesture. Its always-on-top timer is a React portal over the same authenticated timer state, not a second source of truth. Closing it leaves the timer running; stopping from it invokes the normal audited server action and deliberately saves the existing note as internal, non-billable time. Unsupported browsers keep the in-page control, while all browsers receive a live elapsed-time and task browser-tab title during active tracking.
 
-Stopping a timer atomically creates its time entry and removes both active-timer records. Manual entries and corrections accept start/end instants, while the server calculates and validates integer duration seconds. New entries are non-billable and internal unless explicitly changed. Corrections update the record in a transaction, increment `correctionCount`, identify `updatedBy`, and append an audit event; the product never silently rewrites time history.
+Stopping a timer atomically creates its time entry and removes both active-timer records. When explicitly requested for a linked task, the same transaction re-authorizes task management, marks an eligible unfinished task done, and appends the correlated completion audit; an already-completed task remains idempotent. Manual entries and corrections accept start/end instants, while the server calculates and validates integer duration seconds. New entries are non-billable and internal unless explicitly changed. Corrections update the record in a transaction, increment `correctionCount`, identify `updatedBy`, and append an audit event; the product never silently rewrites time history.
 
 Time reporting uses organization-local calendar boundaries and bounded server queries. Admin project reports may include all project entries; member reports are forcibly scoped to the actor; clients cannot access personal time views and project reports are forcibly scoped to `clientReportingStatus: "approved"` before serialization. Queries read at most 2,000 entries per project and disclose truncation; partial client-safe datasets cannot be exported. Client-safe previews and CSV exports omit notes and internal counts, exported user-controlled text is neutralized against spreadsheet formulas, and both preview and export are audited. Personal time views use the configured timezone and never broaden the actor beyond their own entries.
 
@@ -470,6 +470,7 @@ verify client session
 - Client role and visibility are independent checks; both must pass.
 - New content is internal by default.
 - Non-admin active timers always reference a saved task.
+- New timers may reference only unfinished, non-archived tasks. The default To-dos view hides completed work while retaining an explicit Done filter for review and reopening.
 - A user has at most one active timer globally.
 - Duration is calculated on the server and cannot be negative.
 - Resend secrets, Firebase Admin credentials, connector tokens, and AI keys never reach the browser.

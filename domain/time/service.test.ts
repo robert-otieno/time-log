@@ -70,10 +70,14 @@ describe("active timer service", () => {
     expect(conflictEnv.audits).toMatchObject([{ outcome: "denied", reasonCode: "timer_already_active" }]);
   });
 
-  it("rejects archived tasks and projects without available time tracking", async () => {
+  it("rejects archived or completed tasks and projects without available time tracking", async () => {
     const taskEnv = environment({ "organizations/o1/projects/p1/tasks/t1": { ...task, archivedAt: timestamp } });
     await expect(startTimer(actor, "o1", "p1", { taskId: "t1" }, correlation, { ...taskEnv, now: () => startedAt })).rejects.toThrow("unavailable");
     expect(taskEnv.audits).toMatchObject([{ outcome: "denied", reasonCode: "timer_task_unavailable" }]);
+
+    const completedTaskEnv = environment({ "organizations/o1/projects/p1/tasks/t1": { ...task, status: "done", completedAt: timestamp } });
+    await expect(startTimer(actor, "o1", "p1", { taskId: "t1" }, correlation, { ...completedTaskEnv, now: () => startedAt })).rejects.toThrow("unavailable");
+    expect(completedTaskEnv.audits).toMatchObject([{ outcome: "denied", reasonCode: "timer_task_unavailable" }]);
 
     const projectEnv = environment({ "organizations/o1/projects/p1": { ...project, enabledTools: ["todos"] } });
     await expect(startTimer(actor, "o1", "p1", { taskId: "t1" }, correlation, { ...projectEnv, now: () => startedAt })).rejects.toThrow("unavailable");

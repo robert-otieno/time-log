@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
-import { changeMembershipAccessAction } from "@/app/(app)/people/actions";
+import { changeMembershipAccessAction } from "@/app/(app)/admin/people/actions";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 

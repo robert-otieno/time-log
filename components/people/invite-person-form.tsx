@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
-import { invitePersonAction } from "@/app/(app)/people/actions";
+import { invitePersonAction } from "@/app/(app)/admin/people/actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
