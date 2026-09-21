@@ -424,7 +424,7 @@ Last updated: 2026-09-20
 ### Global timer control and launcher
 
 Files: `components/time/global-timer-control.tsx`, `components/time/timer-start-button.tsx`, `app/(app)/projects/[projectId]/time/page.tsx`
-Last updated: 2026-09-20
+Last updated: 2026-09-21
 
 | Property | Class |
 | --- | --- |
@@ -438,7 +438,7 @@ Last updated: 2026-09-20
 | Shadow | Floating control `shadow-lg`; canonical Dialog/control shadows |
 | Accent usage | Semantic `bg-primary` live dot, secondary elapsed badge, destructive session badge |
 
-**Pattern notes:** The global timer remains compact, persistent, and centered above the bottom viewport edge at every breakpoint. Authenticated content reserves `pb-28` whenever the control is available so final rows and actions remain unobscured. A running state always shows project, task or project-level label, server start time, elapsed time, and optional note. Timer launch choices contain only unfinished, non-archived tasks; completed tasks are neither suggested nor accepted by the server. Supported secure browsers expose “Keep timer visible,” which opens a compact Document Picture-in-Picture surface using the same semantic tokens and a direct Stop & save action. Unsupported browsers retain the normal timer without a disabled control, and every active timer updates the tab title with elapsed time and task as the universal fallback. Launcher failures stay inline, network loss retains the last known timer with an Offline badge, and session expiry exposes a direct Sign in action. Task creation remains internal by default and is completed before starting the timer.
+**Pattern notes:** The global timer remains compact, persistent, and centered above the bottom viewport edge at every breakpoint. Authenticated content reserves `pb-28` whenever the control is available so final rows and actions remain unobscured. A running state always shows project, task or project-level label, server start time, elapsed time, and optional note. The launcher resolves defaults in this order: explicit Track time context, current `/projects/[projectId]` route, then the first accessible project. Within that project it recommends assigned work first, then in-progress status, earliest deadline, highest priority, and stable task order; selectors remain editable. Timer launch choices contain only unfinished, non-archived tasks; completed tasks are neither suggested nor accepted by the server. Supported secure browsers expose “Keep timer visible,” which opens a compact Document Picture-in-Picture surface using the same semantic tokens and a direct Stop & save action. Unsupported browsers retain the normal timer without a disabled control, and every active timer updates the tab title with elapsed time and task as the universal fallback. Launcher failures stay inline, network loss retains the last known timer with an Offline badge, and session expiry exposes a direct Sign in action. Task creation remains internal by default and is completed before starting the timer.
 
 ### Time entry stop, manual entry, and correction
 

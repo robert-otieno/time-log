@@ -12,6 +12,8 @@ Update this file after every completed feature. A new session should be able to 
 
 **Blockers:** None
 
+2026-09-21 — Context-aware timer launcher — the global Start timer now derives project context from `/projects/[projectId]` routes unless an explicit Track time action supplies stronger context; eligible tasks are recommended by current-user assignment, in-progress status, deadline, priority, and stable order, while non-project pages retain the neutral first-accessible-project fallback — 179 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass; run project-route, explicit-task, and non-project browser smoke
+
 2026-09-21 — To-do list compactness refinement — replaced per-task cards with one divided hierarchical list; collapsed rows now show completion and title, while a single click-expanded details region reveals descriptions, metadata, and secondary actions before an explicit edit mode; subtasks retain visible indentation and client views retain read-only disclosure — 172 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass; run authenticated desktop/mobile task, subtask, archive, and client-view smoke
 
 ## Existing Repository Baseline

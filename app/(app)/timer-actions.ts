@@ -12,6 +12,7 @@ import type { ActiveTimer, TimeEntry } from "@/domain/time/schemas";
 import { TimeRepository } from "@/domain/time/repository";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getActiveOrganizationId, getSessionActor } from "@/lib/server-session";
+import { rankTimerTasks } from "@/domain/time/launcher";
 
 export type TimerView = {
   organizationId: string;
@@ -97,7 +98,7 @@ export async function loadTimerLaunchOptionsAction() {
         name: project.name,
         key: project.key,
         canCreateTask: project.enabledTools.includes("todos"),
-        tasks: tasks.map(({ id, title }) => ({ id, title })),
+        tasks: rankTimerTasks(tasks, actor.uid).map(({ id, title }) => ({ id, title })),
       };
     }));
     return { ok: true as const, options: { role: member.role, projects: options } satisfies TimerLaunchOptions };

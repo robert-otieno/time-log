@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Clock3,
   Loader2,
@@ -43,6 +43,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatElapsedTimer } from "@/domain/time/display";
+import { projectIdFromProjectPath } from "@/domain/time/launcher";
 import { toast } from "sonner";
 
 const TIMER_CHANNEL = "time-log-active-timer";
@@ -176,6 +177,7 @@ export function GlobalTimerControl({
   canTrack: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [timer, setTimer] = useState(initialTimer);
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<TimerLaunchOptions | null>(null);
@@ -230,9 +232,11 @@ export function GlobalTimerControl({
         return;
       }
       setOptions(response.options);
+      const contextualProjectId =
+        prefill.projectId ?? projectIdFromProjectPath(pathname);
       const selectedProject =
         response.options.projects.find(
-          (project) => project.id === prefill.projectId,
+          (project) => project.id === contextualProjectId,
         ) ?? response.options.projects[0];
       setProjectId(selectedProject?.id ?? "");
       const selectedTask =
@@ -249,7 +253,7 @@ export function GlobalTimerControl({
     } finally {
       setLoadingOptions(false);
     }
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     const channel =
