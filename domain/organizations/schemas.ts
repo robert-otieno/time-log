@@ -3,6 +3,8 @@ export { notificationSchema } from "@/domain/notifications/schemas";
 export type { Notification } from "@/domain/notifications/schemas";
 
 export const membershipRoleSchema = z.enum(["admin", "member", "client"]);
+export const invitationRoleSchema = z.enum(["admin", "project_admin", "member", "client"]);
+export const projectRoleSchema = z.enum(["admin", "member"]);
 export const membershipStatusSchema = z.enum(["invited", "active", "suspended", "removed"]);
 export const projectStatusSchema = z.enum(["active", "on_hold", "completed", "archived"]);
 
@@ -80,7 +82,7 @@ export const clientSchema = z.object({
 export const invitationSchema = z.object({
   id: z.string().min(1),
   email: z.string().trim().toLowerCase().email(),
-  role: membershipRoleSchema,
+  role: invitationRoleSchema,
   clientId: z.string().min(1).nullable(),
   tokenHash: z.string().regex(/^[a-f0-9]{64}$/),
   status: z.enum(["pending", "accepted", "expired", "revoked"]),
@@ -115,6 +117,7 @@ export const projectSchema = z.object({
 
 export const projectAssignmentSchema = z.object({
   userId: z.string().min(1),
+  projectRole: projectRoleSchema.default("member"),
   status: z.enum(["active", "removed"]),
   assignedBy: z.string().min(1),
   assignedAt: timestampSchema,
@@ -137,3 +140,5 @@ export type Invitation = z.infer<typeof invitationSchema>;
 export type Project = z.infer<typeof projectSchema>;
 export type ProjectAssignment = z.infer<typeof projectAssignmentSchema>;
 export type MembershipRole = z.infer<typeof membershipRoleSchema>;
+export type InvitationRole = z.infer<typeof invitationRoleSchema>;
+export type ProjectRole = z.infer<typeof projectRoleSchema>;

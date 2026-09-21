@@ -27,13 +27,15 @@ beforeEach(async () => {
       setDoc(doc(db, "organizations/org-b"), { name: "Org B" }),
       setDoc(doc(db, "organizations/org-a/members/admin"), { ...active, userId: "admin", role: "admin" }),
       setDoc(doc(db, "organizations/org-a/members/member"), { ...active, userId: "member", role: "member" }),
+      setDoc(doc(db, "organizations/org-a/members/project-admin"), { ...active, userId: "project-admin", role: "member" }),
       setDoc(doc(db, "organizations/org-a/members/client-user"), { ...active, userId: "client-user", role: "client", clientId: "client-1" }),
       setDoc(doc(db, "organizations/org-a/members/suspended"), { status: "suspended", userId: "suspended", role: "member", clientId: null }),
       setDoc(doc(db, "organizations/org-b/members/other"), { ...active, userId: "other", role: "admin" }),
       setDoc(doc(db, "organizations/org-a/clients/client-1"), { name: "Client One" }),
       setDoc(doc(db, "organizations/org-a/projects/project-1"), { name: "Project One" }),
-      setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/member"), { userId: "member", status: "active" }),
-      setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/client-user"), { userId: "client-user", status: "active" }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/member"), { userId: "member", projectRole: "member", status: "active" }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/project-admin"), { userId: "project-admin", projectRole: "admin", status: "active" }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/client-user"), { userId: "client-user", projectRole: "member", status: "active" }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/internal-task"), { title: "Internal", visibility: "internal", archivedAt: null }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/shared-task"), { title: "Shared", visibility: "client-visible", archivedAt: null }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/archived-shared-task"), { title: "Archived", visibility: "client-visible", archivedAt: { seconds: 1 } }),
@@ -78,6 +80,13 @@ describe("organization Firestore rules", () => {
     await assertSucceeds(getDoc(doc(dbFor("member"), "organizations/org-a/projects/project-1")));
     await assertSucceeds(getDoc(doc(dbFor("client-user"), "organizations/org-a/projects/project-1")));
     await assertSucceeds(getDoc(doc(dbFor("client-user"), "organizations/org-a/clients/client-1")));
+  });
+
+  it("allows project administrators to inspect only their project assignments", async () => {
+    const assignments = collection(dbFor("project-admin"), "organizations/org-a/projects/project-1/projectMembers");
+    await assertSucceeds(getDocs(assignments));
+    await assertFails(getDocs(collection(dbFor("member"), "organizations/org-a/projects/project-1/projectMembers")));
+    await assertFails(getDocs(collection(dbFor("project-admin"), "organizations/org-a/members")));
   });
 
   it("denies unassigned, suspended, and cross-tenant users", async () => {

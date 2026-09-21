@@ -20,7 +20,8 @@ Time Log creates one project record for the work and its history. It emphasizes 
 
 - **Organization** — the tenant and billing/security boundary containing members, clients, projects, templates, and organization settings.
 - **Project** — a collaborative workspace containing enabled tools and project-scoped content.
-- **Member** — an internal organization user. A member may be an admin or standard member.
+- **Member** — an internal organization user. Organization membership is separate from project-level administration.
+- **Project admin** — an internal member who can manage explicitly assigned projects without receiving organization-wide access.
 - **Client** — a restricted guest who can access only assigned projects and only content explicitly marked client-visible.
 - **Visibility** — `internal` or `client-visible`. New content defaults to `internal`. Visibility never grants access to a person who is not assigned to the project.
 - **Task** — a saved unit of work. In the initial release, every non-admin live timer must reference a task.
@@ -34,6 +35,7 @@ Time Log creates one project record for the work and its history. It emphasizes 
 | Role | Intended access |
 | --- | --- |
 | Organization admin | Manage organization, people, clients, projects, templates, settings, integrations, and all internal content. May start a project-level timer without a task. |
+| Project admin | Manage settings and work inside explicitly assigned projects. Cannot manage organization people, roles, invitations, organization settings, or unassigned projects. |
 | Member | Work in assigned projects, create and complete tasks, track time, and use enabled project tools. Must select or create a task before starting a timer. |
 | Client | Enter assigned projects as a guest and access only items marked `client-visible`. No access to internal chat, private notes, admin, AI configuration, connectors, or unrelated projects. |
 

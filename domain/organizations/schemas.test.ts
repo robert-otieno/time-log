@@ -13,6 +13,9 @@ describe("organization schemas", () => {
   it("requires removed assignments to record when removal occurred", () => {
     expect(projectAssignmentSchema.safeParse({ userId: "u1", status: "removed", assignedBy: "a1", assignedAt: timestamp, removedAt: null }).success).toBe(false);
   });
+  it("defaults legacy project assignments to member access", () => {
+    expect(projectAssignmentSchema.parse({ userId: "u1", status: "active", assignedBy: "a1", assignedAt: timestamp, removedAt: null }).projectRole).toBe("member");
+  });
   it("accepts removed memberships while preserving identity", () => {
     expect(organizationMemberSchema.safeParse({ userId: "u1", role: "member", status: "removed", clientId: null, joinedAt: timestamp }).success).toBe(true);
   });

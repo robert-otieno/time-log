@@ -33,6 +33,14 @@ service cloud.firestore {
         && get(assignment).data.status == 'active';
     }
 
+    function projectAdmin(organizationId, projectId) {
+      let assignment = /databases/$(database)/documents/organizations/$(organizationId)/projects/$(projectId)/projectMembers/$(request.auth.uid);
+      return activeMember(organizationId)
+        && exists(assignment)
+        && get(assignment).data.status == 'active'
+        && get(assignment).data.projectRole == 'admin';
+    }
+
     function canReadProject(organizationId, projectId) {
       return activeAdmin(organizationId) || assignedToProject(organizationId, projectId);
     }
@@ -87,9 +95,9 @@ service cloud.firestore {
         allow write: if false;
 
         match /projectMembers/{userId} {
-          allow get: if activeAdmin(organizationId)
+          allow get: if activeAdmin(organizationId) || projectAdmin(organizationId, projectId)
             || (signedIn() && request.auth.uid == userId && activeMember(organizationId));
-          allow list: if activeAdmin(organizationId);
+          allow list: if activeAdmin(organizationId) || projectAdmin(organizationId, projectId);
           allow write: if false;
         }
 

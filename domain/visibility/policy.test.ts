@@ -3,7 +3,7 @@ import type { OrganizationMember, ProjectAssignment } from "@/domain/organizatio
 import { canChangeVisibility, canReadVisibleRecord, filterVisibleRecords, visibilityForQuery } from "@/domain/visibility/policy";
 
 const timestamp = { seconds: 1, nanoseconds: 0 };
-const assignment: ProjectAssignment = { userId: "u1", status: "active", assignedBy: "admin", assignedAt: timestamp, removedAt: null };
+const assignment: ProjectAssignment = { userId: "u1", projectRole: "member", status: "active", assignedBy: "admin", assignedAt: timestamp, removedAt: null };
 const member = (role: OrganizationMember["role"], status: OrganizationMember["status"] = "active"): OrganizationMember => ({
   userId: "u1", role, status, clientId: role === "client" ? "c1" : null, joinedAt: status === "active" ? timestamp : null,
 });

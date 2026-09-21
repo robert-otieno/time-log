@@ -481,7 +481,7 @@ Last updated: 2026-09-20
 ### Admin console
 
 Files: `app/(app)/admin/page.tsx`, `components/admin/organization-settings-form.tsx`, `components/admin/member-admin-controls.tsx`, `components/people/membership-actions.tsx`
-Last updated: 2026-09-20
+Last updated: 2026-09-21
 
 | Property | Class |
 | --- | --- |
@@ -495,7 +495,7 @@ Last updated: 2026-09-20
 | Shadow | Canonical Card, Dialog, and control shadows only |
 | Accent usage | Primary administration eyebrow; semantic role/status badges; destructive confirmation actions |
 
-**Pattern notes:** The console leads with four compact health totals, then gives people/access management the widest surface. Role, suspension, removal, project-access removal, and timezone changes explain consequences before consequential changes. Canonical project settings remain linked rather than duplicated. Recent administration is intentionally compact; full audit exploration belongs to the dedicated viewer.
+**Pattern notes:** The console leads with four compact health totals, then gives people/access management the widest surface. Role and Project access share a responsive control row; project assignments use a compact checkbox dropdown with selected-count feedback instead of separate Add/Remove buttons. Role selectors distinguish Organization admin, Project admin, and Member: organization-wide access is stated explicitly, while Project admin requires one or more selected projects and is represented by administrative project assignments. Role, suspension, removal, project-access removal, and timezone changes explain consequences before consequential changes. Canonical project settings remain linked rather than duplicated. Recent administration is intentionally compact; full audit exploration belongs to the dedicated viewer.
 
 ### Administration secondary navigation
 

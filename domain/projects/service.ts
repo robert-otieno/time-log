@@ -4,8 +4,8 @@ import { cache } from "react";
 import { FieldValue, type DocumentReference, type Firestore } from "firebase-admin/firestore";
 import type { AuditCorrelation } from "@/domain/audit/correlation";
 import { AuditedCommandError, executeAuditedCommand, type AuditWriter } from "@/domain/audit/command";
-import { hasCapability } from "@/domain/organizations/policy";
-import { clientSchema, organizationMemberSchema, projectSchema, type Project } from "@/domain/organizations/schemas";
+import { canManageProject, hasCapability } from "@/domain/organizations/policy";
+import { clientSchema, organizationMemberSchema, projectAssignmentSchema, projectSchema, type Project } from "@/domain/organizations/schemas";
 import { changeProjectStatusCommandSchema, createProjectCommandSchema, selectProjectCommandSchema, updateProjectCommandSchema } from "@/domain/projects/schemas";
 import { projectKeyBase, projectKeyCandidate } from "@/domain/projects/keys";
 import type { AuthActor } from "@/lib/auth-server";
@@ -17,6 +17,17 @@ async function requireAdmin(transaction: FirebaseFirestore.Transaction, db: Fire
   const snapshot = await transaction.get(db.doc(`organizations/${organizationId}/members/${uid}`));
   const member = snapshot.exists ? organizationMemberSchema.parse(snapshot.data()) : null;
   if (!hasCapability(member, "projects.manage")) throw new AuditedCommandError("denied", "projects_manage_denied", "Project management denied");
+  return member!;
+}
+
+async function requireProjectManager(transaction: FirebaseFirestore.Transaction, db: Firestore, organizationId: string, projectId: string, uid: string) {
+  const [memberSnapshot, assignmentSnapshot] = await Promise.all([
+    transaction.get(db.doc(`organizations/${organizationId}/members/${uid}`)),
+    transaction.get(db.doc(`organizations/${organizationId}/projects/${projectId}/projectMembers/${uid}`)),
+  ]);
+  const member = memberSnapshot.exists ? organizationMemberSchema.parse(memberSnapshot.data()) : null;
+  const assignment = assignmentSnapshot.exists ? projectAssignmentSchema.parse(assignmentSnapshot.data()) : null;
+  if (!canManageProject(member, assignment)) throw new AuditedCommandError("denied", "projects_manage_denied", "Project management denied");
   return member!;
 }
 
@@ -52,11 +63,12 @@ export async function createProject(actor: AuthActor, organizationId: string, ra
 export async function updateProject(actor: AuthActor, organizationId: string, raw: unknown, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
   const command = updateProjectCommandSchema.parse(raw); const db = dependencies.db ?? getAdminDb();
   const reference = db.doc(`organizations/${organizationId}/projects/${command.projectId}`);
-  return executeAuditedCommand({ db, auditRepository: dependencies.auditRepository, organizationId, projectId: command.projectId, actor: { type: "user", id: actor.uid, role: "admin" }, action: "project.record.updated", target: { type: "project", id: command.projectId }, correlation, changes: [{ field: "enabled", to: true }], execute: async (transaction) => {
-    await requireAdmin(transaction, db, organizationId, actor.uid); const snapshot = await transaction.get(reference);
+  return executeAuditedCommand({ db, auditRepository: dependencies.auditRepository, organizationId, projectId: command.projectId, actor: { type: "user", id: actor.uid, role: null }, action: "project.record.updated", target: { type: "project", id: command.projectId }, correlation, changes: [{ field: "enabled", to: true }], execute: async (transaction) => {
+    const manager = await requireProjectManager(transaction, db, organizationId, command.projectId, actor.uid); const snapshot = await transaction.get(reference);
     if (!snapshot.exists) throw new AuditedCommandError("failed", "project_not_found", "Project not found");
     const existing = projectSchema.parse({ id: snapshot.id, ...snapshot.data() });
     if (existing.status !== "active") throw new AuditedCommandError("denied", "project_read_only", "Restore the project before editing");
+    if (manager.role !== "admin" && command.clientId !== existing.clientId) throw new AuditedCommandError("denied", "project_client_manage_denied", "Only organization administrators can change a project's client");
     if (command.clientId) {
       const client = await transaction.get(db.doc(`organizations/${organizationId}/clients/${command.clientId}`));
       if (!client.exists || clientSchema.parse({ id: client.id, ...client.data() }).status !== "active") throw new AuditedCommandError("failed", "client_not_found", "Client not found");
@@ -67,7 +79,7 @@ export async function updateProject(actor: AuthActor, organizationId: string, ra
 
 export async function changeProjectStatus(actor: AuthActor, organizationId: string, raw: unknown, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
   const command = changeProjectStatusCommandSchema.parse(raw); const db = dependencies.db ?? getAdminDb(); const reference = db.doc(`organizations/${organizationId}/projects/${command.projectId}`);
-  return executeAuditedCommand({ db, auditRepository: dependencies.auditRepository, organizationId, projectId: command.projectId, actor: { type: "user", id: actor.uid, role: "admin" }, action: command.status === "archived" ? "project.record.archived" : "project.record.updated", target: { type: "project", id: command.projectId }, correlation, changes: [{ field: "projectStatus", to: command.status }], execute: async (transaction) => { await requireAdmin(transaction, db, organizationId, actor.uid); const snapshot = await transaction.get(reference); if (!snapshot.exists) throw new AuditedCommandError("failed", "project_not_found", "Project not found"); transaction.update(reference, { status: command.status, updatedBy: actor.uid, updatedAt: FieldValue.serverTimestamp() }); }});
+  return executeAuditedCommand({ db, auditRepository: dependencies.auditRepository, organizationId, projectId: command.projectId, actor: { type: "user", id: actor.uid, role: null }, action: command.status === "archived" ? "project.record.archived" : "project.record.updated", target: { type: "project", id: command.projectId }, correlation, changes: [{ field: "projectStatus", to: command.status }], execute: async (transaction) => { await requireProjectManager(transaction, db, organizationId, command.projectId, actor.uid); const snapshot = await transaction.get(reference); if (!snapshot.exists) throw new AuditedCommandError("failed", "project_not_found", "Project not found"); transaction.update(reference, { status: command.status, updatedBy: actor.uid, updatedAt: FieldValue.serverTimestamp() }); }});
 }
 
 async function listAccessibleProjectsFromDb(actor: Pick<AuthActor, "uid">, organizationId: string, db: Firestore) {
@@ -110,8 +122,9 @@ async function getAccessibleProjectFromDb(actor: Pick<AuthActor, "uid">, organiz
   ]);
   const member = membershipSnapshot.exists ? organizationMemberSchema.parse(membershipSnapshot.data()) : null;
   if (!member || member.status !== "active" || !projectSnapshot.exists) return null;
-  if (member.role !== "admin" && assignmentSnapshot.data()?.status !== "active") return null;
-  return { project: projectSchema.parse({ id: projectSnapshot.id, ...projectSnapshot.data() }), role: member.role };
+  const assignment = assignmentSnapshot.exists ? projectAssignmentSchema.parse(assignmentSnapshot.data()) : null;
+  if (member.role !== "admin" && assignment?.status !== "active") return null;
+  return { project: projectSchema.parse({ id: projectSnapshot.id, ...projectSnapshot.data() }), role: member.role, canManageProject: canManageProject(member, assignment) };
 }
 
 const getAccessibleProjectCached = cache(async (uid: string, organizationId: string, projectId: string) =>
@@ -131,10 +144,27 @@ export async function selectActiveProject(actor: AuthActor, organizationId: stri
   await db.doc(`users/${actor.uid}/preferences/workspace`).set({ activeOrganizationId: organizationId, activeProjectId: command.projectId, source: "user", updatedAt: FieldValue.serverTimestamp() }, { merge: true });
 }
 
-export async function listActiveProjectClients(actor: AuthActor, organizationId: string, db: Firestore = getAdminDb()) {
-  const membership = await db.doc(`organizations/${organizationId}/members/${actor.uid}`).get();
+export async function listActiveProjectClients(actor: AuthActor, organizationId: string, projectId?: string, db: Firestore = getAdminDb()) {
+  const [membership, assignmentSnapshot, projectSnapshot] = await Promise.all([
+    db.doc(`organizations/${organizationId}/members/${actor.uid}`).get(),
+    projectId
+      ? db.doc(`organizations/${organizationId}/projects/${projectId}/projectMembers/${actor.uid}`).get()
+      : Promise.resolve(null),
+    projectId
+      ? db.doc(`organizations/${organizationId}/projects/${projectId}`).get()
+      : Promise.resolve(null),
+  ]);
   const member = membership.exists ? organizationMemberSchema.parse(membership.data()) : null;
-  if (!hasCapability(member, "projects.manage")) return [];
+  const assignment = assignmentSnapshot?.exists ? projectAssignmentSchema.parse(assignmentSnapshot.data()) : null;
+  if (projectId ? !canManageProject(member, assignment) : !hasCapability(member, "projects.manage")) return [];
+  if (projectId && member?.role !== "admin") {
+    const project = projectSnapshot?.exists ? projectSchema.parse({ id: projectSnapshot.id, ...projectSnapshot.data() }) : null;
+    if (!project?.clientId) return [];
+    const client = await db.doc(`organizations/${organizationId}/clients/${project.clientId}`).get();
+    return client.exists && clientSchema.parse({ id: client.id, ...client.data() }).status === "active"
+      ? [clientSchema.parse({ id: client.id, ...client.data() })]
+      : [];
+  }
   const clients = await db.collection(`organizations/${organizationId}/clients`).where("status", "==", "active").get();
   return clients.docs.map((document) => clientSchema.parse({ id: document.id, ...document.data() }));
 }

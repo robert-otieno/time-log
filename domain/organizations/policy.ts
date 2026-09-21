@@ -29,6 +29,20 @@ export function canAccessProject(
   return assignment?.userId === member?.userId && assignment?.status === "active";
 }
 
+export function canManageProject(
+  member: OrganizationMember | null,
+  assignment: ProjectAssignment | null,
+): boolean {
+  if (member?.status !== "active") return false;
+  if (member.role === "admin") return true;
+  return (
+    member.role === "member" &&
+    assignment?.userId === member.userId &&
+    assignment.status === "active" &&
+    assignment.projectRole === "admin"
+  );
+}
+
 export function canReadVisibility(
   member: OrganizationMember | null,
   visibility: "internal" | "client-visible",

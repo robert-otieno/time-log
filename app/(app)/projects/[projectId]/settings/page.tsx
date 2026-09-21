@@ -28,8 +28,8 @@ export default async function ProjectSettingsPage({
   const { projectId } = await params;
   const organizationId = await getActiveOrganizationId(actor);
   const access = await getAccessibleProject(actor, organizationId, projectId);
-  if (!access || access.role !== "admin") notFound();
-  const clients = await listActiveProjectClients(actor, organizationId);
+  if (!access || !access.canManageProject) notFound();
+  const clients = await listActiveProjectClients(actor, organizationId, projectId);
   const projectFormData = toProjectFormProject(access.project);
   const clientOptions = clients.map(toProjectFormClient);
   return (
@@ -43,7 +43,7 @@ export default async function ProjectSettingsPage({
             </CardDescription> */}
           </CardHeader>
           <CardContent>
-            <ProjectForm clients={clientOptions} project={projectFormData} />
+            <ProjectForm clients={clientOptions} project={projectFormData} canManageClient={access.role === "admin"} />
           </CardContent>
         </Card>
       ) : (

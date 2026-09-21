@@ -99,8 +99,8 @@ export async function acceptInvitation(actor: AuthActor, raw: unknown, correlati
       const assignmentRefs = invitation.projectIds.map((projectId) => db.doc(`organizations/${command.organizationId}/projects/${projectId}/projectMembers/${actor.uid}`));
       const assignmentSnapshots = await Promise.all(assignmentRefs.map((reference) => transaction.get(reference)));
       const now = FieldValue.serverTimestamp();
-      transaction.set(memberRef, { userId: actor.uid, email: normalizeInvitationEmail(actor.email), displayName: actor.displayName?.trim() || null, role: invitation.role, status: "active", clientId: invitation.clientId, joinedAt: now });
-      assignmentRefs.forEach((reference, index) => transaction.set(reference, { userId: actor.uid, status: "active", assignedBy: invitation.createdBy, assignedAt: assignmentSnapshots[index].exists ? assignmentSnapshots[index].data()?.assignedAt ?? now : now, removedAt: null }));
+      transaction.set(memberRef, { userId: actor.uid, email: normalizeInvitationEmail(actor.email), displayName: actor.displayName?.trim() || null, role: invitation.role === "project_admin" ? "member" : invitation.role, status: "active", clientId: invitation.clientId, joinedAt: now });
+      assignmentRefs.forEach((reference, index) => transaction.set(reference, { userId: actor.uid, projectRole: invitation.role === "project_admin" ? "admin" : "member", status: "active", assignedBy: invitation.createdBy, assignedAt: assignmentSnapshots[index].exists ? assignmentSnapshots[index].data()?.assignedAt ?? now : now, removedAt: null }));
       transaction.update(invitationRef, { status: "accepted", acceptedBy: actor.uid, acceptedAt: now, updatedAt: now });
       transaction.set(selectionRef, { activeOrganizationId: command.organizationId, source: "user", updatedAt: now }, { merge: true });
       return { organizationId: command.organizationId };

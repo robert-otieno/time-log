@@ -58,7 +58,7 @@ Do not build all project tools in parallel. Complete and verify each numbered fe
 
 ### 05 Organization and Membership Schema
 
-- Create organization, member, client, invitation, and project-assignment records.
+- Create organization, member, client, invitation, and project-assignment records, with project-level member/admin authority separate from organization roles.
 - Add role/capability policy helpers.
 - Write Firestore rules and emulator tests for admin, member, client, suspended, and unassigned cases.
 
@@ -85,7 +85,7 @@ Do not build all project tools in parallel. Complete and verify each numbered fe
 
 ### 09 People, Clients, and Invitations
 
-- Admin creates invitations with role and optional project assignments.
+- Organization admin creates invitations for organization admin, project admin, member, or client access; project-admin invitations require explicit projects.
 - Send invitations through the Resend outbox.
 - Accept invitations only for the intended authenticated email/account.
 - Add suspend/remove flows with audit events.
@@ -178,7 +178,7 @@ Do not build all project tools in parallel. Complete and verify each numbered fe
 
 ### 21 Admin Console
 
-- Manage people, roles, clients, project access, projects, and organization settings.
+- Manage people, organization roles, project-admin/member assignments, clients, projects, and organization settings.
 - Show destructive action confirmations and audit history.
 - Prevent removal of the last active organization admin.
 

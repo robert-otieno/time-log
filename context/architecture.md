@@ -134,6 +134,8 @@ organizations/{organizationId}/onboarding/{uid}
 users/{uid}/preferences/workspace
 ```
 
+Organization membership and project authority are intentionally separate. `members/{uid}.role` remains `admin`, `member`, or `client`; `projectMembers/{uid}.projectRole` is `admin` or `member` and defaults to `member` when legacy assignments omit it. Organization admins retain access to every project. Internal members, including project admins, must have an active assignment, and project-management commands require `projectRole: admin`. Project administration never grants organization people, invitation, role, settings, or organization-audit capabilities.
+
 ### Core Records
 
 All timestamps are server timestamps. All user-authored records include `createdBy`, `createdAt`, `updatedBy`, and `updatedAt`. Deletable collaborative records use `archivedAt` or `deletedAt` unless legal/security requirements demand hard deletion.

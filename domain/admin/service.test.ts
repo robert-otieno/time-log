@@ -22,7 +22,25 @@ function environment(extra: Record<string, Record<string, unknown>> = {}) {
     const data = records[reference.path]; return { exists: Boolean(data), id: reference.path.split("/").at(-1), data: () => data };
   };
   const transaction = { get: vi.fn(async (reference) => snapshotFor(reference)), update: vi.fn((reference, data) => writes.push({ method: "update", path: reference.path, data })), set: vi.fn((reference, data) => writes.push({ method: "set", path: reference.path, data })) };
-  const db = { doc: vi.fn(ref), collection: vi.fn(collection), runTransaction: vi.fn(async (callback: (transaction: Transaction) => Promise<unknown>) => callback(transaction as unknown as Transaction)) } as unknown as Firestore;
+  const collectionGroup = vi.fn(() => {
+    const filters: Array<[string, unknown]> = [];
+    const query = {
+      where(field: string, _operator: string, value: unknown) { filters.push([field, value]); return query; },
+      async get() {
+        const docs = Object.entries(records)
+          .filter(([path, data]) => path.includes("/projectMembers/") && filters.every(([field, value]) => data[field] === value))
+          .map(([path, data]) => {
+            const parts = path.split("/");
+            const organizationId = parts[1];
+            const projectId = parts[3];
+            return { data: () => data, ref: { parent: { parent: { id: projectId, parent: { parent: { id: organizationId } } } } } };
+          });
+        return { docs };
+      },
+    };
+    return query;
+  });
+  const db = { doc: vi.fn(ref), collection: vi.fn(collection), collectionGroup, runTransaction: vi.fn(async (callback: (transaction: Transaction) => Promise<unknown>) => callback(transaction as unknown as Transaction)) } as unknown as Firestore;
   const auditRepository: AuditWriter = { append: vi.fn(async () => ({ id: "audit-failure" })), appendInTransaction: vi.fn(() => ({ id: "audit-success" })) };
   return { db, auditRepository, writes };
 }
@@ -44,7 +62,33 @@ describe("admin service", () => {
   it("assigns an active member and preserves historical records", async () => {
     const env = environment();
     await changeProjectAssignment(actor, "o1", { userId: "user-2", projectId: "p1", action: "assign" }, correlation, env);
-    expect(env.writes).toMatchObject([{ method: "set", path: "organizations/o1/projects/p1/projectMembers/user-2", data: { userId: "user-2", status: "active", assignedBy: "admin-1", removedAt: null } }]);
+    expect(env.writes).toMatchObject([{ method: "set", path: "organizations/o1/projects/p1/projectMembers/user-2", data: { userId: "user-2", projectRole: "member", status: "active", assignedBy: "admin-1", removedAt: null } }]);
+  });
+
+  it("assigns project-administrator authority when requested", async () => {
+    const env = environment();
+    await changeProjectAssignment(actor, "o1", { userId: "user-2", projectId: "p1", action: "assign", projectRole: "admin" }, correlation, env);
+    expect(env.writes).toMatchObject([{ method: "set", path: "organizations/o1/projects/p1/projectMembers/user-2", data: { projectRole: "admin", status: "active" } }]);
+  });
+
+  it("converts an organization administrator to a scoped project administrator", async () => {
+    const targetAdmin = { ...admin, userId: "user-2", displayName: "Second admin" };
+    const env = environment({
+      "organizations/o1/members/user-2": targetAdmin,
+      "organizations/o1/members/admin-2": { ...admin, userId: "admin-2" },
+      "organizations/o1/projects/p1/projectMembers/user-2": { userId: "user-2", projectRole: "member", status: "active", assignedBy: "admin-1", assignedAt: stamp, removedAt: null },
+    });
+    await changeMemberRole(actor, "o1", { userId: "user-2", role: "project_admin", projectIds: ["p1"] }, correlation, env);
+    expect(env.writes).toContainEqual({ method: "update", path: "organizations/o1/members/user-2", data: { role: "member" } });
+    expect(env.writes).toContainEqual(expect.objectContaining({ method: "set", path: "organizations/o1/projects/p1/projectMembers/user-2", data: expect.objectContaining({ projectRole: "admin", status: "active" }) }));
+  });
+
+  it("downgrades every discovered project-admin assignment without trusting browser project IDs", async () => {
+    const env = environment({
+      "organizations/o1/projects/p1/projectMembers/user-2": { userId: "user-2", projectRole: "admin", status: "active", assignedBy: "admin-1", assignedAt: stamp, removedAt: null },
+    });
+    await changeMemberRole(actor, "o1", { userId: "user-2", role: "member", projectIds: [] }, correlation, env);
+    expect(env.writes).toContainEqual(expect.objectContaining({ method: "set", path: "organizations/o1/projects/p1/projectMembers/user-2", data: expect.objectContaining({ projectRole: "member" }) }));
   });
 
   it("updates organization name and timezone without rewriting domain timestamps", async () => {

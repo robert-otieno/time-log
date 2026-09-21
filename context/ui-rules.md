@@ -80,6 +80,7 @@
 ## People and Roles
 
 - Distinguish member and client invitations before collecting project access.
+- Distinguish Organization admin from Project admin explicitly; Organization admin always means access to every project, while Project admin requires selected assignments.
 - Show role, status, assigned projects, and last invitation/delivery state.
 - Role changes explain impact before save.
 - Suspension/removal uses confirmation and identifies affected access; prevent removal of the last admin.

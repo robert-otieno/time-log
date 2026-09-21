@@ -5,7 +5,7 @@ import { serializeVisibleRecordForClient } from "@/domain/visibility/serializati
 
 const timestamp = { seconds: 1, nanoseconds: 0 };
 const client: OrganizationMember = { userId: "client", email: "client@example.com", role: "client", status: "active", clientId: "c1", joinedAt: timestamp };
-const assignment: ProjectAssignment = { userId: "client", status: "active", assignedBy: "admin", assignedAt: timestamp, removedAt: null };
+const assignment: ProjectAssignment = { userId: "client", projectRole: "member", status: "active", assignedBy: "admin", assignedAt: timestamp, removedAt: null };
 const safeSchema = z.object({ id: z.string(), title: z.string() }).strip();
 
 describe("client-safe visibility serialization", () => {
@@ -21,4 +21,3 @@ describe("client-safe visibility serialization", () => {
     expect(serializeVisibleRecordForClient({ id: "t1", title: "Shared", visibility: "client-visible" as const }, { ...client, role: "member", clientId: null }, assignment, safeSchema)).toBeNull();
   });
 });
-

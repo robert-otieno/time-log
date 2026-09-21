@@ -12,13 +12,13 @@ function projectReference(organizationId: string, id: string) {
   return { id, path: `organizations/${organizationId}/projects/${id}`, parent: { parent: { id: organizationId } } };
 }
 
-function clientDatabase(options: { assigned?: boolean; membershipStatus?: "active" | "suspended"; role?: "client" | "member" } = {}) {
+function clientDatabase(options: { assigned?: boolean; membershipStatus?: "active" | "suspended"; role?: "client" | "member"; projectRole?: "admin" | "member" } = {}) {
   const assigned = options.assigned ?? true;
   const role = options.role ?? "client";
   const membership = { userId: actor.uid, role, status: options.membershipStatus ?? "active", clientId: role === "client" ? "client-1" : null, joinedAt: options.membershipStatus === "suspended" ? null : timestamp };
   const projectRef = projectReference("org-1", "project-1");
   const otherProjectRef = projectReference("org-2", "other-project");
-  const assignment = { userId: actor.uid, status: "active", assignedBy: "admin", assignedAt: timestamp, removedAt: null };
+  const assignment = { userId: actor.uid, projectRole: options.projectRole ?? "member", status: "active", assignedBy: "admin", assignedAt: timestamp, removedAt: null };
   const values: Record<string, Record<string, unknown>> = {
     [`organizations/org-1/members/${actor.uid}`]: membership,
     "organizations/org-1/projects/project-1": project,
@@ -63,5 +63,14 @@ describe("client project access", () => {
     await expect(listAccessibleProjects(actor, "org-1", db)).resolves.toHaveLength(1);
     expect(db.collectionGroup).toHaveBeenCalledWith("projectMembers");
     expect(db.getAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("identifies project management from the assignment without widening discovery", async () => {
+    await expect(getAccessibleProject(actor, "org-1", "project-1", clientDatabase({ role: "member", projectRole: "admin" }))).resolves.toMatchObject({
+      role: "member",
+      canManageProject: true,
+      project: { id: "project-1" },
+    });
+    await expect(getAccessibleProject(actor, "org-1", "project-1", clientDatabase({ role: "member" }))).resolves.toMatchObject({ canManageProject: false });
   });
 });

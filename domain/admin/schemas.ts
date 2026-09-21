@@ -10,5 +10,18 @@ export const updateOrganizationSettingsSchema = z.object({
   }),
 }).strict();
 
-export const changeMemberRoleSchema = z.object({ userId: id, role: z.enum(["admin", "member"]) }).strict();
-export const changeProjectAssignmentSchema = z.object({ userId: id, projectId: id, action: z.enum(["assign", "remove"]) }).strict();
+export const changeMemberRoleSchema = z.object({
+  userId: id,
+  role: z.enum(["admin", "project_admin", "member"]),
+  projectIds: z.array(id).max(100).default([]),
+}).strict().superRefine((value, context) => {
+  if (value.role === "project_admin" && value.projectIds.length === 0) {
+    context.addIssue({ code: "custom", path: ["projectIds"], message: "Project administrators require at least one project" });
+  }
+});
+export const changeProjectAssignmentSchema = z.object({
+  userId: id,
+  projectId: id,
+  action: z.enum(["assign", "remove"]),
+  projectRole: z.enum(["admin", "member"]).default("member"),
+}).strict();

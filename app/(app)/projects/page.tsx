@@ -69,7 +69,6 @@ export default async function ProjectsPage() {
                     <CardHeader>
                       <div className="flex items-center justify-between gap-3">
                         <CardTitle>{project.name}</CardTitle>
-                        {/* <Badge variant="outline">{project.key}</Badge> */}
                       </div>
                       <CardDescription className="capitalize">
                         {project.status.replace("_", " ")}

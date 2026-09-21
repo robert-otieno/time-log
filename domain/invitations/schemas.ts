@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createInvitationCommandSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(320),
-  role: z.enum(["admin", "member", "client"]),
+  role: z.enum(["admin", "project_admin", "member", "client"]),
   client: z.discriminatedUnion("mode", [
     z.object({ mode: z.literal("none") }).strict(),
     z.object({ mode: z.literal("existing"), clientId: z.string().min(1).max(128) }).strict(),
@@ -15,6 +15,9 @@ export const createInvitationCommandSchema = z.object({
   }
   if (value.role !== "client" && value.client.mode !== "none") {
     context.addIssue({ code: "custom", path: ["client"], message: "Internal invitations cannot reference a client company" });
+  }
+  if (value.role === "project_admin" && value.projectIds.length === 0) {
+    context.addIssue({ code: "custom", path: ["projectIds"], message: "Project administrators require at least one project" });
   }
 });
 
