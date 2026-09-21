@@ -26,6 +26,7 @@ Living inventory of reusable UI. Read before building a component. After creatin
 | Dialog | `components/ui/dialog.tsx` | Confirmation and focused workflows |
 | Dropdown menu | `components/ui/dropdown-menu.tsx` | Secondary row/account actions |
 | Form | `components/ui/form.tsx` | React Hook Form integration |
+| Input Group | `components/ui/input-group.tsx` | Preset-native compound inputs with aligned controls and addons |
 | Input / Label / Textarea | `components/ui/*` | Canonical form controls |
 | Popover | `components/ui/popover.tsx` | Compact selectors and date UI |
 | Progress | `components/ui/progress.tsx` | Onboarding/report progress, not elapsed timer |
@@ -99,6 +100,25 @@ Add source paths when implemented.
 - Command palette keyboard access.
 - Theme support through semantic tokens.
 - Sonner for concise transient feedback.
+
+### Shared shadcn visual foundation
+
+Files: `app/globals.css`, `app/layout.tsx`, `components/ui/*`
+Last updated: 2026-09-21
+
+| Property | Class / token |
+| --- | --- |
+| Background | `bg-background`, `bg-card`, `bg-popover`; cool mist semantic neutrals |
+| Border | `border-border`; controls use `border-input` or preset input tint |
+| Border radius | Preset base `0.875rem`; actions use `rounded-4xl`; surfaces inherit canonical primitive radii |
+| Text — primary | DM Sans via `font-sans`; `text-foreground` / `text-card-foreground` |
+| Text — secondary | `text-muted-foreground`; Outfit is available through `font-heading` for deliberate display headings |
+| Spacing | Primitive-owned compact spacing; feature compositions retain the registry's established gap and padding scale |
+| Interactive state | Blue semantic primary; mist hover/expanded states; three-pixel `ring-ring/50` focus treatment |
+| Shadow | Prefer borders and preset primitive shadows; no feature-specific heavy shadows |
+| Accent usage | Saturated blue is reserved for primary actions, selected states, and focus emphasis |
+
+**Pattern notes:** Preset `b311momZs0` (`radix-maia`, `mist`) is the canonical shared primitive foundation. Use semantic tokens rather than copying its raw OKLCH values into feature components. The application root owns `TooltipProvider`, DM Sans, Outfit, and Geist Mono. Regenerating primitives with another preset is a system-wide design change and requires compatibility checks for all composed controls.
 
 ### Logout confirmation dialog
 

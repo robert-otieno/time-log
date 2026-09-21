@@ -4,11 +4,12 @@ This document describes the existing visual foundation and the semantic extensio
 
 ## Token Strategy
 
-The application uses Tailwind CSS v4 with shadcn-style CSS custom properties. Components use semantic classes such as `bg-background`, `text-foreground`, and `border-border`, not hard-coded colors.
+The application uses Tailwind CSS v4 with shadcn preset `b311momZs0` (`radix-maia`, `mist`) and semantic CSS custom properties. Components use classes such as `bg-background`, `text-foreground`, and `border-border`, not hard-coded colors.
 
 ```css
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -47,7 +48,7 @@ The application uses Tailwind CSS v4 with shadcn-style CSS custom properties. Co
 }
 ```
 
-Do not replace the existing light/dark OKLCH palette as part of unrelated feature work.
+The preset's accessible blue primary and cool mist neutral palette is canonical in both light and dark themes. Do not replace it as part of unrelated feature work.
 
 ## Existing Color Roles
 
@@ -85,7 +86,7 @@ Do not encode project identity using unbounded arbitrary colors. If project colo
 
 ## Typography
 
-The repository uses Geist and Geist Mono through `next/font/google`.
+The repository uses DM Sans for product copy, Outfit for heading utilities, and Geist Mono for timers and other fixed-width values through `next/font/google`.
 
 | Role | Tailwind pattern | Notes |
 | --- | --- | --- |
@@ -112,7 +113,7 @@ Use the Tailwind spacing scale consistently:
 
 ## Radius and Elevation
 
-The existing base radius is `0.625rem` and derived shadcn radii are available.
+The preset base radius is `0.875rem` and derived shadcn radii are available.
 
 - Inputs and buttons: `rounded-md`
 - Cards, panels, dialogs: `rounded-lg` or `rounded-xl`
@@ -167,4 +168,3 @@ focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
 - Focus rings remain visible in every theme.
 - Color is never the only carrier of meaning.
 - Timer digits use tabular numerals to avoid layout shift.
-

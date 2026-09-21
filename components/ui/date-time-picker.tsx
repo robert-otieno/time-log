@@ -33,7 +33,7 @@ export function DateTimePicker({ value, onValueChange, label, disabled }: { valu
               mode="single"
               selected={selected}
               onSelect={(date) => date && onValueChange({ ...value, date: format(date, "yyyy-MM-dd") })}
-              initialFocus
+              autoFocus
             />
           </PopoverContent>
         </Popover>
