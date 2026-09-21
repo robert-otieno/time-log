@@ -328,7 +328,7 @@ Last updated: 2026-09-18
 
 ### Project workspace header
 
-File: `app/(app)/projects/layout.tsx`
+File: `components/layout/app-header.tsx`
 Last updated: 2026-09-20
 
 | Property | Class |
@@ -343,7 +343,7 @@ Last updated: 2026-09-20
 | Shadow | None |
 | Accent usage | Semantic accent hover only |
 
-**Pattern notes:** Every destination in the project header pairs a conventional icon with an always-visible text label; icon-only navigation is reserved for the Theme and Logout utilities. Internal users always receive My Work, Projects, People, Settings, and role-appropriate Admin routes using this same pattern. The navigation may wrap safely on constrained widths. Client users omit My Work and People because their root route resolves to the restricted project portal.
+**Pattern notes:** The authenticated application layout owns this header; individual pages and nested layouts must not render competing navigation. Every desktop destination pairs a conventional icon with an always-visible text label and an active state. Below `xl`, one labeled menu presents the same icon map, labels, role visibility, and active state without header wrapping. Theme and Logout remain compact utilities. Onboarding intentionally suppresses application chrome. Client users omit My Work and People because their root route resolves to the restricted project portal.
 
 ### Optional date and time picker
 

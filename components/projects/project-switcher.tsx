@@ -45,7 +45,7 @@ export function ProjectSwitcher({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className="max-w-64 justify-between"
+          className="max-w-36 justify-between sm:max-w-64"
           disabled={pending}
           aria-busy={pending}
         >

@@ -147,6 +147,10 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ## Session Log
 
+2026-09-20 — Unified application shell — moved the shared role-aware header to the authenticated layout so My Work, Projects, People, Settings, Admin, Activity, and Time use one navigation implementation; added active-route states and a deliberate mobile menu while suppressing chrome during onboarding — verify desktop/mobile navigation for admin, member, and client roles
+
+2026-09-20 — Shared navigation recovery — replaced the divergent My Work and Projects header implementations with one role-aware `AppHeader`, including the same project switcher, icon map, label rules, brand route, and utilities — verify transitions between My Work, Projects, and project detail routes
+
 2026-09-20 — Project header consistency — standardized My Work, Projects, People, Settings, and Admin as icon-plus-visible-label destinations; retained compact icon controls only for Theme and Logout — verify navigation labels across internal and client roles
 
 2026-09-20 — Project header clarity — replaced ambiguous Settings/Admin icon-only actions with conventional gear/shield icons and persistent text labels; allowed safe header wrapping on constrained widths — verify the header at mobile, tablet, and desktop widths
