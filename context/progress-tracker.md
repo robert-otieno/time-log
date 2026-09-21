@@ -147,6 +147,14 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ## Session Log
 
+2026-09-20 — Project header consistency — standardized My Work, Projects, People, Settings, and Admin as icon-plus-visible-label destinations; retained compact icon controls only for Theme and Logout — verify navigation labels across internal and client roles
+
+2026-09-20 — Project header clarity — replaced ambiguous Settings/Admin icon-only actions with conventional gear/shield icons and persistent text labels; allowed safe header wrapping on constrained widths — verify the header at mobile, tablet, and desktop widths
+
+2026-09-20 — Project navigation recovery — added a persistent responsive My Work link to the project workspace header for internal users while preserving the client-only portal boundary — verify return navigation from Projects and an individual project
+
+2026-09-20 — Theme hydration recovery — fixed the expected `next-themes` pre-hydration mutation by scoping `suppressHydrationWarning` to the root HTML element; typecheck, focused lint, and logout route tests pass — verify `/login` with both light and dark system themes
+
 2026-09-20 — Feature 25 — deployment verification pending — added an authenticated hourly notification scheduler, recipient-timezone reminder/digest windows, deterministic enqueue with immediate delivery, due retry scanning, bounded organization/member cursors, run records/counts/failures, and correlated per-organization scheduler audits; review fixes prevent capped members from losing remaining work and make lifecycle auditing explicit; automatic check-ins remain deferred to their Feature 32 domain prerequisite — deploy the Firestore index, configure `CRON_SECRET`, invoke the cron route, and verify one due reminder plus an idempotent repeat
 
 2026-09-20 — Feature 24 — completed — personal notification preferences and verified Resend delivery webhook behavior accepted — start Feature 25 Scheduled Notifications

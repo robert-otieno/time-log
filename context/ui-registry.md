@@ -326,6 +326,25 @@ Last updated: 2026-09-18
 
 **Pattern notes:** Keep rows compact until explicitly expanded for inline editing. Creation and completion are optimistic; pending creation uses an outline Saving badge and rolls back on failure. Archive uses confirmation and moves records into an explicit Archived view with Restore. Direct subtask creation appears beneath the parent on a `bg-muted/30` inset surface; saved subtasks use indentation plus a left border. Client mode is read-only and omits archived counts, assignees, visibility filters, and every mutation control.
 
+### Project workspace header
+
+File: `app/(app)/projects/layout.tsx`
+Last updated: 2026-09-20
+
+| Property | Class |
+| --- | --- |
+| Background | `bg-background` over the workspace `bg-muted/20` |
+| Border | `border-b` |
+| Border radius | Navigation links use `rounded-md` |
+| Text — primary | Brand `font-semibold`; navigation `text-sm` |
+| Text — secondary | Canonical icon-button accessible labels |
+| Spacing | Header `gap-3 px-4 py-2`; navigation `gap-1`; links `gap-2 px-3 py-2` |
+| Hover state | `hover:bg-accent` |
+| Shadow | None |
+| Accent usage | Semantic accent hover only |
+
+**Pattern notes:** Every destination in the project header pairs a conventional icon with an always-visible text label; icon-only navigation is reserved for the Theme and Logout utilities. Internal users always receive My Work, Projects, People, Settings, and role-appropriate Admin routes using this same pattern. The navigation may wrap safely on constrained widths. Client users omit My Work and People because their root route resolves to the restricted project portal.
+
 ### Optional date and time picker
 
 File: `components/ui/date-time-picker.tsx`
