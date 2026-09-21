@@ -48,8 +48,10 @@
 
 ## To-Dos
 
-- Optimize the default row for title, assignee, due state, priority, status, visibility, and timer action.
-- Inline editing is appropriate for low-risk fields. Use a sheet/dialog for description, attachments, audit, and destructive actions.
+- Optimize the collapsed row for completion and title only; disclose description, metadata, and secondary actions when the row is opened.
+- Render tasks as one divided list, with subtasks indented beneath their parent rather than placed in nested cards.
+- Only one task row is expanded at a time. Expansion is a readable details state; editing is a separate explicit action.
+- Inline editing is appropriate for low-risk fields. Use a sheet/dialog for attachments, audit, and complex destructive workflows.
 - Task create supports keyboard submit and preserves input on recoverable errors.
 - Completed tasks are visually quieter but remain readable.
 - Filters have visible active state and a one-action reset.

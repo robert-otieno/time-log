@@ -12,6 +12,8 @@ Update this file after every completed feature. A new session should be able to 
 
 **Blockers:** None
 
+2026-09-21 — To-do list compactness refinement — replaced per-task cards with one divided hierarchical list; collapsed rows now show completion and title, while a single click-expanded details region reveals descriptions, metadata, and secondary actions before an explicit edit mode; subtasks retain visible indentation and client views retain read-only disclosure — 172 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass; run authenticated desktop/mobile task, subtask, archive, and client-view smoke
+
 ## Existing Repository Baseline
 
 - [x] Next.js 15 App Router application exists

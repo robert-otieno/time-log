@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, useTransition, type ReactNode } from "rea
 import { useRouter } from "next/navigation";
 import {
   Archive,
+  ChevronDown,
+  CornerDownRight,
   ListPlus,
   Loader2,
   Pencil,
@@ -261,17 +263,21 @@ export function ProjectTaskList({
       }
     });
 
-  const renderTask = (task: ViewTask, depth = 0): ReactNode => {
+  const orderedTasks: { task: ViewTask; depth: number }[] = [];
+  const appendTask = (task: ViewTask, depth = 0) => {
+    orderedTasks.push({ task, depth });
     const children = visible.filter(
       (candidate) => candidate.parentTaskId === task.id,
     );
-    return (
-      <div
-        key={task.id}
-        className={depth > 0 ? "ml-6 space-y-2 border-l pl-3" : "space-y-2"}
-      >
-        <TaskRow
+    children.forEach((child) => appendTask(child, depth + 1));
+  };
+  top.forEach((task) => appendTask(task));
+
+  const renderTask = (task: ViewTask, depth: number): ReactNode => (
+    <div key={task.id} className="border-b last:border-b-0">
+      <TaskRow
           task={task}
+          depth={depth}
           projectId={projectId}
           assignees={assignees}
           allTasks={tasks.filter((candidate) => !candidate.archivedAt)}
@@ -280,15 +286,23 @@ export function ProjectTaskList({
           expanded={expanded === task.id}
           pending={pending}
           onToggle={() => mutateStatus(task)}
-          onEdit={() => setExpanded(expanded === task.id ? null : task.id)}
+          onExpand={() => setExpanded(expanded === task.id ? null : task.id)}
           onAddSubtask={() => openSubtask(task.id)}
-          onSaved={() => router.refresh()}
+          onSaved={(values) => {
+            const updated = command(values, task.sortOrder);
+            setTasks((current) =>
+              current.map((item) =>
+                item.id === task.id ? { ...item, ...updated } : item,
+              ),
+            );
+            router.refresh();
+          }}
           onError={setError}
           onArchive={() => setArchiveId(task.id)}
           onRestore={() => restore(task.id)}
-        />
-        {subtaskParentId === task.id && !showArchived && (
-          <InlineSubtask
+      />
+      {subtaskParentId === task.id && !showArchived && (
+        <InlineSubtask
             draft={subtaskDraft}
             setDraft={setSubtaskDraft}
             assignees={assignees}
@@ -301,12 +315,10 @@ export function ProjectTaskList({
                 setSubtaskDraft(blank());
               })
             }
-          />
-        )}
-        {children.map((child) => renderTask(child, depth + 1))}
-      </div>
-    );
-  };
+        />
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -418,7 +430,9 @@ export function ProjectTaskList({
             : "No tasks match these filters."}
         </div>
       ) : (
-        <div className="space-y-3">{top.map((task) => renderTask(task))}</div>
+        <div className="overflow-hidden rounded-lg border bg-card">
+          {orderedTasks.map(({ task, depth }) => renderTask(task, depth))}
+        </div>
       )}
       <Dialog
         open={archiveId !== null}
@@ -529,6 +543,7 @@ function InlineSubtask({
 
 function TaskRow({
   task,
+  depth,
   projectId,
   assignees,
   allTasks,
@@ -537,7 +552,7 @@ function TaskRow({
   expanded,
   pending,
   onToggle,
-  onEdit,
+  onExpand,
   onAddSubtask,
   onSaved,
   onError,
@@ -545,6 +560,7 @@ function TaskRow({
   onRestore,
 }: {
   task: ViewTask;
+  depth: number;
   projectId: string;
   assignees: TaskAssigneeOption[];
   allTasks: ViewTask[];
@@ -553,9 +569,9 @@ function TaskRow({
   expanded: boolean;
   pending: boolean;
   onToggle(): void;
-  onEdit(): void;
+  onExpand(): void;
   onAddSubtask(): void;
-  onSaved(): void;
+  onSaved(values: Draft): void;
   onError(value: string): void;
   onArchive(): void;
   onRestore(): void;
@@ -572,6 +588,8 @@ function TaskRow({
     parentTaskId: task.parentTaskId ?? "none",
   });
   const [saving, startSaving] = useTransition();
+  const [editing, setEditing] = useState(false);
+
   const dueLabel =
     task.dueTimeSet && task.dueAt
       ? new Date(task.dueAt).toLocaleString()
@@ -581,9 +599,18 @@ function TaskRow({
   return (
     <div
       id={`task-${task.id}`}
-      className="scroll-mt-20 rounded-lg border bg-card p-4"
+      className="scroll-mt-20"
     >
-      <div className="flex items-start gap-3">
+      <div
+        className="flex min-h-11 items-center gap-3 px-3 py-2"
+        style={{ paddingInlineStart: `${0.75 + Math.min(depth, 5) * 1.5}rem` }}
+      >
+        {depth > 0 && (
+          <CornerDownRight
+            aria-hidden="true"
+            className="size-4 shrink-0 text-muted-foreground"
+          />
+        )}
         {!readOnly && !archived && !task.saving && (
           <Checkbox
             aria-label={
@@ -596,116 +623,131 @@ function TaskRow({
             onCheckedChange={onToggle}
           />
         )}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p
-              className={
-                task.status === "done"
-                  ? "font-medium line-through text-muted-foreground"
-                  : "font-medium"
-              }
-            >
-              {task.title}
-            </p>
-            {task.saving && (
-              <Badge variant="outline">
-                <Loader2 className="animate-spin" />
-                Saving…
-              </Badge>
-            )}
-            <Badge variant="outline" className="capitalize">
-              {task.status.replace("_", " ")}
-            </Badge>
-            <Badge variant="secondary" className="capitalize">
-              {task.priority}
-            </Badge>
-            <VisibilityBadge visibility={task.visibility} />
-          </div>
-          <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
-            {dueLabel && <span>Due {dueLabel}</span>}
-            {!readOnly && task.assigneeIds.length > 0 && (
-              <span>
-                {task.assigneeIds
-                  .map(
-                    (id) =>
-                      assignees.find((person) => person.id === id)?.name ??
-                      "Team member",
-                  )
-                  .join(", ")}
-              </span>
-            )}
-          </div>
-        </div>
-        {!readOnly && !task.saving && (
-          <div className="flex flex-wrap gap-1">
-            {archived ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onRestore}
-                disabled={pending}
-              >
-                <RotateCcw />
-                Restore
-              </Button>
-            ) : (
-              <>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label={`Add subtask under ${task.title}`}
-                  title="Add subtask"
-                  onClick={onAddSubtask}
-                >
-                  <ListPlus />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label={`Edit ${task.title}`}
-                  onClick={onEdit}
-                >
-                  <Pencil />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label={`Archive ${task.title}`}
-                  onClick={onArchive}
-                >
-                  <Archive />
-                </Button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-      {expanded && !archived && (
-        <div className="mt-4 border-t pt-4">
-          <TaskFields
-            idPrefix={`task-${task.id}`}
-            draft={draft}
-            setDraft={setDraft}
-            assignees={assignees}
-            tasks={allTasks.filter((candidate) => candidate.id !== task.id)}
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={`task-${task.id}-details`}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-sm py-1 text-left outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          onClick={() => {
+            setEditing(false);
+            onExpand();
+          }}
+        >
+          <span
+            className={
+              task.status === "done"
+                ? "min-w-0 flex-1 truncate font-medium line-through text-muted-foreground"
+                : "min-w-0 flex-1 truncate font-medium"
+            }
+          >
+            {task.title}
+          </span>
+          {task.saving && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Loader2 className="size-3 animate-spin" /> Saving…
+            </span>
+          )}
+          <ChevronDown
+            aria-hidden="true"
+            className={`size-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
           />
-          <div className="mt-4 flex justify-end">
-            <Button
-              disabled={saving || !draft.title.trim()}
-              onClick={() =>
-                startSaving(async () => {
-                  const result = await updateTaskAction(projectId, {
-                    taskId: task.id,
-                    ...command(draft, task.sortOrder),
-                  });
-                  if (!result.ok) onError(result.error);
-                  else onSaved();
-                })
-              }
-            >
-              {saving && <Loader2 className="animate-spin" />}Save changes
-            </Button>
-          </div>
+        </button>
+      </div>
+      {expanded && (
+        <div
+          id={`task-${task.id}-details`}
+          className="border-t bg-muted/20 px-4 py-4"
+          style={{ paddingInlineStart: `${3 + Math.min(depth, 5) * 1.5}rem` }}
+        >
+          {editing ? (
+            <>
+              <TaskFields
+                idPrefix={`task-${task.id}`}
+                draft={draft}
+                setDraft={setDraft}
+                assignees={assignees}
+                tasks={allTasks.filter((candidate) => candidate.id !== task.id)}
+              />
+              <div className="mt-4 flex justify-end gap-2">
+                <Button variant="outline" disabled={saving} onClick={() => setEditing(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  disabled={saving || !draft.title.trim()}
+                  onClick={() =>
+                    startSaving(async () => {
+                      const result = await updateTaskAction(projectId, {
+                        taskId: task.id,
+                        ...command(draft, task.sortOrder),
+                      });
+                      if (!result.ok) onError(result.error);
+                      else {
+                        onSaved(draft);
+                        setEditing(false);
+                      }
+                    })
+                  }
+                >
+                  {saving && <Loader2 className="animate-spin" />}Save changes
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Description
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm">
+                  {task.description || "No description added."}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="capitalize">
+                  {task.status.replace("_", " ")}
+                </Badge>
+                <Badge variant="secondary" className="capitalize">
+                  {task.priority}
+                </Badge>
+                <VisibilityBadge visibility={task.visibility} />
+              </div>
+              {(dueLabel || (!readOnly && task.assigneeIds.length > 0)) && (
+                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                  {dueLabel && <span>Due {dueLabel}</span>}
+                  {!readOnly && task.assigneeIds.length > 0 && (
+                    <span>
+                      Assigned to {task.assigneeIds
+                        .map(
+                          (id) => assignees.find((person) => person.id === id)?.name ?? "Team member",
+                        )
+                        .join(", ")}
+                    </span>
+                  )}
+                </div>
+              )}
+              {!readOnly && !task.saving && (
+                <div className="flex flex-wrap gap-2">
+                  {archived ? (
+                    <Button size="sm" variant="outline" onClick={onRestore} disabled={pending}>
+                      <RotateCcw /> Restore
+                    </Button>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="outline" onClick={onAddSubtask}>
+                        <ListPlus /> Add subtask
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                        <Pencil /> Edit
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={onArchive}>
+                        <Archive /> Archive
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

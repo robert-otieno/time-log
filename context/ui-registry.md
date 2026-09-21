@@ -310,21 +310,21 @@ Last updated: 2026-09-16
 ### Project to-do list
 
 Files: `components/tasks/project-task-list.tsx`, `app/(app)/projects/[projectId]/todos/page.tsx`
-Last updated: 2026-09-18
+Last updated: 2026-09-21
 
 | Property | Class |
 | --- | --- |
-| Background | Canonical `bg-card` task rows and quick-create surface |
-| Border | `border` rows; `border-t` expanded edit separator; `border-l` subtask nesting |
-| Border radius | `rounded-lg` rows and empty states; canonical controls |
-| Text — primary | Row `font-medium`; page `text-xl font-semibold` |
-| Text — secondary | `text-sm text-muted-foreground`; completed title adds `line-through` |
-| Spacing | Surfaces `p-4`; list `space-y-3`; metadata `gap-2` / `gap-3` |
-| Hover state | Canonical Button, Select, Checkbox, and input states |
+| Background | List `bg-card`; expanded details `bg-muted/20`; quick-create `bg-card` |
+| Border | One outer `border`; task wrappers use `border-b`; expanded details use `border-t` |
+| Border radius | `rounded-lg` list and empty states; rows do not introduce nested radii |
+| Text — primary | Collapsed title `font-medium`; description `text-sm`; page `text-xl font-semibold` |
+| Text — secondary | Detail labels and metadata use `text-muted-foreground`; completed title adds `line-through` |
+| Spacing | Collapsed rows `px-3 py-2`; expanded details `px-4 py-4`; subtasks add `1.5rem` indentation per level |
+| Hover state | Row disclosure uses `hover:text-foreground` and a visible keyboard focus ring; canonical control states |
 | Shadow | Canonical control shadows; no additional row shadow |
 | Accent usage | Semantic status/priority/visibility badges and destructive archive confirmation |
 
-**Pattern notes:** Keep rows compact until explicitly expanded for inline editing. The default Active view hides completed tasks immediately; users can deliberately select the Done status filter to review or reopen them. Active children whose completed parent is hidden remain promoted into view rather than disappearing with the parent. Creation and completion are optimistic; timer-driven completion broadcasts into an open list before server refresh. Pending creation uses an outline Saving badge and rolls back on failure. Archive uses confirmation and moves records into an explicit Archived view with Restore. Direct subtask creation appears beneath the parent on a `bg-muted/30` inset surface; saved subtasks use indentation plus a left border. Client mode is read-only and omits archived counts, assignees, visibility filters, and every mutation control.
+**Pattern notes:** Render tasks and subtasks as a single compact divided list, never as one card per record. Collapsed rows expose only the completion checkbox, title, saving feedback, and disclosure indicator. Opening a row reveals its readable description, badges, due/assignee metadata, and secondary actions; Edit is a separate state, and opening another row closes the previous one. Saved subtasks use progressive indentation and a hierarchy icon. The default Active view hides completed tasks immediately; users can deliberately select the Done status filter to review or reopen them. Active children whose completed parent is hidden remain promoted into view rather than disappearing with the parent. Creation and completion are optimistic; timer-driven completion broadcasts into an open list before server refresh. Archive uses confirmation and moves records into an explicit Archived view with Restore. Client mode retains disclosure for client-safe details but omits every mutation control.
 
 ### Project workspace header
 
