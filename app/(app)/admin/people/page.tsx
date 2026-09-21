@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge, statusTone } from "@/components/ui/status-badge";
 import {
   Card,
   CardContent,
@@ -91,9 +92,9 @@ export default async function AdminPeoplePage({
                       <Badge variant="secondary" className="capitalize">
                         {displayRole}
                       </Badge>
-                      <Badge variant="outline" className="capitalize">
+                      <StatusBadge tone={statusTone(member.status)} className="capitalize">
                         {member.status}
-                      </Badge>
+                      </StatusBadge>
                       {member.userId !== actor.uid && (
                         <MembershipActions
                           userId={member.userId}
@@ -172,9 +173,9 @@ export default async function AdminPeoplePage({
                     · {invitation.projectIds.length} projects
                   </p>
                 </div>
-                <Badge variant="outline" className="capitalize">
+                <StatusBadge tone={statusTone(invitation.status)} className="capitalize">
                   {invitation.status}
-                </Badge>
+                </StatusBadge>
               </div>
             ))
           )}

@@ -64,19 +64,19 @@ The preset's accessible blue primary and cool mist neutral palette is canonical 
 | Border/input | `border-border`, `border-input` | Default separation and fields |
 | Focus | `ring-ring` | Keyboard and validation focus |
 
-## Required Semantic Extensions
+## Semantic Status Extensions
 
-Add these variables to both light and dark themes only when the first component needs them. Values must meet WCAG contrast requirements and remain visually distinct without color alone.
+Status badges use dedicated light/dark tokens. Their visible text and dot carry the same semantic tone, while the label ensures meaning never depends on color alone.
 
 ```css
---status-success: ...;
---status-success-foreground: ...;
---status-warning: ...;
---status-warning-foreground: ...;
---status-info: ...;
---status-info-foreground: ...;
---status-blocked: ...;
---status-blocked-foreground: ...;
+--status-success: /* soft green surface */;
+--status-success-foreground: /* accessible green text/dot */;
+--status-warning: /* soft amber surface */;
+--status-warning-foreground: /* accessible amber text/dot */;
+--status-info: /* soft blue surface */;
+--status-info-foreground: /* accessible blue text/dot */;
+--status-blocked: /* soft red surface */;
+--status-blocked-foreground: /* accessible red text/dot */;
 --visibility-internal: ...;
 --visibility-client: ...;
 --timer-active: ...;
@@ -150,6 +150,9 @@ focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
 ### Status and Priority
 
 - Combine icon/label/color.
+- Use `StatusBadge` for workflow, lifecycle, delivery, and outcome states. It provides a dot plus text with `success`, `warning`, `blocked`, `info`, and `neutral` tones.
+- Map task status as: done → success; in progress → warning; blocked → blocked; to do → info; backlog → neutral.
+- Map priority independently: urgent → blocked; high → warning; medium → info; low → neutral.
 - Keep task status and priority visually distinct.
 - Urgent may use destructive styling; incomplete or blocked states must not appear as validation errors.
 

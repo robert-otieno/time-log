@@ -19,7 +19,7 @@ import {
   restoreTaskAction,
   updateTaskAction,
 } from "@/app/(app)/projects/[projectId]/todos/actions";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, priorityTone, statusTone } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
@@ -703,12 +703,12 @@ function TaskRow({
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="capitalize">
+                <StatusBadge tone={statusTone(task.status)} className="capitalize">
                   {task.status.replace("_", " ")}
-                </Badge>
-                <Badge variant="secondary" className="capitalize">
+                </StatusBadge>
+                <StatusBadge tone={priorityTone(task.priority)} className="capitalize">
                   {task.priority}
-                </Badge>
+                </StatusBadge>
                 <VisibilityBadge visibility={task.visibility} />
               </div>
               {(dueLabel || (!readOnly && task.assigneeIds.length > 0)) && (

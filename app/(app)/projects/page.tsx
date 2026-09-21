@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Card,
   CardContent,
@@ -99,7 +99,7 @@ export default async function ProjectsPage() {
                   href={`/projects/${project.id}`}
                 >
                   <span>{project.name}</span>
-                  <Badge variant="secondary">Archived</Badge>
+                  <StatusBadge tone="neutral">Archived</StatusBadge>
                 </Link>
               ))}
             </div>

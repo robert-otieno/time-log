@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, statusTone } from "@/components/ui/status-badge";
 import { ClientPortalBanner } from "@/components/projects/client-portal-banner";
 import { ProjectToolNav } from "@/components/projects/project-tool-nav";
 import { listAvailableClientTools } from "@/domain/projects/client-tools";
@@ -39,14 +39,9 @@ export default async function ProjectLayout({
               {access.project.name}
             </h1>
           </div>
-          <Badge
-            variant={
-              access.project.status === "active" ? "secondary" : "outline"
-            }
-            className="capitalize"
-          >
+          <StatusBadge tone={statusTone(access.project.status)} className="capitalize">
             {access.project.status.replace("_", " ")}
-          </Badge>
+          </StatusBadge>
         </div>
         {access.role === "client" && <ClientPortalBanner />}
         <ProjectToolNav projectId={projectId} availableTools={availableTools} showActivity={access.role !== "client"} />

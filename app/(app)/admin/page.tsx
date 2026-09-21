@@ -8,6 +8,7 @@ import { OrganizationSettingsForm } from "@/components/admin/organization-settin
 import { MemberAdminControls } from "@/components/admin/member-admin-controls";
 import { MembershipActions } from "@/components/people/membership-actions";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge, statusTone } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -163,9 +164,9 @@ export default async function AdminPage() {
                       <Badge variant="secondary" className="capitalize">
                         {displayRole}
                       </Badge>
-                      <Badge variant="outline" className="capitalize">
+                      <StatusBadge tone={statusTone(member.status)} className="capitalize">
                         {member.status}
-                      </Badge>
+                      </StatusBadge>
                       {member.userId !== actor.uid && (
                         <MembershipActions
                           userId={member.userId}
@@ -244,9 +245,9 @@ export default async function AdminPage() {
                 <div key={client.id} className="rounded-lg border p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-medium">{client.name}</p>
-                    <Badge variant="outline" className="capitalize">
+                    <StatusBadge tone={statusTone(client.status)} className="capitalize">
                       {client.status}
-                    </Badge>
+                    </StatusBadge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {clientUsers.length} guest{" "}
@@ -298,9 +299,9 @@ export default async function AdminPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="capitalize">
+                  <StatusBadge tone={statusTone(project.status)} className="capitalize">
                     {project.status.replace("_", " ")}
-                  </Badge>
+                  </StatusBadge>
                   <Button asChild size="sm" variant="outline">
                     <Link href={`/projects/${project.id}/settings`}>
                       Settings

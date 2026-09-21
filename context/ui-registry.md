@@ -36,6 +36,7 @@ Living inventory of reusable UI. Read before building a component. After creatin
 | Sidebar | `components/ui/sidebar.tsx` | App/project navigation foundation |
 | Skeleton | `components/ui/skeleton.tsx` | Known-layout loading state |
 | Sonner | `components/ui/sonner.tsx` | Transient success/error feedback |
+| Status Badge | `components/ui/status-badge.tsx` | Semantic workflow/lifecycle badge with text and status dot |
 | Tabs | `components/ui/tabs.tsx` | Related subviews; not primary route replacement |
 | Tooltip | `components/ui/tooltip.tsx` | Supplementary help only |
 
@@ -100,6 +101,25 @@ Add source paths when implemented.
 - Command palette keyboard access.
 - Theme support through semantic tokens.
 - Sonner for concise transient feedback.
+
+### Semantic status badge
+
+File: `components/ui/status-badge.tsx`
+Last updated: 2026-09-21
+
+| Property | Class |
+| --- | --- |
+| Background | `bg-status-success`, `bg-status-warning`, `bg-status-blocked`, `bg-status-info`, or `bg-muted` |
+| Border | Transparent canonical Badge border |
+| Border radius | Canonical Badge `rounded-4xl` pill |
+| Text — primary | Matching semantic foreground token; `text-xs font-medium` inherited from Badge |
+| Text — secondary | None |
+| Spacing | Canonical Badge `gap-1 px-2 py-0.5`; dot `size-1.5` |
+| Hover state | Static by default; linked badges retain canonical focus treatment |
+| Shadow | None |
+| Accent usage | Green success, amber pending/in progress, red blocked/failure, blue informational, neutral archived/internal |
+
+**Pattern notes:** Use status color only for state-bearing metadata. Every badge includes readable text and a same-tone dot, so color is reinforcement rather than the sole signal. Roles remain neutral unless they represent a lifecycle state. Task priority uses the same tones with a separate mapping: urgent/red, high/amber, medium/blue, low/neutral.
 
 ### Shared shadcn visual foundation
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CalendarClock, FolderKanban } from "lucide-react";
 import { TimerStartButton } from "@/components/time/timer-start-button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, priorityTone, statusTone } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -70,12 +70,12 @@ function WorkRow({ task, timezone }: { task: MyWorkTask; timezone: string }) {
             >
               {task.title}
             </Link>
-            <Badge variant="outline" className="capitalize">
+            <StatusBadge tone={statusTone(task.status)} className="capitalize">
               {task.status.replace("_", " ")}
-            </Badge>
-            <Badge variant="secondary" className="capitalize">
+            </StatusBadge>
+            <StatusBadge tone={priorityTone(task.priority)} className="capitalize">
               {task.priority}
-            </Badge>
+            </StatusBadge>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <Link

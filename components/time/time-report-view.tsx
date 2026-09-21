@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Download } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -144,14 +144,14 @@ export function TimeReportView({
                     <td className="p-3">
                       <div className="flex gap-1">
                         {row.billable && (
-                          <Badge variant="secondary">Billable</Badge>
+                          <StatusBadge tone="info">Billable</StatusBadge>
                         )}
                         {!clientSafe && (
-                          <Badge variant="outline">
+                          <StatusBadge tone={row.reportingStatus === "approved" ? "success" : "neutral"}>
                             {row.reportingStatus === "approved"
                               ? "Approved"
                               : "Internal"}
-                          </Badge>
+                          </StatusBadge>
                         )}
                       </div>
                     </td>

@@ -12,6 +12,8 @@ Update this file after every completed feature. A new session should be able to 
 
 **Blockers:** None
 
+2026-09-21 — Semantic badge palette — added accessible light/dark success, warning, blocked, info, and neutral status badges with dot-plus-label treatment; applied them to task status/priority, project lifecycle, people/invitations, audit outcomes, visibility, and time-entry/report metadata — 195 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass; run authenticated light/dark badge visual smoke
+
 2026-09-21 — Shadcn visual preset — adopted preset `b311momZs0` (`radix-maia`, `mist`) across global tokens and shared primitives; added DM Sans/Outfit typography, application-level tooltip context, the preset Input Group, and React DayPicker v10 compatibility while removing the legacy root `text-xs` override — 185 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass; run authenticated light/dark desktop/mobile visual smoke
 
 2026-09-21 — Project-scoped administration — separated organization roles from assignment-level project authority; Project admins are organization members with administrative access only to selected projects, can manage project settings without changing the linked client, cannot enter organization administration, and can be invited or converted from an Organization admin with final-admin protection; legacy assignments default safely to Member; refined Admin access controls into a responsive Role/Project access row with a checkable project list — 185 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass; run authenticated SAS/personal-project role-conversion smoke
