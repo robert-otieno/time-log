@@ -4,13 +4,17 @@ Update this file after every completed feature. A new session should be able to 
 
 ## Current Status
 
-**Phase:** Phase 6 — Admin and Email Foundation
+**Phase:** Phase 7 — Storage and Core Collaboration
 
-**Last completed:** 24 Resend Webhooks and Preferences
+**Last completed:** 25 Scheduled Notifications
 
-**Current:** 25 Scheduled Notifications — implementation and automated verification complete; deployment verification pending
+**Current:** 26 Firebase Storage and File Metadata — browser verification pending
 
 **Blockers:** None
+
+2026-09-21 — Feature 26 — browser verification pending — added private tenant/project object paths, exact pending-upload authorization, direct resumable 25 MB uploads, extension/MIME/signature validation, server-observed size/checksum finalization, Firestore metadata lifecycle, internal-by-default visibility, clean-scan client gate, five-minute audited signed downloads, archive flow, Docs & Files project UI, deny-by-default Firestore/Storage Rules, and isolated emulator coverage; typecheck, 201 unit tests, 22 Rules tests, lint (28 pre-existing warnings), and production build pass — deploy Firestore indexes plus Firestore/Storage Rules, then run authenticated upload/download/archive and denied-client smoke
+
+2026-09-21 — Feature 25 Hobby scheduling compatibility — deployment verification accepted; replaced hourly-only eligibility with deterministic daily reminder/digest scanning and a persisted catch-up window that remains frozen across cursor continuation, retained authenticated POST for operations, added Vercel-native authenticated GET, and configured the single Hobby cron for 16:00 UTC with approximate delivery documented — 196 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass; deploy the updated cron configuration, then begin Feature 26 Firebase Storage and File Metadata
 
 2026-09-21 — Semantic badge palette — added accessible light/dark success, warning, blocked, info, and neutral status badges with dot-plus-label treatment; applied them to task status/priority, project lifecycle, people/invitations, audit outcomes, visibility, and time-entry/report metadata — 195 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass; run authenticated light/dark badge visual smoke
 

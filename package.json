@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-time-log \"vitest run --config vitest.rules.config.mts\""
+    "test:rules": "firebase emulators:exec --config firebase.rules.json --only firestore,storage --project demo-time-log \"vitest run --config vitest.rules.config.mts\""
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

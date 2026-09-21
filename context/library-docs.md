@@ -244,11 +244,18 @@ Rules:
 - Never rely solely on a filename extension or browser-provided MIME type.
 - Do not store permanent public URLs for project files.
 - File metadata has its own visibility value.
+- Browser uploads use `uploadBytesResumable` only after the server creates a `pending` metadata record for one opaque file ID and exact sanitized object path. Storage Rules permit create-only writes by that uploader and deny all browser reads, updates, and deletes.
+- Supported files are PDF, common web images, UTF-8 text/CSV/Markdown, and standard Microsoft Office formats, capped at 25 MB. Creation validates extension/MIME pairing; finalization verifies stored size, MIME, and a file-family signature before recording the provider checksum.
+- Downloads are authorized server-side, audited without filenames, and redirected to a five-minute signed URL. Permanent download URLs are never stored.
+- Files default to `internal`. Client-visible transitions require `scanStatus: clean`; until malware scanning is integrated, unscanned files remain internal-only.
+- `FIREBASE_ADMIN_STORAGE_BUCKET` is the preferred server bucket setting; the existing public Firebase bucket identifier is accepted as a non-secret fallback. Rules tests use `firebase.rules.json` on isolated ports so they do not interrupt a running development emulator.
 
 Official references:
 
 - [Cloud Storage for Firebase](https://firebase.google.com/docs/storage/)
 - [Storage Security Rules](https://firebase.google.com/docs/storage/security)
+- [Upload files on the web](https://firebase.google.com/docs/storage/web/upload-files)
+- [Storage Rules conditions](https://firebase.google.com/docs/storage/security/rules-conditions)
 
 ## Resend
 
@@ -304,7 +311,8 @@ Rules:
 - Only sent, delivered, delivery-delayed, bounced, complained, failed, and suppressed events are processed. Opened and clicked events are intentionally ignored to avoid unnecessary engagement tracking.
 - Bounces and complaints create `emailSuppressions/{sha256(normalizedEmail)}` without storing the address. The send-time policy applies these records only to non-essential categories; invitations remain mandatory transactional mail.
 - Versioned personal preferences live at `users/{uid}/preferences/notifications`, are server-written, and include personal timezone, assignments, mentions, reminders, announcements, and `digestFrequency: off | daily | weekly`. Missing records inherit compatible onboarding values.
-- Configure `CRON_SECRET` as a random server-only value of at least 32 characters. Invoke `POST /api/cron/notifications` hourly with an exact `Authorization: Bearer <secret>` header; never expose this value through `NEXT_PUBLIC_*` configuration.
+- Configure `CRON_SECRET` as a random server-only value of at least 32 characters; never expose it through `NEXT_PUBLIC_*` configuration. Vercel Cron invokes `GET /api/cron/notifications` and automatically supplies the exact `Authorization: Bearer <secret>` header. Authenticated `POST` is retained for manual verification.
+- The Hobby deployment uses the single daily schedule in `vercel.json` (`0 16 * * *`). Hobby execution may occur at any point during that UTC hour. The scheduler persists and freezes a catch-up window across cursor continuation, then advances its completed checkpoint only after the cycle finishes. Timed reminders cover that catch-up interval plus the next 24 hours; date-only reminders use the equivalent recipient-local date range. Digests use recipient-local dates rather than exact clock hours, and retries occur during the next daily run. Upgrade the scheduler separately if the product later requires precise or sub-daily delivery.
 - Deploy `firestore.indexes.json` before enabling scheduled retries because the due-retry collection-group query requires the `notifications(status, nextAttemptAt)` index.
 - Scheduled message records are created with deterministic IDs before immediate best-effort delivery. Repeated or overlapping runs safely observe the existing record, while the outbox claim lease prevents concurrent provider sends.
 

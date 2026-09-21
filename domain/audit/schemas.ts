@@ -62,7 +62,7 @@ export const safeAuditValueSchema = z.union([
 
 const safeFieldValueSchemas = {
   role: z.enum(["admin", "member", "client"]),
-  status: z.enum(["invited", "active", "suspended", "pending", "accepted", "expired", "revoked", "completed", "completed_with_issues", "archived", "removed", "failed", "backlog", "todo", "in_progress", "blocked", "done"]),
+  status: z.enum(["invited", "active", "ready", "suspended", "pending", "accepted", "expired", "revoked", "completed", "completed_with_issues", "archived", "removed", "failed", "backlog", "todo", "in_progress", "blocked", "done"]),
   visibility: z.enum(["internal", "client-visible"]),
   billable: z.boolean(),
   enabled: z.boolean(),

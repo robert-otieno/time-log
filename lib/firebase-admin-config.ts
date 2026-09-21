@@ -12,6 +12,18 @@ export interface FirebaseAdminEnvironment {
   privateKey: string;
 }
 
+const storageBucketSchema = z.string().trim().min(3).regex(/^[a-z0-9._-]+$/i);
+
+export function parseFirebaseStorageBucketEnvironment(
+  environment: Record<string, string | undefined>,
+): string {
+  const result = storageBucketSchema.safeParse(
+    environment.FIREBASE_ADMIN_STORAGE_BUCKET ?? environment.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  );
+  if (!result.success) throw new FirebaseAdminConfigurationError(["FIREBASE_ADMIN_STORAGE_BUCKET"]);
+  return result.data;
+}
+
 export class FirebaseAdminConfigurationError extends Error {
   readonly code = "firebase_admin_configuration_invalid";
 

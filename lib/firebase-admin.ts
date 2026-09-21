@@ -3,8 +3,9 @@ import "server-only";
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
-import { parseFirebaseAdminEnvironment } from "@/lib/firebase-admin-config";
+import { parseFirebaseAdminEnvironment, parseFirebaseStorageBucketEnvironment } from "@/lib/firebase-admin-config";
 
 let adminApp: App | undefined;
 
@@ -35,4 +36,8 @@ export function getAdminAuth() {
 
 export function getAdminDb() {
   return getFirestore(getAdminApp());
+}
+
+export function getAdminStorageBucket() {
+  return getStorage(getAdminApp()).bucket(parseFirebaseStorageBucketEnvironment(process.env));
 }

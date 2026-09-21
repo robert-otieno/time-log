@@ -108,6 +108,16 @@ service cloud.firestore {
           allow write: if false;
         }
 
+        match /files/{fileId} {
+          allow read: if canReadProject(organizationId, projectId)
+            && resource.data.status == 'ready'
+            && (activeInternalMember(organizationId)
+              || (resource.data.visibility == 'client-visible'
+                && resource.data.scanStatus == 'clean'
+                && resource.data.archivedAt == null));
+          allow write: if false;
+        }
+
         match /{document=**} {
           allow read, write: if false;
         }

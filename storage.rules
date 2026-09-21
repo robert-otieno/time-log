@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function fileRecord(organizationId, projectId, fileId) {
+      return firestore.get(/databases/(default)/documents/organizations/$(organizationId)/projects/$(projectId)/files/$(fileId));
+    }
+
+    function supportedType() {
+      return request.resource.contentType in [
+        'application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'text/plain', 'text/csv', 'text/markdown',
+        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      ];
+    }
+
+    match /organizations/{organizationId}/projects/{projectId}/files/{fileId}/{safeName} {
+      allow create: if request.auth != null
+        && resource == null
+        && request.resource.size > 0
+        && request.resource.size <= 25 * 1024 * 1024
+        && supportedType()
+        && fileRecord(organizationId, projectId, fileId).data.status == 'pending'
+        && fileRecord(organizationId, projectId, fileId).data.uploadExpiresAt > request.time
+        && fileRecord(organizationId, projectId, fileId).data.uploaderId == request.auth.uid
+        && fileRecord(organizationId, projectId, fileId).data.safeName == safeName
+        && fileRecord(organizationId, projectId, fileId).data.sizeBytes == request.resource.size
+        && fileRecord(organizationId, projectId, fileId).data.contentType == request.resource.contentType
+        && request.resource.metadata.organizationId == organizationId
+        && request.resource.metadata.projectId == projectId
+        && request.resource.metadata.fileId == fileId
+        && request.resource.metadata.uploaderId == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

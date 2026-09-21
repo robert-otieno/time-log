@@ -594,6 +594,25 @@ Last updated: 2026-09-20
 
 **Pattern notes:** Personal timezone is distinct from organization reporting timezone. Non-essential email categories use explicit labeled rows, digest frequency is one mutually exclusive value, and mandatory invitation/security mail is explained but not rendered as a disabled preference.
 
+### Project file drop zone and rows
+
+File: `components/files/project-files.tsx`
+Last updated: 2026-09-21
+
+| Property | Class |
+| --- | --- |
+| Background | Empty state `bg-muted/20`; drag state `bg-primary/5`; file icon `bg-muted` |
+| Border | Drop target `border border-dashed`; list and upload progress use semantic `border` |
+| Border radius | Major file surfaces `rounded-xl`; compact progress rows and icon tiles `rounded-lg` |
+| Text — primary | Filename and upload prompt `font-medium` |
+| Text — secondary | File metadata and upload guidance `text-sm` / `text-xs text-muted-foreground` |
+| Spacing | Feature stack `space-y-5`; drop zone `p-7`; file rows `p-4`; row controls `gap-2` |
+| Hover state | Drop zone `hover:border-primary/60 hover:bg-muted/40`; canonical Button and Select states |
+| Shadow | Canonical controls only |
+| Accent usage | Active drag state uses semantic `border-primary bg-primary/5`; progress uses canonical primary indicator |
+
+**Pattern notes:** File uploads use one discoverable drag/select surface, per-file progress appears immediately, and completed files use compact divided rows rather than cards. Destructive archive is a labeled assistive icon action; visibility remains an explicit select and is disabled with explanatory copy until the scan gate permits client sharing.
+
 ## Patterns to Retire
 
 - Product name “Visio Genesis” in login, header, or metadata.

@@ -9,11 +9,13 @@ type ClientToolDefinition = {
   visibilityField: string;
   visibleValue: string;
   excludesArchived?: boolean;
+  additionalFilters?: readonly { field: string; value: string }[];
 };
 
 const CLIENT_TOOL_DEFINITIONS: Partial<Record<ProjectTool, ClientToolDefinition>> = {
   todos: { collection: "tasks", visibilityField: "visibility", visibleValue: "client-visible", excludesArchived: true },
   time: { collection: "timeEntries", visibilityField: "clientReportingStatus", visibleValue: "approved" },
+  docs: { collection: "files", visibilityField: "visibility", visibleValue: "client-visible", additionalFilters: [{ field: "status", value: "ready" }, { field: "scanStatus", value: "clean" }] },
 };
 
 export function isClientCapableTool(tool: ProjectTool): boolean {
@@ -33,6 +35,7 @@ export async function listAvailableClientTools(
       .collection(`organizations/${organizationId}/projects/${projectId}/${definition.collection}`)
       .where(definition.visibilityField, "==", definition.visibleValue);
     if (definition.excludesArchived) query = query.where("archivedAt", "==", null);
+    for (const filter of definition.additionalFilters ?? []) query = query.where(filter.field, "==", filter.value);
     const snapshot = await query.limit(1).get();
     return snapshot.empty ? null : tool;
   }));
