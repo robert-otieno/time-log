@@ -3,6 +3,7 @@ import "server-only";
 import type { Firestore } from "firebase-admin/firestore";
 import type { ProjectTool } from "@/domain/projects/schemas";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { isProjectToolAvailable } from "@/domain/projects/tools";
 
 type ClientToolDefinition = {
   collection: string;
@@ -16,10 +17,11 @@ const CLIENT_TOOL_DEFINITIONS: Partial<Record<ProjectTool, ClientToolDefinition>
   todos: { collection: "tasks", visibilityField: "visibility", visibleValue: "client-visible", excludesArchived: true },
   time: { collection: "timeEntries", visibilityField: "clientReportingStatus", visibleValue: "approved" },
   docs: { collection: "files", visibilityField: "visibility", visibleValue: "client-visible", additionalFilters: [{ field: "status", value: "ready" }, { field: "scanStatus", value: "clean" }] },
+  messages: { collection: "messages", visibilityField: "visibility", visibleValue: "client-visible", excludesArchived: true },
 };
 
 export function isClientCapableTool(tool: ProjectTool): boolean {
-  return tool in CLIENT_TOOL_DEFINITIONS;
+  return isProjectToolAvailable(tool) && tool in CLIENT_TOOL_DEFINITIONS;
 }
 
 export async function listAvailableClientTools(

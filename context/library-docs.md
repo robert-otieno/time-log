@@ -234,6 +234,8 @@ Never include free text, email addresses, filenames, URLs, request bodies, autho
 
 ## Cloud Storage for Firebase
 
+**Deployment status:** Implemented but disabled. The current Firebase project must be upgraded to a plan that permits Cloud Storage before `docs` can be restored through `domain/projects/tools.ts`. Do not deploy or expose the Storage workflow until that billing decision is approved.
+
 **Path:** `organizations/{organizationId}/projects/{projectId}/files/{fileId}/{safeFilename}`
 
 Rules:
@@ -315,6 +317,7 @@ Rules:
 - The Hobby deployment uses the single daily schedule in `vercel.json` (`0 16 * * *`). Hobby execution may occur at any point during that UTC hour. The scheduler persists and freezes a catch-up window across cursor continuation, then advances its completed checkpoint only after the cycle finishes. Timed reminders cover that catch-up interval plus the next 24 hours; date-only reminders use the equivalent recipient-local date range. Digests use recipient-local dates rather than exact clock hours, and retries occur during the next daily run. Upgrade the scheduler separately if the product later requires precise or sub-daily delivery.
 - Deploy `firestore.indexes.json` before enabling scheduled retries because the due-retry collection-group query requires the `notifications(status, nextAttemptAt)` index.
 - Scheduled message records are created with deterministic IDs before immediate best-effort delivery. Repeated or overlapping runs safely observe the existing record, while the outbox claim lease prevents concurrent provider sends.
+- Message-board announcements create one deterministic notification per eligible active project assignment in the same transaction as the post. Internal announcements exclude clients; client-visible announcements may include assigned clients. Delivery re-checks active membership, active assignment, current post existence/lifecycle, and current post visibility immediately before sending. Post bodies are not copied into email or audit records.
 
 Official references:
 

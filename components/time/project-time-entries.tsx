@@ -54,6 +54,39 @@ function instant(value: PickerValue) {
     ? new Date(`${value.date}T${value.time}:00`).toISOString()
     : null;
 }
+function samePickerValue(left: PickerValue, right: PickerValue) {
+  return (
+    left.date === right.date &&
+    left.time === right.time &&
+    left.includeTime === right.includeTime
+  );
+}
+function correctionError(code: string) {
+  switch (code) {
+    case "time_range_invalid":
+      return "End time must be after start time.";
+    case "time_end_in_future":
+      return "End time cannot be in the future.";
+    case "time_duration_unreasonable":
+      return "The time entry is too long to save.";
+    case "timer_task_required":
+      return "Select a saved task.";
+    case "timer_task_not_found":
+    case "timer_task_unavailable":
+      return "The selected task is no longer available.";
+    case "time_entry_not_found":
+      return "This time entry no longer exists.";
+    case "time_entry_denied":
+    case "time_entry_correction_denied":
+      return "You do not have permission to correct this time entry.";
+    case "project_time_unavailable":
+      return "Time tracking is not available for this project.";
+    case "session_expired":
+      return "Your session expired. Sign in and try again.";
+    default:
+      return "The time entry could not be saved.";
+  }
+}
 function duration(seconds: number) {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -116,28 +149,45 @@ export function ProjectTimeEntries({
         setError("Choose both a start and end date and time.");
         return;
       }
+      const normalizedTaskId =
+        taskId === PROJECT_LEVEL ? null : taskId || null;
+      const normalizedNote = note.trim() || null;
       const payload = {
         projectId,
-        taskId: taskId === PROJECT_LEVEL ? null : taskId || null,
+        taskId: normalizedTaskId,
         startedAt: start,
         endedAt: end,
-        note: note.trim() || null,
+        note: normalizedNote,
         billable,
         clientReportingStatus: reporting,
       };
-      const response = editing
-        ? await correctTimeEntryAction({ ...payload, entryId: editing.id })
-        : await createManualTimeEntryAction(payload);
+      let response;
+      if (editing) {
+        const originalStart = picker(new Date(editing.startedAt));
+        const originalEnd = picker(new Date(editing.endedAt));
+        const correction: Record<string, unknown> = {
+          projectId,
+          entryId: editing.id,
+        };
+        if (normalizedTaskId !== editing.taskId)
+          correction.taskId = normalizedTaskId;
+        if (!samePickerValue(startedAt, originalStart))
+          correction.startedAt = start;
+        if (!samePickerValue(endedAt, originalEnd)) correction.endedAt = end;
+        if (normalizedNote !== editing.note) correction.note = normalizedNote;
+        if (billable !== editing.billable) correction.billable = billable;
+        if (reporting !== editing.clientReportingStatus)
+          correction.clientReportingStatus = reporting;
+        if (Object.keys(correction).length === 2) {
+          setOpen(false);
+          return;
+        }
+        response = await correctTimeEntryAction(correction);
+      } else {
+        response = await createManualTimeEntryAction(payload);
+      }
       if (!response.ok) {
-        setError(
-          response.code === "time_range_invalid"
-            ? "End time must be after start time."
-            : response.code === "time_end_in_future"
-              ? "End time cannot be in the future."
-              : response.code === "timer_task_required"
-                ? "Select a saved task."
-                : "The time entry could not be saved.",
-        );
+        setError(correctionError(response.code));
         return;
       }
       setOpen(false);

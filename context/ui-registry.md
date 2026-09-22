@@ -613,6 +613,25 @@ Last updated: 2026-09-21
 
 **Pattern notes:** File uploads use one discoverable drag/select surface, per-file progress appears immediately, and completed files use compact divided rows rather than cards. Destructive archive is a labeled assistive icon action; visibility remains an explicit select and is disabled with explanatory copy until the scan gate permits client sharing.
 
+### Message board posts and comments
+
+File: `components/messages/message-board.tsx`
+Last updated: 2026-09-21
+
+| Property | Class |
+| --- | --- |
+| Background | Composer and posts `bg-card`; comments `bg-muted/30`; empty state and announcement option `bg-muted/20` |
+| Border | Composer, posts, and empty state use semantic `border`; comments begin after `border-t` |
+| Border radius | Composer/posts/empty state `rounded-xl`; comments and announcement option `rounded-lg` |
+| Text — primary | Board heading `text-xl font-semibold`; post title `text-lg font-semibold`; author body `text-sm` |
+| Text — secondary | Author, timestamps, edited state, and delivery guidance use `text-xs text-muted-foreground` |
+| Spacing | Board/composer `space-y-6` / `space-y-4`; posts `p-5`; comments `p-3`; comment region `pt-4` |
+| Hover state | Canonical Button, Select, Checkbox, Input, and Textarea states |
+| Shadow | Canonical controls only |
+| Accent usage | Pinned state uses `text-primary`; visibility uses the shared semantic badge |
+
+**Pattern notes:** Publishing is one deliberate composer surface followed by durable post cards. Metadata stays compact, bodies preserve line breaks, comments are visually subordinate, and editing expands inline without opening a competing page. Announcement email is an administrator-only explicit checkbox and never inferred from pinning or visibility. Archived posts use a separate internal view with Restore.
+
 ## Patterns to Retire
 
 - Product name “Visio Genesis” in login, header, or metadata.

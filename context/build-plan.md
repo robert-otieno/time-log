@@ -216,6 +216,7 @@ Do not build all project tools in parallel. Complete and verify each numbered fe
 
 - Add private tenant/project paths, metadata records, upload constraints, signed/authenticated download, and Storage Rules tests.
 - Add file visibility independent of the parent record.
+- **Paused:** implementation is retained but application access is disabled until the Firebase project is upgraded to a plan that permits Cloud Storage.
 
 ### 27 Message Board
 

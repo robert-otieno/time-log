@@ -64,4 +64,15 @@ describe("notification delivery", () => {
     await expect(deliverNotification("o1", "n1", { db: env.db, resend: { emails: { send } } as never, now: () => new Date("2026-09-20T12:00:00Z"), claimId: () => "claim-1" })).resolves.toEqual({ ok: false, code: "suppressed" });
     expect(send).not.toHaveBeenCalled();
   });
+
+  it("suppresses a client announcement when the post is no longer client-visible", async () => {
+    const announcement = { ...notification, type: "announcement", recipientEmail: "client@example.com", recipientUserId: "client", projectId: "p1", messageId: "m1", idempotencyKey: "announcement/m1/client", templateData: { projectName: "Site", announcementTitle: "Launch", authorName: "Casey", targetUrl: "https://example.com/messages#post-m1" } };
+    const env = environment(announcement);
+    env.records["organizations/o1/members/client"] = { userId: "client", email: "client@example.com", displayName: "Client", role: "client", status: "active", clientId: "c1", joinedAt: timestamp };
+    env.records["organizations/o1/projects/p1/projectMembers/client"] = { userId: "client", projectRole: "member", status: "active", assignedBy: "u1", assignedAt: timestamp, removedAt: null };
+    env.records["organizations/o1/projects/p1/messages/m1"] = { title: "Launch", body: "Details", authorId: "u1", authorName: "Casey", visibility: "internal", announcement: true, pinnedAt: null, pinnedBy: null, createdAt: timestamp, updatedAt: timestamp, editedAt: null, archivedAt: null };
+    const send = vi.fn();
+    await expect(deliverNotification("o1", "n1", { db: env.db, resend: { emails: { send } } as never, now: () => new Date("2026-09-20T12:00:00Z"), claimId: () => "claim-1" })).resolves.toEqual({ ok: false, code: "suppressed" });
+    expect(send).not.toHaveBeenCalled();
+  });
 });

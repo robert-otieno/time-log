@@ -125,6 +125,8 @@ export function AuditViewer({
               "timer",
               "time-entry",
               "file",
+              "message",
+              "comment",
               "notification",
               "approval",
               "connector",

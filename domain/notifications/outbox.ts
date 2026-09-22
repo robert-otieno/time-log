@@ -8,6 +8,7 @@ import { invitationSchema, organizationMemberSchema, projectAssignmentSchema } f
 import { notificationSchema, type Notification } from "@/domain/notifications/schemas";
 import { categoryEnabled, getEffectiveNotificationPreferences } from "@/domain/notifications/preferences";
 import { projectTaskSchema } from "@/domain/tasks/schemas";
+import { messagePostSchema } from "@/domain/messages/schemas";
 import { renderNotification } from "@/emails/templates";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getResendClient } from "@/lib/resend";
@@ -36,6 +37,17 @@ async function resolveRecipient(db: Firestore, organizationId: string, notificat
     const memberSnapshot = await db.doc(`organizations/${organizationId}/members/${notification.recipientUserId}`).get();
     if (!memberSnapshot.exists) return null; const member = organizationMemberSchema.parse(memberSnapshot.data());
     return member.status === "active" && member.role !== "client" && member.email ? member.email : null;
+  }
+  if (notification.type === "announcement") {
+    const [memberSnapshot, assignmentSnapshot, messageSnapshot] = await Promise.all([
+      db.doc(`organizations/${organizationId}/members/${notification.recipientUserId}`).get(),
+      db.doc(`organizations/${organizationId}/projects/${notification.projectId}/projectMembers/${notification.recipientUserId}`).get(),
+      db.doc(`organizations/${organizationId}/projects/${notification.projectId}/messages/${notification.messageId}`).get(),
+    ]);
+    if (!memberSnapshot.exists || !assignmentSnapshot.exists || !messageSnapshot.exists) return null;
+    const member = organizationMemberSchema.parse(memberSnapshot.data()); const assignment = projectAssignmentSchema.parse(assignmentSnapshot.data()); const message = messagePostSchema.parse({ id: messageSnapshot.id, ...messageSnapshot.data() });
+    if (member.status !== "active" || !member.email || assignment.status !== "active" || message.archivedAt || (member.role === "client" && message.visibility !== "client-visible")) return null;
+    return member.email;
   }
   if (notification.type !== "assignment" && notification.type !== "reminder") return notification.recipientEmail;
   const [memberSnapshot, assignmentSnapshot, taskSnapshot] = await Promise.all([

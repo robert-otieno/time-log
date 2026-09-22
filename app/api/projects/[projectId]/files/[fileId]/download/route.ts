@@ -3,8 +3,10 @@ import { createRequestCorrelation } from "@/domain/audit/correlation";
 import { authorizeFileDownload } from "@/domain/files/service";
 import { getAdminStorageBucket } from "@/lib/firebase-admin";
 import { getActiveOrganizationId, getSessionActor } from "@/lib/server-session";
+import { isProjectToolAvailable } from "@/domain/projects/tools";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ projectId: string; fileId: string }> }) {
+  if (!isProjectToolAvailable("docs")) return NextResponse.json({ error: "File storage is temporarily unavailable" }, { status: 503 });
   const actor = await getSessionActor(); if (!actor) return NextResponse.redirect(new URL("/login", _request.url));
   try {
     const { projectId, fileId } = await params; const organizationId = await getActiveOrganizationId(actor); const file = await authorizeFileDownload(actor, organizationId, projectId, fileId, createRequestCorrelation());

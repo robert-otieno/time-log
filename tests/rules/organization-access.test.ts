@@ -39,6 +39,9 @@ beforeEach(async () => {
       setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/internal-task"), { title: "Internal", visibility: "internal", archivedAt: null }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/shared-task"), { title: "Shared", visibility: "client-visible", archivedAt: null }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/archived-shared-task"), { title: "Archived", visibility: "client-visible", archivedAt: { seconds: 1 } }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/messages/internal-message"), { title: "Internal", visibility: "internal", archivedAt: null, createdAt: { seconds: 1, nanoseconds: 0 } }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/messages/shared-message"), { title: "Shared", visibility: "client-visible", archivedAt: null, createdAt: { seconds: 2, nanoseconds: 0 } }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/messages/shared-message/comments/shared-comment"), { body: "Shared", visibility: "client-visible", archivedAt: null, createdAt: { seconds: 3, nanoseconds: 0 } }),
       setDoc(doc(db, "organizations/org-a/auditEvents/audit-1"), { action: "project.record.created" }),
       setDoc(doc(db, "users/member/daily_tasks/task-1"), { title: "Legacy" }),
     ]);
@@ -74,6 +77,15 @@ describe("organization Firestore rules", () => {
     await assertFails(getDocs(tasks));
     await assertFails(getDocs(query(tasks, where("visibility", "==", "client-visible"))));
     await assertSucceeds(getDocs(query(tasks, where("visibility", "==", "client-visible"), where("archivedAt", "==", null))));
+  });
+
+  it("enforces message and nested comment visibility", async () => {
+    const base = "organizations/org-a/projects/project-1/messages";
+    await assertSucceeds(getDoc(doc(dbFor("member"), `${base}/internal-message`)));
+    await assertFails(getDoc(doc(dbFor("client-user"), `${base}/internal-message`)));
+    await assertSucceeds(getDoc(doc(dbFor("client-user"), `${base}/shared-message`)));
+    await assertSucceeds(getDoc(doc(dbFor("client-user"), `${base}/shared-message/comments/shared-comment`)));
+    await assertFails(setDoc(doc(dbFor("member"), `${base}/browser-message`), { visibility: "internal" }));
   });
 
   it("allows explicitly assigned members and clients", async () => {

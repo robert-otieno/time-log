@@ -25,6 +25,8 @@ export const auditTargetTypeSchema = z.enum([
   "timer",
   "time-entry",
   "file",
+  "message",
+  "comment",
   "notification",
   "approval",
   "connector",

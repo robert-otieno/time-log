@@ -89,4 +89,23 @@ describe("time entries", () => {
     await expect(correctTimeEntry(actor, "o1", "p1", { entryId: "entry-1", taskId: "t1", startedAt: "2026-09-20T09:00:00.000Z", endedAt: "2026-09-20T08:00:00.000Z", note: null, billable: false, clientReportingStatus: "internal" }, correlation, { ...environment, now: () => Timestamp.fromDate(new Date("2026-09-20T10:00:00.000Z")) })).rejects.toThrow("after start");
     expect(environment.audits).toMatchObject([{ action: "time.entry.corrected", outcome: "failed", reasonCode: "time_range_invalid" }]);
   });
+
+  it("updates only billable when that is the only corrected field", async () => {
+    const existing = { id: "entry-1", organizationId: "o1", projectId: "p1", taskId: "t1", userId: "u1", source: "manual", startedAt: { seconds: 100, nanoseconds: 123_000_000 }, endedAt: { seconds: 160, nanoseconds: 456_000_000 }, durationSeconds: 60, note: "Original note", billable: false, clientReportingStatus: "internal", correctionCount: 0, createdBy: "u1", createdAt: stamp, updatedBy: "u1", updatedAt: stamp };
+    const environment = env({ "organizations/o1/projects/p1/timeEntries/entry-1": existing });
+
+    const result = await correctTimeEntry(actor, "o1", "p1", { entryId: "entry-1", billable: true }, correlation, { ...environment, now: () => new Timestamp(200, 0) });
+
+    expect(result).toMatchObject({ billable: true, durationSeconds: 60, note: "Original note", taskId: "t1" });
+    expect(result.startedAt).toMatchObject(existing.startedAt);
+    const update = environment.writes.find(({ method }) => method === "update")?.data as Record<string, unknown>;
+    expect(update).toMatchObject({ billable: true, correctionCount: 1, updatedBy: "u1" });
+    expect(update).not.toHaveProperty("taskId");
+    expect(update).not.toHaveProperty("startedAt");
+    expect(update).not.toHaveProperty("endedAt");
+    expect(update).not.toHaveProperty("durationSeconds");
+    expect(update).not.toHaveProperty("note");
+    expect(update).not.toHaveProperty("clientReportingStatus");
+    expect(environment.audits).toMatchObject([{ action: "time.entry.corrected", outcome: "succeeded", changes: [{ field: "billable", to: true }] }]);
+  });
 });

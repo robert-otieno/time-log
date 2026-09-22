@@ -326,9 +326,16 @@ export async function createManualTimeEntryAction(raw: unknown) {
   }
 }
 
-const correctionActionSchema = manualActionSchema
-  .extend({ entryId: z.string().min(1).max(128) })
-  .strict();
+const correctionActionSchema = z.object({
+  projectId: z.string().min(1).max(128),
+  entryId: z.string().min(1).max(128),
+  taskId: z.string().min(1).max(128).nullable().optional(),
+  startedAt: z.string().datetime({ offset: true }).optional(),
+  endedAt: z.string().datetime({ offset: true }).optional(),
+  note: z.string().trim().max(2000).nullable().optional(),
+  billable: z.boolean().optional(),
+  clientReportingStatus: z.enum(["internal", "approved"]).optional(),
+}).strict().refine((value) => Object.keys(value).some((key) => key !== "projectId" && key !== "entryId"), { message: "A correction must change at least one field" });
 export async function correctTimeEntryAction(raw: unknown) {
   const actor = await getSessionActor();
   if (!actor) return { ok: false as const, code: "session_expired" as const };

@@ -118,6 +118,23 @@ service cloud.firestore {
           allow write: if false;
         }
 
+        match /messages/{messageId} {
+          allow read: if canReadProject(organizationId, projectId)
+            && resource.data.archivedAt == null
+            && (activeInternalMember(organizationId) || resource.data.visibility == 'client-visible');
+          allow write: if false;
+
+          match /comments/{commentId} {
+            allow read: if canReadProject(organizationId, projectId)
+              && resource.data.archivedAt == null
+              && (activeInternalMember(organizationId)
+                || (resource.data.visibility == 'client-visible'
+                  && get(/databases/$(database)/documents/organizations/$(organizationId)/projects/$(projectId)/messages/$(messageId)).data.visibility == 'client-visible'
+                  && get(/databases/$(database)/documents/organizations/$(organizationId)/projects/$(projectId)/messages/$(messageId)).data.archivedAt == null));
+            allow write: if false;
+          }
+        }
+
         match /{document=**} {
           allow read, write: if false;
         }

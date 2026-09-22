@@ -63,11 +63,13 @@ export const createManualEntryCommandSchema = z.object({
 }).strict();
 export const correctTimeEntryCommandSchema = z.object({
   entryId: idSchema,
-  taskId: idSchema.nullable(),
-  startedAt: z.string().datetime({ offset: true }),
-  endedAt: z.string().datetime({ offset: true }),
-  ...entryFields,
-}).strict();
+  taskId: idSchema.nullable().optional(),
+  startedAt: z.string().datetime({ offset: true }).optional(),
+  endedAt: z.string().datetime({ offset: true }).optional(),
+  note: z.string().trim().max(2000).nullable().optional(),
+  billable: z.boolean().optional(),
+  clientReportingStatus: clientReportingStatusSchema.optional(),
+}).strict().refine((value) => Object.keys(value).some((key) => key !== "entryId"), { message: "A correction must change at least one field" });
 
 export type ActiveTimer = z.infer<typeof activeTimerSchema>;
 export type ActiveTimerPointer = z.infer<typeof activeTimerPointerSchema>;

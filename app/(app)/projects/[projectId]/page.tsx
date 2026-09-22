@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { listAvailableClientTools } from "@/domain/projects/client-tools";
 import { getAccessibleProject } from "@/domain/projects/service";
-import { PROJECT_TOOLS } from "@/domain/projects/tools";
+import { AVAILABLE_PROJECT_TOOLS } from "@/domain/projects/tools";
 import { getActiveOrganizationId, getSessionActor } from "@/lib/server-session";
 
 export default async function ProjectPage({
@@ -56,7 +56,7 @@ export default async function ProjectPage({
         <ClientPortalEmptyState />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PROJECT_TOOLS.filter((tool) => availableTools.includes(tool.id)).map(
+          {AVAILABLE_PROJECT_TOOLS.filter((tool) => availableTools.includes(tool.id)).map(
             (tool) => (
               <Link key={tool.id} href={`/projects/${projectId}/${tool.path}`}>
                 <Card className="h-full transition-colors hover:bg-muted/40">

@@ -10,6 +10,7 @@ import { visibilitySchema } from "@/domain/visibility/schemas";
 import { createFileIntentSchema, fileRecordSchema, hasSupportedFileSignature, safeStoredFilename, type FileListItem } from "@/domain/files/schemas";
 import type { AuthActor } from "@/lib/auth-server";
 import { getAdminDb, getAdminStorageBucket } from "@/lib/firebase-admin";
+import { isProjectToolAvailable } from "@/domain/projects/tools";
 
 type Dependencies = { db?: Firestore; auditRepository?: AuditWriter };
 const collectionPath = (org: string, project: string) => `organizations/${org}/projects/${project}/files`;
@@ -28,6 +29,7 @@ async function access(transaction: Transaction, db: Firestore, org: string, proj
 }
 
 export async function createFileUploadIntent(actor: AuthActor, organizationId: string, raw: unknown, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  if (!isProjectToolAvailable("docs")) throw new AuditedCommandError("denied", "file_storage_disabled", "File storage is temporarily unavailable");
   const command = createFileIntentSchema.parse(raw); const db = dependencies.db ?? getAdminDb();
   const reference = db.collection(collectionPath(organizationId, command.projectId)).doc();
   const safeName = safeStoredFilename(command.originalName);
@@ -49,6 +51,7 @@ export async function createFileUploadIntent(actor: AuthActor, organizationId: s
 }
 
 export async function finalizeFileUpload(actor: AuthActor, organizationId: string, projectId: string, fileId: string, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  if (!isProjectToolAvailable("docs")) throw new AuditedCommandError("denied", "file_storage_disabled", "File storage is temporarily unavailable");
   const db = dependencies.db ?? getAdminDb(); const reference = db.doc(`${collectionPath(organizationId, projectId)}/${fileId}`);
   const before = await reference.get();
   if (!before.exists) throw new Error("File not found");
@@ -83,6 +86,7 @@ export async function listProjectFiles(actor: AuthActor, organizationId: string,
 }
 
 export async function changeFileVisibility(actor: AuthActor, organizationId: string, projectId: string, fileId: string, rawVisibility: unknown, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  if (!isProjectToolAvailable("docs")) throw new AuditedCommandError("denied", "file_storage_disabled", "File storage is temporarily unavailable");
   const visibility = visibilitySchema.parse(rawVisibility); const db = dependencies.db ?? getAdminDb(); const reference = db.doc(`${collectionPath(organizationId, projectId)}/${fileId}`);
   return executeAuditedCommand({ db, auditRepository: dependencies.auditRepository, organizationId, projectId, actor: { type: "user", id: actor.uid, role: null }, action: "visibility.record.changed", target: { type: "file", id: fileId }, correlation, changes: [{ field: "visibility", to: visibility }], execute: async (transaction) => {
     const current = await access(transaction, db, organizationId, projectId, actor.uid); const snapshot = await transaction.get(reference); const file = snapshot.exists ? fileRecordSchema.parse({ id: snapshot.id, ...snapshot.data() }) : null;
@@ -93,6 +97,7 @@ export async function changeFileVisibility(actor: AuthActor, organizationId: str
 }
 
 export async function archiveFile(actor: AuthActor, organizationId: string, projectId: string, fileId: string, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  if (!isProjectToolAvailable("docs")) throw new AuditedCommandError("denied", "file_storage_disabled", "File storage is temporarily unavailable");
   const db = dependencies.db ?? getAdminDb(); const reference = db.doc(`${collectionPath(organizationId, projectId)}/${fileId}`);
   return executeAuditedCommand({ db, auditRepository: dependencies.auditRepository, organizationId, projectId, actor: { type: "user", id: actor.uid, role: null }, action: "file.record.deleted", target: { type: "file", id: fileId }, correlation, changes: [{ field: "status", to: "archived" }], execute: async (transaction) => {
     const current = await access(transaction, db, organizationId, projectId, actor.uid); const snapshot = await transaction.get(reference);
@@ -102,6 +107,7 @@ export async function archiveFile(actor: AuthActor, organizationId: string, proj
 }
 
 export async function authorizeFileDownload(actor: AuthActor, organizationId: string, projectId: string, fileId: string, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  if (!isProjectToolAvailable("docs")) throw new AuditedCommandError("denied", "file_storage_disabled", "File storage is temporarily unavailable");
   const db = dependencies.db ?? getAdminDb(); const reference = db.doc(`${collectionPath(organizationId, projectId)}/${fileId}`);
   return executeAuditedCommand({ db, auditRepository: dependencies.auditRepository, organizationId, projectId, actor: { type: "user", id: actor.uid, role: null }, action: "file.record.downloaded", target: { type: "file", id: fileId }, correlation, execute: async (transaction) => {
     const current = await access(transaction, db, organizationId, projectId, actor.uid); const snapshot = await transaction.get(reference); const file = snapshot.exists ? fileRecordSchema.parse({ id: snapshot.id, ...snapshot.data() }) : null;

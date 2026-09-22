@@ -13,6 +13,18 @@ export const PROJECT_TOOLS: readonly { id: ProjectTool; label: string; path: str
   { id: "links", label: "External links", path: "links" },
 ] as const;
 
+// Firebase Storage requires a paid Firebase plan for this deployment. Keep the
+// implementation intact while removing the tool from every application entry point.
+const DISABLED_PROJECT_TOOLS: ReadonlySet<ProjectTool> = new Set(["docs"]);
+
+export const AVAILABLE_PROJECT_TOOLS = PROJECT_TOOLS.filter(
+  (tool) => !DISABLED_PROJECT_TOOLS.has(tool.id),
+);
+
+export function isProjectToolAvailable(tool: ProjectTool): boolean {
+  return !DISABLED_PROJECT_TOOLS.has(tool);
+}
+
 export function projectToolFromPath(path: string) {
   return PROJECT_TOOLS.find((tool) => tool.path === path)?.id ?? null;
 }

@@ -20,7 +20,8 @@ describe("client project tool availability", () => {
   it("treats only implemented client-safe repositories as client capable", () => {
     expect(isClientCapableTool("todos")).toBe(true);
     expect(isClientCapableTool("time")).toBe(true);
-    expect(isClientCapableTool("docs")).toBe(true);
+    expect(isClientCapableTool("docs")).toBe(false);
+    expect(isClientCapableTool("messages")).toBe(true);
     expect(isClientCapableTool("chat")).toBe(false);
   });
 
@@ -42,9 +43,9 @@ describe("client project tool availability", () => {
     await expect(listAvailableClientTools("org-1", "project-1", ["time"], db)).resolves.toEqual(["time"]);
   });
 
-  it("shows docs only when a clean client-visible file exists", async () => {
+  it("keeps docs unavailable while Storage is disabled", async () => {
     const path = "organizations/org-1/projects/project-1/files";
     const { db } = database({ [path]: true });
-    await expect(listAvailableClientTools("org-1", "project-1", ["docs"], db)).resolves.toEqual(["docs"]);
+    await expect(listAvailableClientTools("org-1", "project-1", ["docs"], db)).resolves.toEqual([]);
   });
 });

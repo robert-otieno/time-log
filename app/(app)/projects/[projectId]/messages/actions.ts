@@ -1,0 +1,16 @@
+"use server";
+import { revalidatePath } from "next/cache";
+import { createRequestCorrelation } from "@/domain/audit/correlation";
+import { archiveMessageComment, changeMessageVisibility, createMessageComment, createMessagePost, setMessageArchived, setMessagePinned, updateMessageComment, updateMessagePost } from "@/domain/messages/service";
+import { getActiveOrganizationId, getSessionActor } from "@/lib/server-session";
+
+export type MessageActionResult<T = void> = { ok: true; data: T } | { ok: false; error: string };
+async function run<T>(projectId: string, operation: (actor: NonNullable<Awaited<ReturnType<typeof getSessionActor>>>, org: string) => Promise<T>): Promise<MessageActionResult<T>> { try { const actor = await getSessionActor(); if (!actor) return { ok: false, error: "Your session expired." }; const data = await operation(actor, await getActiveOrganizationId(actor)); revalidatePath(`/projects/${projectId}/messages`); return { ok: true, data }; } catch (error) { const safe = error instanceof Error && ["Clients cannot publish posts", "Only project administrators can email announcements", "Message board is unavailable", "Post editing denied", "Comment editing denied", "Pinning denied", "Post archive denied", "Comment archive denied", "Visibility change denied"].includes(error.message) ? error.message : "The message could not be saved. Try again."; return { ok: false, error: safe }; } }
+export async function createPostAction(projectId: string, input: unknown) { return run(projectId, (actor, org) => createMessagePost(actor, org, projectId, input, createRequestCorrelation())); }
+export async function updatePostAction(projectId: string, input: unknown) { return run(projectId, (actor, org) => updateMessagePost(actor, org, projectId, input, createRequestCorrelation())); }
+export async function createCommentAction(projectId: string, input: unknown) { return run(projectId, (actor, org) => createMessageComment(actor, org, projectId, input, createRequestCorrelation())); }
+export async function updateCommentAction(projectId: string, input: unknown) { return run(projectId, (actor, org) => updateMessageComment(actor, org, projectId, input, createRequestCorrelation())); }
+export async function setPinnedAction(projectId: string, postId: string, pinned: boolean) { return run(projectId, (actor, org) => setMessagePinned(actor, org, projectId, { postId }, pinned, createRequestCorrelation())); }
+export async function setArchivedAction(projectId: string, postId: string, archived: boolean) { return run(projectId, (actor, org) => setMessageArchived(actor, org, projectId, { postId }, archived, createRequestCorrelation())); }
+export async function archiveCommentAction(projectId: string, postId: string, commentId: string) { return run(projectId, (actor, org) => archiveMessageComment(actor, org, projectId, { postId, commentId }, createRequestCorrelation())); }
+export async function changePostVisibilityAction(projectId: string, postId: string, visibility: string) { return run(projectId, (actor, org) => changeMessageVisibility(actor, org, projectId, postId, visibility, createRequestCorrelation())); }

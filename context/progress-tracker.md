@@ -8,9 +8,15 @@ Update this file after every completed feature. A new session should be able to 
 
 **Last completed:** 25 Scheduled Notifications
 
-**Current:** 26 Firebase Storage and File Metadata — browser verification pending
+**Current:** 27 Message Board — browser verification pending
 
-**Blockers:** None
+**Blockers:** Message attachments remain deferred because Feature 26 Firebase Storage requires a pricing-plan upgrade. The post, comment, visibility, moderation, pinning, and announcement workflows are otherwise available.
+
+2026-09-22 — Time-entry correction recovery — changed corrections to field-level patches so a billable-only edit preserves exact timestamps and every untouched value; added specific safe error feedback plus partial-command and billable-only regression coverage — 206 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass; re-test changing only Billable in the correction dialog
+
+2026-09-21 — Feature 27 — browser verification pending — added project-scoped posts and comments, author editing, administrator moderation and pinning, soft archive/restore, explicit post visibility, internal-default internal comments, client-visible client comments, client-safe discovery and Rules, edited markers, archived view, bounded older-post pagination, transactional announcement fan-out through the existing Resend outbox, and send-time recipient/access/visibility reauthorization; attachments remain deferred with Storage paused — 204 unit tests, 23 Rules tests, typecheck, lint (28 pre-existing warnings), and production build pass; deploy Firestore indexes/rules, then run admin/member/client and announcement delivery smoke
+
+2026-09-21 — Feature 26 pricing hold — retained the verified Storage implementation but centrally disabled Docs & Files; removed it from project navigation, overview, settings, and client tool discovery; direct page access returns Not Found, downloads return Service Unavailable, and upload/finalization commands fail closed — resume Feature 26 after upgrading the Firebase project, then deploy its indexes/rules and run the documented browser smoke
 
 2026-09-21 — Feature 26 — browser verification pending — added private tenant/project object paths, exact pending-upload authorization, direct resumable 25 MB uploads, extension/MIME/signature validation, server-observed size/checksum finalization, Firestore metadata lifecycle, internal-by-default visibility, clean-scan client gate, five-minute audited signed downloads, archive flow, Docs & Files project UI, deny-by-default Firestore/Storage Rules, and isolated emulator coverage; typecheck, 201 unit tests, 22 Rules tests, lint (28 pre-existing warnings), and production build pass — deploy Firestore indexes plus Firestore/Storage Rules, then run authenticated upload/download/archive and denied-client smoke
 
