@@ -350,21 +350,21 @@ Last updated: 2026-09-16
 ### Project to-do list
 
 Files: `components/tasks/project-task-list.tsx`, `app/(app)/projects/[projectId]/todos/page.tsx`
-Last updated: 2026-09-21
+Last updated: 2026-09-23
 
 | Property | Class |
 | --- | --- |
-| Background | List `bg-card`; expanded details `bg-muted/20`; quick-create `bg-card` |
-| Border | One outer `border`; task wrappers use `border-b`; expanded details use `border-t` |
-| Border radius | `rounded-lg` list and empty states; rows do not introduce nested radii |
+| Background | List `bg-card`; expanded details `bg-muted/20`; quick-create `bg-card`; assignee options `bg-background` |
+| Border | One outer `border`; task wrappers use `border-b`; expanded details use `border-t`; assignee options use semantic `border` |
+| Border radius | `rounded-lg` list, empty states, and assignee options; task rows do not introduce nested radii |
 | Text — primary | Collapsed title `font-medium`; description `text-sm`; page `text-xl font-semibold` |
 | Text — secondary | Detail labels and metadata use `text-muted-foreground`; completed title adds `line-through` |
-| Spacing | Collapsed rows `px-3 py-2`; expanded details `px-4 py-4`; subtasks add `1.5rem` indentation per level |
+| Spacing | Collapsed rows `px-3 py-2`; expanded details `px-4 py-4`; assignee options `gap-2 px-3 py-2`; subtasks add `1.5rem` indentation per level |
 | Hover state | Row disclosure uses `hover:text-foreground` and a visible keyboard focus ring; canonical control states |
 | Shadow | Canonical control shadows; no additional row shadow |
 | Accent usage | Semantic status/priority/visibility badges and destructive archive confirmation |
 
-**Pattern notes:** Render tasks and subtasks as a single compact divided list, never as one card per record. Collapsed rows expose only the completion checkbox, title, saving feedback, and disclosure indicator. Opening a row reveals its readable description, badges, due/assignee metadata, and secondary actions; Edit is a separate state, and opening another row closes the previous one. Saved subtasks use progressive indentation and a hierarchy icon. The default Active view hides completed tasks immediately; users can deliberately select the Done status filter to review or reopen them. Active children whose completed parent is hidden remain promoted into view rather than disappearing with the parent. Creation and completion are optimistic; timer-driven completion broadcasts into an open list before server refresh. Archive uses confirmation and moves records into an explicit Archived view with Restore. Client mode retains disclosure for client-safe details but omits every mutation control.
+**Pattern notes:** Render tasks and subtasks as a single compact divided list, never as one card per record. Collapsed rows expose only the completion checkbox, title, saving feedback, and disclosure indicator. Opening a row reveals its readable description, badges, due/assignee metadata, and secondary actions; Edit is a separate state, and opening another row closes the previous one. Assignee choices identify eligible workspace members by resolved name with email as secondary context, save immutable user IDs, and render those names in task details. Saved subtasks use progressive indentation and a hierarchy icon. The default Active view hides completed tasks immediately; users can deliberately select the Done status filter to review or reopen them. Active children whose completed parent is hidden remain promoted into view rather than disappearing with the parent. Creation and completion are optimistic; each completion checkbox owns its pending state so unrelated tasks remain interactive and concurrent failures roll back only their own row. Timer-driven completion broadcasts into an open list before server refresh. Archive uses confirmation and moves records into an explicit Archived view with Restore. Client mode retains disclosure for client-safe details but omits every mutation control.
 
 ### Project workspace header
 

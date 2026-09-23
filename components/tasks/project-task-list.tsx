@@ -148,6 +148,9 @@ export function ProjectTaskList({
   const [archiveId, setArchiveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [statusPendingIds, setStatusPendingIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [showArchived, setShowArchived] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -228,20 +231,44 @@ export function ProjectTaskList({
 
   const mutateStatus = (task: ViewTask) => {
     const next = task.status === "done" ? "todo" : "done";
-    const previous = tasks;
+    const previousStatus = task.status;
+    setStatusPendingIds((current) => {
+      const updated = new Set(current);
+      updated.add(task.id);
+      return updated;
+    });
     setTasks((current) =>
       current.map((item) =>
         item.id === task.id ? { ...item, status: next } : item,
       ),
     );
     setError(null);
-    startTransition(async () => {
-      const result = await changeTaskStatusAction(projectId, task.id, next);
-      if (!result.ok) {
-        setTasks(previous);
-        setError(result.error);
-      } else router.refresh();
-    });
+    void (async () => {
+      const rollback = () =>
+        setTasks((current) =>
+          current.map((item) =>
+            item.id === task.id
+              ? { ...item, status: previousStatus }
+              : item,
+          ),
+        );
+      try {
+        const result = await changeTaskStatusAction(projectId, task.id, next);
+        if (!result.ok) {
+          rollback();
+          setError(result.error);
+        } else router.refresh();
+      } catch {
+        rollback();
+        setError("The task status could not be updated. Try again.");
+      } finally {
+        setStatusPendingIds((current) => {
+          const updated = new Set(current);
+          updated.delete(task.id);
+          return updated;
+        });
+      }
+    })();
   };
 
   const openSubtask = (taskId: string) => {
@@ -285,6 +312,7 @@ export function ProjectTaskList({
           archived={showArchived}
           expanded={expanded === task.id}
           pending={pending}
+          statusPending={statusPendingIds.has(task.id)}
           onToggle={() => mutateStatus(task)}
           onExpand={() => setExpanded(expanded === task.id ? null : task.id)}
           onAddSubtask={() => openSubtask(task.id)}
@@ -551,6 +579,7 @@ function TaskRow({
   archived,
   expanded,
   pending,
+  statusPending,
   onToggle,
   onExpand,
   onAddSubtask,
@@ -568,6 +597,7 @@ function TaskRow({
   archived: boolean;
   expanded: boolean;
   pending: boolean;
+  statusPending: boolean;
   onToggle(): void;
   onExpand(): void;
   onAddSubtask(): void;
@@ -619,7 +649,8 @@ function TaskRow({
                 : `Complete ${task.title}`
             }
             checked={task.status === "done"}
-            disabled={pending}
+            disabled={statusPending}
+            aria-busy={statusPending}
             onCheckedChange={onToggle}
           />
         )}
@@ -718,7 +749,7 @@ function TaskRow({
                     <span>
                       Assigned to {task.assigneeIds
                         .map(
-                          (id) => assignees.find((person) => person.id === id)?.name ?? "Team member",
+                          (id) => assignees.find((person) => person.id === id)?.name ?? id,
                         )
                         .join(", ")}
                     </span>
@@ -854,9 +885,12 @@ function TaskFields({
       />
       <fieldset className="space-y-2 sm:col-span-2">
         <legend className="text-sm font-medium">Assignees</legend>
-        <div className="flex flex-wrap gap-3">
+        <div className="grid gap-2 sm:grid-cols-2">
           {assignees.map((person) => (
-            <label key={person.id} className="flex items-center gap-2 text-sm">
+            <label
+              key={person.id}
+              className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm"
+            >
               <Checkbox
                 checked={draft.assigneeIds.includes(person.id)}
                 onCheckedChange={(checked) =>
@@ -868,7 +902,14 @@ function TaskFields({
                   })
                 }
               />
-              {person.name}
+              <span className="min-w-0">
+                <span className="block truncate font-medium">{person.name}</span>
+                {person.email && person.email !== person.name && (
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {person.email}
+                  </span>
+                )}
+              </span>
             </label>
           ))}
         </div>

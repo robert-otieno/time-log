@@ -48,6 +48,7 @@ describe("onboarding service", () => {
   it("persists the first profile step and an atomic audit", async () => {
     const env = environment();
     await expect(saveOnboardingStep(actor, profileCommand, correlation, env)).resolves.toMatchObject({ currentStep: "organization" });
+    expect(env.writes).toContainEqual(expect.objectContaining({ method: "update", path: `organizations/${organizationId}/members/${actor.uid}`, data: { displayName: "Casey" } }));
     expect(env.writes).toContainEqual(expect.objectContaining({ method: "set", path: `organizations/${organizationId}/onboarding/${actor.uid}` }));
     expect(env.audits).toMatchObject([{ action: "organization.onboarding.profile.saved", outcome: "succeeded" }]);
   });
@@ -75,4 +76,3 @@ describe("onboarding service", () => {
     expect(env.writes).toContainEqual(expect.objectContaining({ method: "update", path: `organizations/${organizationId}`, data: expect.objectContaining({ onboardingState: "complete", timezone: "UTC" }) }));
   });
 });
-

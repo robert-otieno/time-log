@@ -12,6 +12,10 @@ Update this file after every completed feature. A new session should be able to 
 
 **Blockers:** Message attachments remain deferred because Feature 26 Firebase Storage requires a pricing-plan upgrade. The post, comment, visibility, moderation, pinning, and announcement workflows are otherwise available.
 
+2026-09-23 — Named task assignees — resolved project-eligible active workspace members to real names and emails (including legacy Firebase Auth fallback), synchronized onboarding names into membership records, rendered specific named assignment options, and retained user-ID persistence plus task-detail name display — 209 unit tests, typecheck, lint (0 errors; 29 unrelated warnings), and production build pass; run workspace-member assignment browser smoke
+
+2026-09-23 — Concurrent to-do completion — replaced the list-wide completion lock with per-task pending state, retained optimistic completion, and scoped failure rollback to the affected task so users can complete multiple items without waiting — 208 unit tests, typecheck, focused lint, and production build pass; run rapid multi-task completion browser smoke
+
 2026-09-23 — Timer launcher overflow fix — constrained shared Select triggers and dialogs to their parent width, truncated long selected project/task values, allowed full dropdown options to wrap, and added shrink boundaries to launcher form rows — typecheck and lint pass with 28 pre-existing warnings; verify long project/task names at mobile and desktop widths
 
 2026-09-22 — Time-entry correction recovery — changed corrections to field-level patches so a billable-only edit preserves exact timestamps and every untouched value; fixed the server-action/domain boundary to remove routing-only `projectId` and stop-only `completeTask` fields before strict domain validation; added safe error feedback and action/domain regression coverage — 208 unit tests, typecheck, lint (28 pre-existing warnings), and production build pass; re-test billable-only correction and manual time entry

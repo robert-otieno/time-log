@@ -1,11 +1,12 @@
 import "server-only";
+import type { Auth, UserRecord } from "firebase-admin/auth";
 import type { Firestore } from "firebase-admin/firestore";
 import { canAccessProject } from "@/domain/organizations/policy";
 import { organizationMemberSchema, projectAssignmentSchema, type OrganizationMember } from "@/domain/organizations/schemas";
 import { TaskRepository } from "@/domain/tasks/repository";
 import { visibilityForQuery } from "@/domain/visibility/policy";
 import type { AuthActor } from "@/lib/auth-server";
-import { getAdminDb } from "@/lib/firebase-admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 
 export type TaskAssigneeOption = { id: string; name: string; email: string | null };
 
@@ -21,7 +22,27 @@ export async function listTasksForViewer(actor: AuthActor, organizationId: strin
   return { member: member!, tasks };
 }
 
-export async function listEligibleTaskAssignees(actor: AuthActor, organizationId: string, projectId: string, member: OrganizationMember, db: Firestore = getAdminDb()): Promise<TaskAssigneeOption[]> {
+async function getDirectoryUsers(
+  userIds: string[],
+  auth: Pick<Auth, "getUsers">,
+): Promise<Map<string, UserRecord>> {
+  const batches = Array.from(
+    { length: Math.ceil(userIds.length / 100) },
+    (_, index) => userIds.slice(index * 100, (index + 1) * 100),
+  );
+  const results = await Promise.all(
+    batches.map(async (batch) => {
+      try {
+        return (await auth.getUsers(batch.map((uid) => ({ uid })))).users;
+      } catch {
+        return [];
+      }
+    }),
+  );
+  return new Map(results.flat().map((user) => [user.uid, user]));
+}
+
+export async function listEligibleTaskAssignees(actor: AuthActor, organizationId: string, projectId: string, member: OrganizationMember, db: Firestore = getAdminDb(), auth: Pick<Auth, "getUsers"> = getAdminAuth()): Promise<TaskAssigneeOption[]> {
   if (member.role === "client") return [];
   const members = await db.collection(`organizations/${organizationId}/members`).where("status", "==", "active").get();
   const internal = members.docs.map((document) => organizationMemberSchema.parse(document.data())).filter((candidate) => candidate.role !== "client");
@@ -30,5 +51,29 @@ export async function listEligibleTaskAssignees(actor: AuthActor, organizationId
     const assignment = await db.doc(`organizations/${organizationId}/projects/${projectId}/projectMembers/${candidate.userId}`).get();
     return assignment.exists && assignment.data()?.status === "active" ? candidate : null;
   }));
-  return eligible.filter((candidate): candidate is OrganizationMember => candidate !== null).map((candidate) => ({ id: candidate.userId, name: candidate.displayName ?? candidate.email ?? "Team member", email: candidate.email ?? null }));
+  const eligibleMembers = eligible.filter((candidate): candidate is OrganizationMember => candidate !== null);
+  const unresolvedIds = eligibleMembers
+    .filter((candidate) => !candidate.displayName && candidate.userId !== actor.uid)
+    .map((candidate) => candidate.userId);
+  const directoryUsers = await getDirectoryUsers(unresolvedIds, auth);
+  return eligibleMembers
+    .map((candidate) => {
+      const directoryUser = directoryUsers.get(candidate.userId);
+      const displayName = candidate.displayName?.trim()
+        || (candidate.userId === actor.uid ? actor.displayName?.trim() : null)
+        || directoryUser?.displayName?.trim()
+        || candidate.email
+        || (candidate.userId === actor.uid ? actor.email : null)
+        || directoryUser?.email
+        || candidate.userId;
+      return {
+        id: candidate.userId,
+        name: displayName,
+        email: candidate.email
+          ?? (candidate.userId === actor.uid ? actor.email : null)
+          ?? directoryUser?.email
+          ?? null,
+      };
+    })
+    .sort((left, right) => left.name.localeCompare(right.name));
 }

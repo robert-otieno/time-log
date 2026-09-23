@@ -74,7 +74,13 @@ export async function saveOnboardingStep(actor: AuthActor, raw: unknown, correla
       let firstProjectId = state.firstProjectId;
       let projectCreated = false;
 
-      if (command.step === "profile") profile = { displayName: command.displayName, timezone: command.timezone, workingHours: command.workingHours, emailPreferences: command.emailPreferences };
+      if (command.step === "profile") {
+        profile = { displayName: command.displayName, timezone: command.timezone, workingHours: command.workingHours, emailPreferences: command.emailPreferences };
+        transaction.update(membershipRef, {
+          displayName: command.displayName,
+          ...(actor.email ? { email: actor.email.trim().toLowerCase() } : {}),
+        });
+      }
       if (command.step === "organization") transaction.update(organizationRef, { name: command.name, onboardingState: "in_progress", updatedAt: now });
       if (command.step === "project") {
         projectCreated = !projectSnapshot.exists;

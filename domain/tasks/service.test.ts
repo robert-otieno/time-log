@@ -38,6 +38,7 @@ describe("task service", () => {
     const deliver = vi.fn().mockResolvedValue({ ok: true, alreadySent: false });
     const env = environment({ "organizations/o1/members/u2": member("u2", "member", "u2@example.com"), "organizations/o1/projects/p1/projectMembers/u2": assignment("u2") });
     await createTask(actor, "o1", "p1", { ...command, assigneeIds: ["u2"] }, correlation, { ...env, deliver });
+    expect(env.writes).toContainEqual(expect.objectContaining({ method: "create", path: "organizations/o1/projects/p1/tasks/new-task", data: expect.objectContaining({ assigneeIds: ["u2"] }) }));
     expect(env.writes).toContainEqual(expect.objectContaining({ method: "create", path: "organizations/o1/notifications/new-task", data: expect.objectContaining({ type: "assignment", recipientUserId: "u2", status: "queued" }) }));
     expect(env.audits.map((event) => event.action)).toContain("notification.email.queued");
     expect(deliver).toHaveBeenCalledWith("o1", "new-task", { db: env.db });
