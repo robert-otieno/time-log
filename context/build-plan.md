@@ -327,6 +327,15 @@ Do not build all project tools in parallel. Complete and verify each numbered fe
 - Add configurable personal work-hour targets and near-real-time reconciliation after timer and task transitions.
 - Keep My Work self-only; broader team activity belongs in a separately authorized administration surface.
 
+### 47 Optimistic Application Mutations
+
+- Add a shared per-record coordinator for snapshots, synchronous projection, duplicate prevention, canonical reconciliation, rollback, and transient retry.
+- Slice 1: tasks and timers.
+- Slice 2: message board and time entries.
+- Slice 3: projects and reversible file metadata actions.
+- Slice 4: people, project access, organization settings, and notification preferences.
+- Finish with an audit of broad pending locks, `window.location.reload()`, and unnecessary `router.refresh()` calls. Keep external delivery, uploads, security operations, migrations, exports, and consequential AI/connector execution on explicit progress states.
+
 ## Definition of Done for Every Feature
 
 - Acceptance behavior and failure states are implemented.

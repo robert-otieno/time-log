@@ -6,11 +6,27 @@ Update this file after every completed feature. A new session should be able to 
 
 **Phase:** Phase 11 — Personal Work Intelligence
 
-**Last completed:** 25 Scheduled Notifications
+**Last completed:** 43 Persisted Timer Pause and Resume
 
-**Current:** 43 Persisted Timer Pause and Resume — browser verification pending
+**Current:** 47 Optimistic Application Mutations — complete automated verification; browser acceptance pending
 
 **Blockers:** Message attachments remain deferred because Feature 26 Firebase Storage requires a pricing-plan upgrade. Closed-browser timer alarms remain deferred until server-side Web Push scheduling is available; initial reminder delivery will require an open browser.
+
+2026-09-23 — Feature 47 Slice 5 final responsiveness audit — removed redundant `revalidatePath` calls from task and message actions now fully reconciled by client-owned optimistic state; retained required refreshes for authentication, onboarding, timer-derived dashboards/reports, project context, and filter navigation, and left the disabled Storage reload untouched until that feature is enabled and testable — 217 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; run final browser acceptance across task, timer, message/comment, and time-entry success/rollback paths
+
+2026-09-23 — Feature 47 Slice 4 safety audit — reviewed invitations, roles, project assignments, membership suspension/restoration/removal, organization settings, and personal notification preferences; retained server-confirmed success for access, audit, email-delivery, workspace-timezone, and notification configuration while confirming existing pending states are scoped per person or form — no runtime code changed; begin Slice 5 final responsiveness audit
+
+2026-09-23 — Feature 47 Slice 3 safety audit — reviewed project creation/settings/lifecycle/switching and file upload/metadata flows; retained honest pending states for project-wide routing, capability, access, and writability changes, and made no changes to the intentionally disabled Firebase Storage feature because it cannot receive meaningful browser verification — no runtime code changed; begin Slice 4 people/access/settings architecture review
+
+2026-09-23 — Feature 47 Slice 2 implementation — replaced message-board reloads and time-entry refreshes with per-record optimistic state; posts, comments, pinning, visibility, archive/restore, manual entries, and corrections now project immediately with exact item rollback and transient-only retry; new records reconcile temporary IDs against action results, time actions return canonical server-derived entry DTOs, and announcement posts remain honestly pending until email recipients are queued — 217 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; verify message/comment concurrency and rollback, announcement pending behavior, and manual/corrected time reconciliation
+
+2026-09-23 — Feature 47 timer sequencing recovery — confirmed Pause was blocked while an optimistic Start still owned the timer mutation scope; replaced rejection with ordered timer intents, immediate Pause/Resume projections, latest-intent-only canonical reconciliation, dependent-command cancellation after failure, and refresh suppression until the local queue drains — 217 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; verify immediate Pause directly after Start and normal Pause/Resume after the timer is established
+
+2026-09-23 — Feature 47 Slice 1 implementation — added a shared per-record optimistic mutation coordinator with duplicate/overlap protection, exact snapshots, canonical reconciliation, rollback, and transient-only retry; migrated task create/edit/assign/status/archive/restore plus timer start/pause/resume, removed task-list refreshes and list-wide locks, and retained the specialized cross-tab optimistic stop workflow — 217 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; task actions accepted in browser testing, timer Pause sequencing required the targeted recovery above
+
+2026-09-23 — Timer stop responsiveness recovery — diagnosed server-wait coupling as the cause of the delayed timer/Picture-in-Picture closure; added immediate optimistic removal, direct PiP closure, cross-tab `timer-stopping` lock state, authoritative success finalization, and exact timer/dialog rollback on failure — 215 unit tests, typecheck, focused lint, and production build pass; verify immediate main/PiP closure, cross-tab saving lock, and normal saved entry
+
+2026-09-23 — Feature 44 implementation — added permission-gated device Idle Detection, safe visible-page fallback activity tracking, a two-minute threshold, non-dismissible 30-second confirmation, server-validated threshold-time automatic pause, cross-tab reconciliation, and Resume/Stop/Keep paused recovery — 215 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; verify granted-permission, denied/unsupported fallback, countdown, cross-tab pause, and recovery flows
 
 2026-09-23 — Feature 43 implementation — added server-authoritative running/paused timer states, bounded work segments, accumulated active duration, audited pause/resume transactions, legacy timer and entry normalization, paused-time exclusion at stop, global and Picture-in-Picture controls, browser-title state, and cross-tab invalidation — 211 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; verify pause/resume/stop across two tabs and Picture-in-Picture
 
@@ -137,10 +153,11 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 ### Phase 11 — Personal Work Intelligence
 
-- [ ] 43 Persisted Timer Pause and Resume (implemented; browser verification pending)
+- [x] 43 Persisted Timer Pause and Resume
 - [ ] 44 Inactivity Detection and Recovery
 - [ ] 45 Tracked-Time Alarms
 - [ ] 46 My Work Dashboard and Targets
+- [ ] 47 Optimistic Application Mutations (Slice 1 implemented; browser verification pending)
 
 ## Decisions Made
 

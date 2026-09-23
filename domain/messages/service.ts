@@ -54,7 +54,7 @@ export async function createMessageComment(actor: AuthActor, org: string, projec
   return executeAuditedCommand({ db, auditRepository: dependencies.auditRepository, organizationId: org, projectId, actor: { type: "user", id: actor.uid, role: null }, action: "message.comment.created", target: { type: "comment", id: ref.id }, correlation, execute: async (transaction) => {
     const current = await access(transaction, db, org, projectId, actor.uid); const postDoc = await transaction.get(db.doc(`${base(org, projectId)}/${command.postId}`)); if (!postDoc.exists) throw new AuditedCommandError("failed", "message_post_not_found", "Post not found"); const post = messagePostSchema.parse({ id: postDoc.id, ...postDoc.data() });
     if (post.archivedAt || (current.member.role === "client" && post.visibility !== "client-visible")) throw new AuditedCommandError("denied", "message_comment_denied", "Commenting is unavailable"); const visibility = current.member.role === "client" ? "client-visible" : "internal";
-    transaction.create(ref, { postId: post.id, body: command.body, authorId: actor.uid, authorName: actorName(actor), visibility, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(), editedAt: null, archivedAt: null }); return { visibility };
+    transaction.create(ref, { postId: post.id, body: command.body, authorId: actor.uid, authorName: actorName(actor), visibility, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(), editedAt: null, archivedAt: null }); return { id: ref.id, visibility };
   }, changes: (result) => [{ field: "visibility", to: result.visibility }] });
 }
 

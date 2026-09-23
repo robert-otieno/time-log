@@ -99,6 +99,7 @@ Only routes for enabled tools appear in a project. A compact project switcher an
 - A standard member selects an assigned project task or creates a task inline before starting.
 - The system allows at most one active timer per user across all organizations.
 - The timer persists across navigation and page refreshes.
+- A timer may be paused and resumed without counting paused intervals. Supported browsers can optionally detect device inactivity; other browsers detect inactivity only while Time Log is visible and never infer inactivity from a hidden tab.
 - Stopping the timer creates a time entry containing project, task, user, start, end, duration, notes, billable flag, and audit timestamps.
 - When a timer references a task, the stop confirmation can optionally mark that task complete in the same atomic operation. It defaults off to prevent accidental completion.
 - Admins may start a project-level timer without a task; the UI should still encourage task selection.

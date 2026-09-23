@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import type { AuditWriter } from "@/domain/audit/command";
 import type { AuditEventDraft } from "@/domain/audit/schemas";
-import { elapsedTimerSeconds, getActiveTimer, pauseTimer, resumeTimer, startTimer, trackedTimerSeconds } from "@/domain/time/service";
+import { elapsedTimerSeconds, getActiveTimer, pauseTimer, pauseTimerForInactivity, resumeTimer, startTimer, trackedTimerSeconds } from "@/domain/time/service";
 
 const actor = { type: "user" as const, uid: "u1", email: null, emailVerified: true, displayName: "Casey" };
 const correlation = { requestId: "00000000-0000-4000-8000-000000000001", runId: null };
@@ -108,5 +108,18 @@ describe("active timer service", () => {
     expect(resumed).toMatchObject({ state: "running", accumulatedSeconds: 9, pauseReason: null });
     expect(trackedTimerSeconds(resumed, new Date(25_000))).toBe(14);
     expect(resumedEnv.audits).toMatchObject([{ action: "time.timer.resumed", outcome: "succeeded" }]);
+  });
+
+  it("backdates an inactivity pause within the current segment and rejects an invalid instant", async () => {
+    const pointer = { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: timestamp };
+    const timer = { userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: timestamp, note: null };
+    const pausedEnv = environment({ "users/u1/runtime/activeTimer": pointer, "organizations/o1/projects/p1/activeTimers/u1": timer });
+    const paused = await pauseTimerForInactivity(actor, "1970-01-01T00:00:07.000Z", correlation, { ...pausedEnv, now: () => new Timestamp(10, 0) });
+    expect(paused).toMatchObject({ state: "paused", accumulatedSeconds: 6, pauseReason: "inactivity", pausedAt: { seconds: 7 } });
+
+    const invalidEnv = environment({ "users/u1/runtime/activeTimer": pointer, "organizations/o1/projects/p1/activeTimers/u1": timer });
+    await expect(pauseTimerForInactivity(actor, "1969-12-31T23:59:59.000Z", correlation, { ...invalidEnv, now: () => new Timestamp(10, 0) })).rejects.toThrow("outside the running segment");
+    expect(invalidEnv.writes).toHaveLength(0);
+    expect(invalidEnv.audits).toMatchObject([{ action: "time.timer.paused", outcome: "failed", reasonCode: "timer_inactivity_time_invalid" }]);
   });
 });

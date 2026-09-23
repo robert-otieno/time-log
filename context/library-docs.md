@@ -393,3 +393,9 @@ Do not add a hard-coded model name to context or production code until the provi
 The initial Vitest configuration uses the Node environment and `@/` alias. Add DOM/browser dependencies only when the first component test requires them.
 
 The initial Playwright authentication suite covers signed-out protected redirects, hostile return-path containment, and current-browser cookie expiration. Google popup authentication remains a manual smoke test until a dedicated Firebase test environment is available; never place production credentials or captured session state in test fixtures.
+# Browser inactivity detection
+
+- The Idle Detection API is a progressive enhancement, not a baseline dependency. Detect support with `"IdleDetector" in window`, require a secure top-level context, and request the dedicated permission only from an explicit user gesture.
+- Start the detector with the product threshold and an `AbortSignal`; abort and remove listeners whenever the timer stops, pauses, or the component unmounts.
+- Page event listeners cannot detect whether a user is working in another tab or application. The fallback therefore observes keyboard, pointer, touch, and scroll events only while the Time Log document is visible and resets its baseline whenever visibility returns.
+- Reference: https://developer.chrome.com/docs/capabilities/web-apis/idle-detection and https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Permissions-Policy/idle-detection

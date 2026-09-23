@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   Clock3,
   Loader2,
   Pause,
@@ -18,6 +19,7 @@ import {
   loadTimerLaunchOptionsAction,
   loadTimerStateAction,
   pauseTimerAction,
+  pauseTimerForInactivityAction,
   resumeTimerAction,
   startTimerAction,
   stopTimerAction,
@@ -46,6 +48,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDurationSeconds } from "@/domain/time/display";
+import { INACTIVITY_RESPONSE_MS, INACTIVITY_THRESHOLD_MS, inactivityResponseSeconds, shouldWarnForVisiblePage } from "@/domain/time/inactivity";
 import { projectIdFromProjectPath } from "@/domain/time/launcher";
 import { toast } from "sonner";
 
@@ -57,7 +60,7 @@ const PROJECT_LEVEL = "__project_level__";
 
 type TimerPrefill = { projectId?: string; taskId?: string };
 type TimerSyncMessage = {
-  type: "timer-started" | "timer-stopped" | "timer-changed";
+  type: "timer-started" | "timer-stopping" | "timer-stopped" | "timer-stop-failed" | "timer-changed";
   sentAt: number;
 };
 type PictureInPictureApi = {
@@ -67,6 +70,17 @@ type PictureInPictureApi = {
     preferInitialWindowPlacement?: boolean;
   }): Promise<Window>;
   window: Window | null;
+};
+
+type IdleDetectorInstance = EventTarget & {
+  userState: "active" | "idle" | null;
+  screenState: "locked" | "unlocked" | null;
+  start(options: { threshold: number; signal: AbortSignal }): Promise<void>;
+};
+
+type IdleDetectorConstructor = {
+  new (): IdleDetectorInstance;
+  requestPermission(): Promise<"granted" | "denied">;
 };
 
 function visibleTimerSeconds(timer: TimerView, now: number) {
@@ -124,10 +138,14 @@ function DetachedTimer({
   timer,
   onStop,
   onTogglePause,
+  inactivityCountdown,
+  onStillWorking,
 }: {
   timer: TimerView;
   onStop(): Promise<string | null>;
   onTogglePause(): Promise<string | null>;
+  inactivityCountdown: number | null;
+  onStillWorking(): void;
 }) {
   const [now, setNow] = useState(() => new Date(timer.observedAt).getTime());
   const [pending, setPending] = useState(false);
@@ -164,6 +182,16 @@ function DetachedTimer({
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
             {timer.note}
           </p>
+        )}
+        {inactivityCountdown !== null && (
+          <div role="alert" className="mt-3 rounded-lg border bg-muted/40 p-3">
+            <p className="text-sm font-medium">Still working?</p>
+            <p className="mt-1 text-xs text-muted-foreground">Automatic pause in {inactivityCountdown} seconds.</p>
+            <Button size="sm" className="mt-2" onClick={onStillWorking}>
+              <Activity />
+              I’m still working
+            </Button>
+          </div>
         )}
       </div>
       <div className="flex items-center justify-between gap-3">
@@ -218,7 +246,6 @@ export function GlobalTimerControl({
   );
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [creatingTask, startCreatingTask] = useTransition();
-  const [starting, startStarting] = useTransition();
   const [stopOpen, setStopOpen] = useState(false);
   const [stopNote, setStopNote] = useState("");
   const [billable, setBillable] = useState(false);
@@ -227,12 +254,32 @@ export function GlobalTimerControl({
   >("internal");
   const [completeTask, setCompleteTask] = useState(false);
   const [stopping, startStopping] = useTransition();
-  const [changingState, startChangingState] = useTransition();
+  const [stopSaving, setStopSaving] = useState(false);
+  const [remoteStopPending, setRemoteStopPending] = useState(false);
+  const [idleSupported, setIdleSupported] = useState(false);
+  const [idlePermission, setIdlePermission] = useState<"granted" | "denied" | "prompt" | "unsupported">("unsupported");
+  const [inactivityWarning, setInactivityWarning] = useState<{ detectedAt: string; deadline: number } | null>(null);
+  const [inactivityCountdown, setInactivityCountdown] = useState(30);
+  const [inactivityRecoveryOpen, setInactivityRecoveryOpen] = useState(
+    () => initialTimer?.state === "paused" && initialTimer.pauseReason === "inactivity",
+  );
+  const [autoPausing, setAutoPausing] = useState(false);
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [pipSupported, setPipSupported] = useState(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const pipWindowRef = useRef<Window | null>(null);
   const pipSyncCleanupRef = useRef<() => void>(() => undefined);
+  const lastActivityRef = useRef(0);
+  const warningRef = useRef<typeof inactivityWarning>(null);
+  const deviceIdleRef = useRef(false);
+  const inactivitySuppressedUntilRef = useRef(0);
+  const remoteStopPendingRef = useRef(false);
+  const timerCommandTailRef = useRef<Promise<boolean>>(Promise.resolve(true));
+  const timerCommandPendingRef = useRef(0);
+  const timerCommandSequenceRef = useRef(0);
+  const [timerCommandPending, setTimerCommandPending] = useState(0);
+  const changingState = timerCommandPending > 0;
+  const starting = changingState && timer?.organizationId === "pending";
 
   const closePictureInPicture = useCallback(() => {
     const detached = pipWindowRef.current;
@@ -244,10 +291,12 @@ export function GlobalTimerControl({
   }, []);
 
   const refreshTimer = useCallback(async () => {
+    if (stopSaving || remoteStopPendingRef.current || timerCommandPendingRef.current > 0) return;
     try {
       const response = await loadTimerStateAction();
       if (response.ok) {
         setTimer(response.timer);
+        if (response.timer?.state === "paused" && response.timer.pauseReason === "inactivity") setInactivityRecoveryOpen(true);
         if (!response.timer) closePictureInPicture();
         setSyncIssue(null);
       } else if (response.code === "session_expired") setSyncIssue("session");
@@ -255,14 +304,29 @@ export function GlobalTimerControl({
     } catch {
       setSyncIssue("network");
     }
-  }, [closePictureInPicture]);
+  }, [closePictureInPicture, stopSaving]);
 
   const handleTimerSync = useCallback(
     (message: TimerSyncMessage) => {
-      if (message.type === "timer-stopped") {
+      if (message.type === "timer-stopping") {
+        remoteStopPendingRef.current = true;
+        setRemoteStopPending(true);
         setTimer(null);
         setStopOpen(false);
         closePictureInPicture();
+        return;
+      }
+      if (message.type === "timer-stopped") {
+        remoteStopPendingRef.current = false;
+        setRemoteStopPending(false);
+        setTimer(null);
+        setStopOpen(false);
+        closePictureInPicture();
+        return;
+      }
+      if (message.type === "timer-stop-failed") {
+        remoteStopPendingRef.current = false;
+        setRemoteStopPending(false);
       }
       void refreshTimer();
     },
@@ -272,7 +336,7 @@ export function GlobalTimerControl({
   const publishTimerSync = useCallback(
     (type: TimerSyncMessage["type"]) => {
       const message: TimerSyncMessage = { type, sentAt: Date.now() };
-      if (type === "timer-stopped") closePictureInPicture();
+      if (type === "timer-stopping" || type === "timer-stopped") closePictureInPicture();
       channelRef.current?.postMessage(message);
       try {
         window.localStorage.setItem(TIMER_SYNC_STORAGE_KEY, JSON.stringify(message));
@@ -282,6 +346,137 @@ export function GlobalTimerControl({
     },
     [closePictureInPicture],
   );
+
+  const beginInactivityWarning = useCallback(() => {
+    if (warningRef.current || Date.now() < inactivitySuppressedUntilRef.current) return;
+    const detectedAt = new Date().toISOString();
+    const warning = { detectedAt, deadline: Date.now() + INACTIVITY_RESPONSE_MS };
+    warningRef.current = warning;
+    setInactivityWarning(warning);
+    setInactivityCountdown(30);
+  }, []);
+
+  const clearInactivityWarning = useCallback(() => {
+    warningRef.current = null;
+    setInactivityWarning(null);
+  }, []);
+
+  const confirmStillWorking = useCallback(() => {
+    clearInactivityWarning();
+    lastActivityRef.current = Date.now();
+    inactivitySuppressedUntilRef.current = Date.now() + INACTIVITY_THRESHOLD_MS;
+  }, [clearInactivityWarning]);
+
+  const autoPauseForInactivity = useCallback(async (detectedAt: string) => {
+    if (autoPausing) return;
+    setAutoPausing(true);
+    try {
+      const response = await pauseTimerForInactivityAction({ effectiveAt: detectedAt });
+      if (!response.ok) {
+        if (response.code !== "timer_not_active") toast.error("The timer could not be paused after inactivity. Please pause or stop it manually.");
+        await refreshTimer();
+        return;
+      }
+      setTimer(response.timer);
+      clearInactivityWarning();
+      setInactivityRecoveryOpen(true);
+      publishTimerSync("timer-changed");
+    } catch {
+      toast.error("The timer could not be paused after inactivity. Please pause or stop it manually.");
+    } finally {
+      setAutoPausing(false);
+    }
+  }, [autoPausing, clearInactivityWarning, publishTimerSync, refreshTimer]);
+
+  useEffect(() => {
+    warningRef.current = inactivityWarning;
+  }, [inactivityWarning]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const constructor = (window as Window & { IdleDetector?: IdleDetectorConstructor }).IdleDetector;
+      if (!constructor || !window.isSecureContext) return;
+      setIdleSupported(true);
+      void navigator.permissions
+        .query({ name: "idle-detection" as PermissionName })
+        .then((status) => {
+          setIdlePermission(status.state);
+          status.addEventListener("change", () => setIdlePermission(status.state), { once: true });
+        })
+        .catch(() => setIdlePermission("prompt"));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!timer || timer.state !== "running" || idlePermission !== "granted") {
+      deviceIdleRef.current = false;
+      return;
+    }
+    const Constructor = (window as Window & { IdleDetector?: IdleDetectorConstructor }).IdleDetector;
+    if (!Constructor) return;
+    const controller = new AbortController();
+    const detector = new Constructor();
+    const handleChange = () => {
+      deviceIdleRef.current = detector.userState === "idle" || detector.screenState === "locked";
+      if (deviceIdleRef.current) beginInactivityWarning();
+      else lastActivityRef.current = Date.now();
+    };
+    detector.addEventListener("change", handleChange);
+    void detector.start({ threshold: INACTIVITY_THRESHOLD_MS, signal: controller.signal }).catch(() => setIdlePermission("denied"));
+    return () => {
+      controller.abort();
+      detector.removeEventListener("change", handleChange);
+      deviceIdleRef.current = false;
+    };
+  }, [beginInactivityWarning, idlePermission, timer]);
+
+  useEffect(() => {
+    if (!timer || timer.state !== "running") {
+      const frame = window.requestAnimationFrame(clearInactivityWarning);
+      return () => window.cancelAnimationFrame(frame);
+    }
+    if (lastActivityRef.current === 0) lastActivityRef.current = Date.now();
+    const recordActivity = () => {
+      if (document.visibilityState === "visible" && !warningRef.current) lastActivityRef.current = Date.now();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") lastActivityRef.current = Date.now();
+    };
+    window.addEventListener("pointerdown", recordActivity, { passive: true });
+    window.addEventListener("keydown", recordActivity);
+    window.addEventListener("touchstart", recordActivity, { passive: true });
+    window.addEventListener("scroll", recordActivity, { passive: true });
+    document.addEventListener("visibilitychange", handleVisibility);
+    const interval = window.setInterval(() => {
+      if (warningRef.current || Date.now() < inactivitySuppressedUntilRef.current) return;
+      if (idlePermission === "granted") {
+        if (deviceIdleRef.current) beginInactivityWarning();
+      } else if (shouldWarnForVisiblePage({ visible: document.visibilityState === "visible", now: Date.now(), lastActivityAt: lastActivityRef.current, suppressedUntil: inactivitySuppressedUntilRef.current, warningOpen: Boolean(warningRef.current) })) {
+        beginInactivityWarning();
+      }
+    }, 1000);
+    return () => {
+      window.removeEventListener("pointerdown", recordActivity);
+      window.removeEventListener("keydown", recordActivity);
+      window.removeEventListener("touchstart", recordActivity);
+      window.removeEventListener("scroll", recordActivity);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.clearInterval(interval);
+    };
+  }, [beginInactivityWarning, clearInactivityWarning, idlePermission, timer]);
+
+  useEffect(() => {
+    if (!inactivityWarning || !timer || timer.state !== "running") return;
+    const tick = () => {
+      const remaining = inactivityResponseSeconds(inactivityWarning.deadline, Date.now());
+      setInactivityCountdown(remaining);
+      if (remaining === 0) void autoPauseForInactivity(inactivityWarning.detectedAt);
+    };
+    tick();
+    const interval = window.setInterval(tick, 250);
+    return () => window.clearInterval(interval);
+  }, [autoPauseForInactivity, inactivityWarning, timer]);
 
   const openLauncher = useCallback(async (prefill: TimerPrefill = {}) => {
     setOpen(true);
@@ -401,6 +596,7 @@ export function GlobalTimerControl({
   );
 
   if (!timer && !canTrack) return null;
+  const savingTimer = stopSaving || remoteStopPending;
 
   const createQuickTask = () =>
     startCreatingTask(async () => {
@@ -439,41 +635,57 @@ export function GlobalTimerControl({
       }
     });
 
-  const beginTimer = () =>
-    startStarting(async () => {
-      setError(null);
-      try {
+  const beginTimer = () => {
+    const project = selectedProject;
+    if (!project) return;
+    const task = project.tasks.find((candidate) => candidate.id === taskId);
+    const previous = timer;
+    const observedAt = new Date().toISOString();
+    const optimisticTimer: TimerView = {
+      organizationId: "pending",
+      projectId: project.id,
+      projectName: project.name,
+      projectKey: project.key,
+      taskId: taskId === PROJECT_LEVEL ? null : taskId || null,
+      taskTitle: task?.title ?? null,
+      note: note.trim() || null,
+      startedAt: observedAt,
+      observedAt,
+      state: "running",
+      elapsedSeconds: 0,
+      pauseReason: null,
+    };
+    setError(null);
+    setOpen(false);
+    setTimer(optimisticTimer);
+    void queueTimerCommand({
+      request: async () => {
         const response = await startTimerAction({
           projectId,
           taskId: taskId === PROJECT_LEVEL ? null : taskId || null,
           note: note.trim() || null,
         });
-        if (response.ok) {
-          setTimer(response.timer);
-          setOpen(false);
-          publishTimerSync("timer-started");
-          return;
-        }
+        if (response.ok) return response.timer;
         if (response.code === "timer_already_active") {
-          await refreshTimer();
-          setOpen(false);
-          return;
+          const current = await loadTimerStateAction();
+          if (current.ok && current.timer) return current.timer;
         }
-        setError(
-          response.code === "session_expired"
-            ? "Your session expired. Sign in again to continue."
-            : response.code === "timer_task_required"
-              ? "Select or create a saved task before starting."
-              : response.code === "timer_denied"
-                ? "You no longer have permission to track time here."
-                : "The timer could not be started. Check your connection and try again.",
-        );
-      } catch {
-        setError(
-          "The timer could not be started. Check your connection and try again.",
-        );
-      }
+        throw new Error(response.code === "session_expired"
+          ? "Your session expired. Sign in again to continue."
+          : response.code === "timer_task_required"
+            ? "Select or create a saved task before starting."
+            : response.code === "timer_denied"
+              ? "You no longer have permission to track time here."
+              : "The timer could not be started. Check your connection and try again.");
+      },
+      onSuccess: () => publishTimerSync("timer-started"),
+      onFailure: () => {
+        if (timerCommandPendingRef.current <= 1) setTimer(previous);
+        setOpen(true);
+      },
+      fallbackError: "The timer could not be started.",
     });
+  };
 
   const openStop = () => {
     setStopNote(timer?.note ?? "");
@@ -483,40 +695,107 @@ export function GlobalTimerControl({
     setError(null);
     setStopOpen(true);
   };
-  const togglePause = () =>
-    startChangingState(async () => {
-      setError(null);
-      try {
-        const response = timer?.state === "running" ? await pauseTimerAction() : await resumeTimerAction();
-        if (!response.ok) {
-          const message = response.code === "session_expired" ? "Your session expired. Sign in again to continue." : "The timer state could not be changed. Try again.";
-          setError(message);
-          toast.error(message);
-          return;
-        }
-        setTimer(response.timer);
-        publishTimerSync("timer-changed");
-      } catch {
-        const message = "The timer state could not be changed. Check your connection and try again.";
-        setError(message);
-        toast.error(message);
-      }
+  const enableDeviceInactivityDetection = async () => {
+    const Constructor = (window as Window & { IdleDetector?: IdleDetectorConstructor }).IdleDetector;
+    if (!Constructor) return;
+    try {
+      const permission = await Constructor.requestPermission();
+      setIdlePermission(permission);
+      if (permission === "granted") toast.success("Device inactivity detection enabled.");
+      else toast.error("Device inactivity permission was not granted. Visible-page detection will remain active.");
+    } catch {
+      toast.error("Device inactivity permission could not be requested.");
+    }
+  };
+  type QueuedTimerCommand = {
+    request(): Promise<TimerView>;
+    onSuccess(): void;
+    onFailure?(): void;
+    fallbackError: string;
+  };
+
+  const queueTimerCommand = async ({ request, onSuccess, onFailure, fallbackError }: QueuedTimerCommand) => {
+    if (timerCommandPendingRef.current === 0) timerCommandTailRef.current = Promise.resolve(true);
+    const commandId = ++timerCommandSequenceRef.current;
+    const predecessor = timerCommandTailRef.current;
+    timerCommandPendingRef.current += 1;
+    setTimerCommandPending(timerCommandPendingRef.current);
+    const outcome = predecessor.then(async (predecessorSucceeded) => {
+      if (!predecessorSucceeded) throw new Error("A previous timer change did not save.");
+      return request();
     });
+    timerCommandTailRef.current = outcome.then(() => true, () => false);
+    try {
+      const canonical = await outcome;
+      if (commandId === timerCommandSequenceRef.current) setTimer(canonical);
+      onSuccess();
+      return true;
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : fallbackError;
+      setError(message);
+      onFailure?.();
+      toast.error(message);
+      if (commandId === timerCommandSequenceRef.current) {
+        try {
+          const canonical = await loadTimerStateAction();
+          if (canonical.ok) {
+            setTimer(canonical.timer);
+            if (!canonical.timer) closePictureInPicture();
+          }
+        } catch {
+          // Keep the exact local rollback when canonical recovery is unavailable.
+        }
+      }
+      return false;
+    } finally {
+      timerCommandPendingRef.current = Math.max(0, timerCommandPendingRef.current - 1);
+      setTimerCommandPending(timerCommandPendingRef.current);
+    }
+  };
+
+  const changeTimerState = async () => {
+    const previous = timer;
+    if (!previous) return false;
+    const observedAt = new Date().toISOString();
+    const elapsedSeconds = visibleTimerSeconds(previous, new Date(observedAt).getTime());
+    const nextState = previous.state === "running" ? "paused" : "running";
+    setError(null);
+    setTimer({ ...previous, state: nextState, observedAt, elapsedSeconds, pauseReason: nextState === "paused" ? "manual" : null });
+    return queueTimerCommand({
+      request: async () => {
+        const response = previous.state === "running" ? await pauseTimerAction() : await resumeTimerAction();
+        if (!response.ok) throw new Error(response.code === "session_expired" ? "Your session expired. Sign in again to continue." : "The timer state could not be changed. Try again.");
+        return response.timer;
+      },
+      onSuccess: () => publishTimerSync("timer-changed"),
+      onFailure: () => {
+        if (timerCommandPendingRef.current <= 1) setTimer(previous);
+      },
+      fallbackError: "The timer state could not be changed.",
+    });
+  };
+
+  const togglePause = () => {
+    void changeTimerState();
+  };
 
   const togglePauseFromDetachedWindow = async () => {
     try {
-      const response = timer?.state === "running" ? await pauseTimerAction() : await resumeTimerAction();
-      if (!response.ok) return response.code === "session_expired" ? "Your session expired. Sign in from Time Log to continue." : "The timer state could not be changed.";
-      setTimer(response.timer);
-      publishTimerSync("timer-changed");
-      return null;
+      return await changeTimerState() ? null : "The timer state could not be changed.";
     } catch {
       return "The timer state could not be changed. Check your connection and try again.";
     }
   };
-  const finishTimer = () =>
+  const finishTimer = () => {
+    const stoppingTimer = timer;
+    if (!stoppingTimer || stopSaving) return;
+    setError(null);
+    setStopSaving(true);
+    setTimer(null);
+    setStopOpen(false);
+    clearInactivityWarning();
+    publishTimerSync("timer-stopping");
     startStopping(async () => {
-      setError(null);
       try {
         const response = await stopTimerAction({
           note: stopNote.trim() || null,
@@ -525,50 +804,73 @@ export function GlobalTimerControl({
           completeTask,
         });
         if (!response.ok) {
-          setError(
+          const message =
             response.code === "session_expired"
               ? "Your session expired. Sign in again to continue."
               : response.code === "time_duration_unreasonable"
                 ? "This timer is too long to stop automatically. Contact an administrator to recover it."
                 : ["task_archived", "project_tasks_read_only", "task_manage_denied", "timer_task_not_found"].includes(response.code)
                   ? "The task can no longer be completed. Uncheck task completion and try stopping again."
-                : "The timer could not be stopped. Try again.",
-          );
+                  : "The timer could not be stopped. Try again.";
+          setTimer(stoppingTimer);
+          setStopOpen(true);
+          setError(message);
+          publishTimerSync("timer-stop-failed");
+          toast.error(message);
           return;
         }
-        if (response.taskCompleted && timer?.taskId) window.dispatchEvent(new CustomEvent(TASK_COMPLETED_EVENT, { detail: { taskId: timer.taskId } }));
-        setTimer(null);
-        setStopOpen(false);
+        if (response.taskCompleted && stoppingTimer.taskId) window.dispatchEvent(new CustomEvent(TASK_COMPLETED_EVENT, { detail: { taskId: stoppingTimer.taskId } }));
         publishTimerSync("timer-stopped");
         router.refresh();
       } catch {
-        setError(
-          "The timer could not be stopped. Check your connection and try again.",
-        );
+        const message = "The timer could not be stopped. Check your connection and try again.";
+        setTimer(stoppingTimer);
+        setStopOpen(true);
+        setError(message);
+        publishTimerSync("timer-stop-failed");
+        toast.error(message);
+      } finally {
+        setStopSaving(false);
       }
     });
+  };
 
   const stopFromDetachedWindow = async () => {
+    const stoppingTimer = timer;
+    if (!stoppingTimer || stopSaving) return "This timer is already being saved.";
+    setStopSaving(true);
+    setTimer(null);
+    clearInactivityWarning();
+    publishTimerSync("timer-stopping");
     try {
       const response = await stopTimerAction({
-        note: timer?.note ?? null,
+        note: stoppingTimer.note,
         billable: false,
         clientReportingStatus: "internal",
         completeTask: false,
       });
       if (!response.ok) {
-        return response.code === "session_expired"
+        const message = response.code === "session_expired"
           ? "Your session expired. Sign in from Time Log to continue."
           : response.code === "time_duration_unreasonable"
             ? "This timer is too long to stop automatically. Contact an administrator."
             : "The timer could not be stopped. Try again.";
+        setTimer(stoppingTimer);
+        publishTimerSync("timer-stop-failed");
+        toast.error(message);
+        return message;
       }
-      setTimer(null);
       publishTimerSync("timer-stopped");
       router.refresh();
       return null;
     } catch {
-      return "The timer could not be stopped. Check your connection and try again.";
+      const message = "The timer could not be stopped. Check your connection and try again.";
+      setTimer(stoppingTimer);
+      publishTimerSync("timer-stop-failed");
+      toast.error(message);
+      return message;
+    } finally {
+      setStopSaving(false);
     }
   };
 
@@ -602,7 +904,7 @@ export function GlobalTimerControl({
         ? new DetachedBroadcastChannel(TIMER_CHANNEL)
         : null;
       const closeOnStopped = (message: TimerSyncMessage) => {
-        if (message.type === "timer-stopped" && !detached.closed)
+        if ((message.type === "timer-stopping" || message.type === "timer-stopped") && !detached.closed)
           detached.close();
       };
       const onDetachedMessage = (event: MessageEvent<TimerSyncMessage>) => {
@@ -670,6 +972,17 @@ export function GlobalTimerControl({
                   <PictureInPicture2 />
                 </Button>
               )}
+              {timer.state === "running" && idleSupported && idlePermission !== "granted" && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Enable device inactivity detection"
+                  title="Enable device inactivity detection"
+                  onClick={() => void enableDeviceInactivityDetection()}
+                >
+                  <Activity />
+                </Button>
+              )}
               {syncIssue === "session" ? (
                 <Badge variant="destructive" asChild>
                   <Link href="/login">Sign in</Link>
@@ -681,14 +994,13 @@ export function GlobalTimerControl({
                   <Button
                     size="icon"
                     variant="ghost"
-                    disabled={changingState}
                     aria-label={timer.state === "running" ? "Pause timer" : "Resume timer"}
                     title={timer.state === "running" ? "Pause timer" : "Resume timer"}
                     onClick={togglePause}
                   >
-                    {changingState ? <Loader2 className="animate-spin" /> : timer.state === "running" ? <Pause /> : <Play />}
+                    {timer.state === "running" ? <Pause /> : <Play />}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={openStop}>
+                  <Button size="sm" variant="outline" disabled={changingState} onClick={openStop}>
                     <Square />
                     Stop
                   </Button>
@@ -699,14 +1011,18 @@ export function GlobalTimerControl({
         ) : (
           <>
             <div className="flex items-center gap-2 text-sm">
-              <Clock3 className="size-4 text-muted-foreground" />
+              {savingTimer ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : <Clock3 className="size-4 text-muted-foreground" />}
               <span>
-                {syncIssue === "network"
+                {savingTimer
+                  ? "Saving time…"
+                  : syncIssue === "network"
                   ? "Timer status offline"
                   : "No timer running"}
               </span>
             </div>
-            {syncIssue === "session" ? (
+            {savingTimer ? (
+              <Badge variant="secondary">Please wait</Badge>
+            ) : syncIssue === "session" ? (
               <Button asChild size="sm" variant="outline">
                 <Link href="/login">Sign in</Link>
               </Button>
@@ -873,6 +1189,74 @@ export function GlobalTimerControl({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={Boolean(inactivityWarning && timer?.state === "running")} onOpenChange={() => undefined}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Are you still working?</DialogTitle>
+            <DialogDescription>
+              No meaningful activity has been detected for more than two minutes. Confirm within {inactivityCountdown} seconds or this timer will pause from the moment inactivity was detected.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <p className="text-sm font-medium">Automatic pause in</p>
+            <p className="mt-1 font-mono text-3xl font-semibold tabular-nums" aria-live="polite">
+              00:{String(inactivityCountdown).padStart(2, "0")}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={autoPausing}
+              onClick={() => {
+                clearInactivityWarning();
+                togglePause();
+              }}
+            >
+              <Pause />
+              Pause now
+            </Button>
+            <Button disabled={autoPausing} onClick={confirmStillWorking}>
+              {autoPausing ? <Loader2 className="animate-spin" /> : <Activity />}
+              I’m still working
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={inactivityRecoveryOpen && timer?.state === "paused" && timer.pauseReason === "inactivity"} onOpenChange={setInactivityRecoveryOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Timer paused after inactivity</DialogTitle>
+            <DialogDescription>
+              Time after the inactivity threshold was not recorded. Resume the same timer, keep it paused, or stop and save the work recorded so far.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setInactivityRecoveryOpen(false)}>
+              Keep paused
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setInactivityRecoveryOpen(false);
+                openStop();
+              }}
+            >
+              <Square />
+              Stop timer
+            </Button>
+            <Button
+              disabled={changingState}
+              onClick={() => {
+                setInactivityRecoveryOpen(false);
+                togglePause();
+              }}
+            >
+              {changingState ? <Loader2 className="animate-spin" /> : <Play />}
+              Resume timer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={stopOpen}
         onOpenChange={(next) => !stopping && setStopOpen(next)}
@@ -975,7 +1359,13 @@ export function GlobalTimerControl({
       {pipWindow &&
         timer &&
         createPortal(
-          <DetachedTimer timer={timer} onStop={stopFromDetachedWindow} onTogglePause={togglePauseFromDetachedWindow} />,
+          <DetachedTimer
+            timer={timer}
+            onStop={stopFromDetachedWindow}
+            onTogglePause={togglePauseFromDetachedWindow}
+            inactivityCountdown={inactivityWarning ? inactivityCountdown : null}
+            onStillWorking={confirmStillWorking}
+          />,
           pipWindow.document.body,
         )}
     </>

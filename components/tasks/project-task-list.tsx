@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Archive,
   ChevronDown,
@@ -47,6 +46,7 @@ import { VisibilityControl } from "@/components/visibility/visibility-control";
 import type { TaskListItem } from "@/domain/tasks/form-data";
 import type { TaskAssigneeOption } from "@/domain/tasks/read";
 import type { Visibility } from "@/domain/visibility/schemas";
+import { requireActionSuccess, useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
 
 type Draft = {
   title: string;
@@ -139,7 +139,7 @@ export function ProjectTaskList({
   readOnly: boolean;
   clientView: boolean;
 }) {
-  const router = useRouter();
+  const mutations = useOptimisticMutations();
   const [tasks, setTasks] = useState<ViewTask[]>(initialTasks);
   const [draft, setDraft] = useState(blank);
   const [subtaskParentId, setSubtaskParentId] = useState<string | null>(null);
@@ -147,10 +147,6 @@ export function ProjectTaskList({
   const [expanded, setExpanded] = useState<string | null>(null);
   const [archiveId, setArchiveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  const [statusPendingIds, setStatusPendingIds] = useState<Set<string>>(
-    () => new Set(),
-  );
   const [showArchived, setShowArchived] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -201,74 +197,36 @@ export function ProjectTaskList({
     setPriorityFilter("all");
     setAssigneeFilter("all");
     setVisibilityFilter("all");
-    setTasks((current) => [
-      ...current,
-      optimisticTask(optimisticId, values, sortOrder),
-    ]);
     reset();
-    startTransition(async () => {
-      const result = await createTaskAction(
-        projectId,
-        command(values, sortOrder),
-      );
-      if (!result.ok) {
-        setTasks((current) =>
-          current.filter((task) => task.id !== optimisticId),
-        );
-        setError(result.error);
-        return;
-      }
-      setTasks((current) =>
-        current.map((task) =>
-          task.id === optimisticId
-            ? { ...task, id: result.data.id, saving: false }
-            : task,
-        ),
-      );
-      router.refresh();
+    void mutations.run({
+      scope: `task:${optimisticId}`,
+      operation: "create",
+      snapshot: () => null,
+      optimistic: () => setTasks((current) => [...current, optimisticTask(optimisticId, values, sortOrder)]),
+      request: async () => requireActionSuccess(await createTaskAction(projectId, command(values, sortOrder))),
+      reconcile: (result) => setTasks((current) => current.map((task) => task.id === optimisticId ? { ...task, id: result.id, saving: false } : task)),
+      rollback: () => setTasks((current) => current.filter((task) => task.id !== optimisticId)),
+      errorMessage: (cause) => cause instanceof Error ? cause.message : "The task could not be created.",
+      onError: setError,
+      retry: (cause) => cause instanceof Error && cause.message.includes("Try again"),
     });
   };
 
   const mutateStatus = (task: ViewTask) => {
     const next = task.status === "done" ? "todo" : "done";
-    const previousStatus = task.status;
-    setStatusPendingIds((current) => {
-      const updated = new Set(current);
-      updated.add(task.id);
-      return updated;
-    });
-    setTasks((current) =>
-      current.map((item) =>
-        item.id === task.id ? { ...item, status: next } : item,
-      ),
-    );
     setError(null);
-    void (async () => {
-      const rollback = () =>
-        setTasks((current) =>
-          current.map((item) =>
-            item.id === task.id
-              ? { ...item, status: previousStatus }
-              : item,
-          ),
-        );
-      try {
-        const result = await changeTaskStatusAction(projectId, task.id, next);
-        if (!result.ok) {
-          rollback();
-          setError(result.error);
-        } else router.refresh();
-      } catch {
-        rollback();
-        setError("The task status could not be updated. Try again.");
-      } finally {
-        setStatusPendingIds((current) => {
-          const updated = new Set(current);
-          updated.delete(task.id);
-          return updated;
-        });
-      }
-    })();
+    void mutations.run({
+      scope: `task:${task.id}`,
+      operation: "status",
+      snapshot: () => task.status,
+      optimistic: () => setTasks((current) => current.map((item) => item.id === task.id ? { ...item, status: next } : item)),
+      request: async () => requireActionSuccess(await changeTaskStatusAction(projectId, task.id, next)),
+      reconcile: () => undefined,
+      rollback: (previousStatus) => setTasks((current) => current.map((item) => item.id === task.id ? { ...item, status: previousStatus } : item)),
+      errorMessage: (cause) => cause instanceof Error ? cause.message : "The task status could not be updated.",
+      onError: setError,
+      retry: (cause) => cause instanceof Error && cause.message.includes("Try again"),
+    });
   };
 
   const openSubtask = (taskId: string) => {
@@ -276,19 +234,60 @@ export function ProjectTaskList({
     setSubtaskDraft(blank(taskId));
     setExpanded(null);
   };
-  const restore = (taskId: string) =>
-    startTransition(async () => {
-      const result = await restoreTaskAction(projectId, taskId);
-      if (!result.ok) setError(result.error);
-      else {
-        setTasks((current) =>
-          current.map((item) =>
-            item.id === taskId ? { ...item, archivedAt: null } : item,
-          ),
-        );
-        router.refresh();
-      }
+  const restore = (taskId: string) => {
+    const previous = tasks.find((task) => task.id === taskId)?.archivedAt ?? null;
+    void mutations.run({
+      scope: `task:${taskId}`,
+      operation: "restore",
+      snapshot: () => previous,
+      optimistic: () => setTasks((current) => current.map((item) => item.id === taskId ? { ...item, archivedAt: null } : item)),
+      request: async () => requireActionSuccess(await restoreTaskAction(projectId, taskId)),
+      reconcile: () => undefined,
+      rollback: (archivedAt) => setTasks((current) => current.map((item) => item.id === taskId ? { ...item, archivedAt } : item)),
+      errorMessage: (cause) => cause instanceof Error ? cause.message : "The task could not be restored.",
+      onError: setError,
+      retry: (cause) => cause instanceof Error && cause.message.includes("Try again"),
     });
+  };
+
+  const saveTask = (task: ViewTask, values: Draft) => {
+    const updated = command(values, task.sortOrder);
+    return mutations.run({
+      scope: `task:${task.id}`,
+      operation: "edit",
+      snapshot: () => task,
+      optimistic: () => setTasks((current) => current.map((item) => item.id === task.id ? { ...item, ...updated } : item)),
+      request: async () => requireActionSuccess(await updateTaskAction(projectId, { taskId: task.id, ...updated })),
+      reconcile: () => undefined,
+      rollback: (previous) => setTasks((current) => current.map((item) => item.id === task.id ? previous : item)),
+      errorMessage: (cause) => cause instanceof Error ? cause.message : "The task could not be updated.",
+      onError: setError,
+      retry: false,
+    });
+  };
+
+  const archive = (taskId: string) => {
+    const previous = tasks.find((task) => task.id === taskId);
+    if (!previous) return;
+    void mutations.run({
+      scope: `task:${taskId}`,
+      operation: "archive",
+      snapshot: () => previous,
+      optimistic: () => {
+        setArchiveId(null);
+        setTasks((current) => current.map((task) => task.id === taskId ? { ...task, archivedAt: new Date().toISOString() } : task));
+      },
+      request: async () => requireActionSuccess(await archiveTaskAction(projectId, taskId)),
+      reconcile: () => undefined,
+      rollback: (snapshot) => {
+        setTasks((current) => current.map((task) => task.id === taskId ? snapshot : task));
+        setArchiveId(taskId);
+      },
+      errorMessage: (cause) => cause instanceof Error ? cause.message : "The task could not be archived.",
+      onError: setError,
+      retry: (cause) => cause instanceof Error && cause.message.includes("Try again"),
+    });
+  };
 
   const orderedTasks: { task: ViewTask; depth: number }[] = [];
   const appendTask = (task: ViewTask, depth = 0) => {
@@ -305,27 +304,17 @@ export function ProjectTaskList({
       <TaskRow
           task={task}
           depth={depth}
-          projectId={projectId}
           assignees={assignees}
           allTasks={tasks.filter((candidate) => !candidate.archivedAt)}
           readOnly={readOnly}
           archived={showArchived}
           expanded={expanded === task.id}
-          pending={pending}
-          statusPending={statusPendingIds.has(task.id)}
+          pending={mutations.isPending(`task:${task.id}`)}
+          statusPending={mutations.isPending(`task:${task.id}`)}
           onToggle={() => mutateStatus(task)}
           onExpand={() => setExpanded(expanded === task.id ? null : task.id)}
           onAddSubtask={() => openSubtask(task.id)}
-          onSaved={(values) => {
-            const updated = command(values, task.sortOrder);
-            setTasks((current) =>
-              current.map((item) =>
-                item.id === task.id ? { ...item, ...updated } : item,
-              ),
-            );
-            router.refresh();
-          }}
-          onError={setError}
+          onSave={(values) => saveTask(task, values)}
           onArchive={() => setArchiveId(task.id)}
           onRestore={() => restore(task.id)}
       />
@@ -335,7 +324,7 @@ export function ProjectTaskList({
             setDraft={setSubtaskDraft}
             assignees={assignees}
             tasks={tasks.filter((candidate) => !candidate.archivedAt)}
-            pending={pending}
+            pending={false}
             onCancel={() => setSubtaskParentId(null)}
             onCreate={() =>
               create(subtaskDraft, () => {
@@ -464,7 +453,9 @@ export function ProjectTaskList({
       )}
       <Dialog
         open={archiveId !== null}
-        onOpenChange={(open) => !pending && !open && setArchiveId(null)}
+        onOpenChange={(open) => {
+          if (!open && (!archiveId || !mutations.isPending(`task:${archiveId}`))) setArchiveId(null);
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -476,33 +467,16 @@ export function ProjectTaskList({
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" disabled={pending}>
+              <Button variant="outline" disabled={Boolean(archiveId && mutations.isPending(`task:${archiveId}`))}>
                 Cancel
               </Button>
             </DialogClose>
             <Button
               variant="destructive"
-              disabled={pending}
-              onClick={() =>
-                archiveId &&
-                startTransition(async () => {
-                  const result = await archiveTaskAction(projectId, archiveId);
-                  if (!result.ok) setError(result.error);
-                  else {
-                    setTasks((current) =>
-                      current.map((task) =>
-                        task.id === archiveId
-                          ? { ...task, archivedAt: new Date().toISOString() }
-                          : task,
-                      ),
-                    );
-                    setArchiveId(null);
-                    router.refresh();
-                  }
-                })
-              }
+              disabled={Boolean(archiveId && mutations.isPending(`task:${archiveId}`))}
+              onClick={() => archiveId && archive(archiveId)}
             >
-              {pending && <Loader2 className="animate-spin" />}Archive
+              {archiveId && mutations.isPending(`task:${archiveId}`) && <Loader2 className="animate-spin" />}Archive
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -572,7 +546,6 @@ function InlineSubtask({
 function TaskRow({
   task,
   depth,
-  projectId,
   assignees,
   allTasks,
   readOnly,
@@ -583,14 +556,12 @@ function TaskRow({
   onToggle,
   onExpand,
   onAddSubtask,
-  onSaved,
-  onError,
+  onSave,
   onArchive,
   onRestore,
 }: {
   task: ViewTask;
   depth: number;
-  projectId: string;
   assignees: TaskAssigneeOption[];
   allTasks: ViewTask[];
   readOnly: boolean;
@@ -601,8 +572,7 @@ function TaskRow({
   onToggle(): void;
   onExpand(): void;
   onAddSubtask(): void;
-  onSaved(values: Draft): void;
-  onError(value: string): void;
+  onSave(values: Draft): Promise<boolean>;
   onArchive(): void;
   onRestore(): void;
 }) {
@@ -617,7 +587,6 @@ function TaskRow({
     visibility: task.visibility,
     parentTaskId: task.parentTaskId ?? "none",
   });
-  const [saving, startSaving] = useTransition();
   const [editing, setEditing] = useState(false);
 
   const dueLabel =
@@ -700,26 +669,19 @@ function TaskRow({
                 tasks={allTasks.filter((candidate) => candidate.id !== task.id)}
               />
               <div className="mt-4 flex justify-end gap-2">
-                <Button variant="outline" disabled={saving} onClick={() => setEditing(false)}>
+                <Button variant="outline" disabled={pending} onClick={() => setEditing(false)}>
                   Cancel
                 </Button>
                 <Button
-                  disabled={saving || !draft.title.trim()}
-                  onClick={() =>
-                    startSaving(async () => {
-                      const result = await updateTaskAction(projectId, {
-                        taskId: task.id,
-                        ...command(draft, task.sortOrder),
-                      });
-                      if (!result.ok) onError(result.error);
-                      else {
-                        onSaved(draft);
-                        setEditing(false);
-                      }
-                    })
-                  }
+                  disabled={pending || !draft.title.trim()}
+                  onClick={() => {
+                    setEditing(false);
+                    void onSave(draft).then((saved) => {
+                      if (!saved) setEditing(true);
+                    });
+                  }}
                 >
-                  {saving && <Loader2 className="animate-spin" />}Save changes
+                  {pending && <Loader2 className="animate-spin" />}Save changes
                 </Button>
               </div>
             </>

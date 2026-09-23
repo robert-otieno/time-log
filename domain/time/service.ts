@@ -131,6 +131,7 @@ async function transitionTimer(
   reason: "manual" | "inactivity" | null,
   correlation: AuditCorrelation,
   dependencies: Dependencies = {},
+  effectiveAt?: Timestamp,
 ): Promise<ActiveTimer> {
   const db = dependencies.db ?? getAdminDb();
   const repository = new TimeRepository(db);
@@ -138,7 +139,8 @@ async function transitionTimer(
   if (!pointer) throw new AuditedCommandError("failed", "timer_not_active", "No timer is active");
   const timerRef = repository.activeTimerReference(pointer.organizationId, pointer.projectId, actor.uid);
   const pointerRef = repository.activeTimerPointerReference(actor.uid);
-  const changedAt = (dependencies.now ?? Timestamp.now)();
+  const serverNow = (dependencies.now ?? Timestamp.now)();
+  const changedAt = effectiveAt ?? serverNow;
   const action = nextState === "paused" ? "time.timer.paused" : "time.timer.resumed";
 
   return executeAuditedCommand<ActiveTimer>({
@@ -164,6 +166,12 @@ async function transitionTimer(
       if (timer.state === nextState) return timer;
       if (nextState === "running" && timer.segments.length >= 100) {
         throw new AuditedCommandError("failed", "timer_segment_limit_reached", "Stop and restart this timer before continuing");
+      }
+      if (nextState === "paused" && timer.currentSegmentStartedAt) {
+        const segmentStartedAt = timestampFromValue(timer.currentSegmentStartedAt);
+        if (changedAt.toMillis() < segmentStartedAt.toMillis() || changedAt.toMillis() > serverNow.toMillis()) {
+          throw new AuditedCommandError("failed", "timer_inactivity_time_invalid", "The inactivity time is outside the running segment");
+        }
       }
 
       const updated = nextState === "paused"
@@ -202,6 +210,12 @@ export function pauseTimer(actor: AuthActor, correlation: AuditCorrelation, depe
 
 export function resumeTimer(actor: AuthActor, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
   return transitionTimer(actor, "running", null, correlation, dependencies);
+}
+
+export function pauseTimerForInactivity(actor: AuthActor, effectiveAt: string, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  const parsed = new Date(effectiveAt);
+  if (Number.isNaN(parsed.getTime())) throw new AuditedCommandError("failed", "timer_inactivity_time_invalid", "The inactivity time is invalid");
+  return transitionTimer(actor, "paused", "inactivity", correlation, dependencies, Timestamp.fromDate(parsed));
 }
 
 const MAX_ENTRY_SECONDS = 31_622_400;

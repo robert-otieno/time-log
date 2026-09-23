@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Clock3, Loader2, Pencil, Plus } from "lucide-react";
 import {
   correctTimeEntryAction,
@@ -36,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
 
 type PickerValue = { date: string; time: string; includeTime: boolean };
 const PROJECT_LEVEL = "__project_level__";
@@ -104,7 +104,8 @@ export function ProjectTimeEntries({
   tasks: Array<{ id: string; title: string }>;
   entries: TimeEntryView[];
 }) {
-  const router = useRouter();
+  const [entryRows, setEntryRows] = useState(entries);
+  const mutations = useOptimisticMutations();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TimeEntryView | null>(null);
   const [taskId, setTaskId] = useState("");
@@ -118,7 +119,9 @@ export function ProjectTimeEntries({
     "internal",
   );
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const pending = editing
+    ? mutations.isPending(`time-entry:${editing.id}`)
+    : mutations.isPending("time-entry:create");
   const beginCreate = () => {
     setEditing(null);
     setTaskId(tasks[0]?.id ?? (role === "admin" ? PROJECT_LEVEL : ""));
@@ -141,8 +144,7 @@ export function ProjectTimeEntries({
     setError(null);
     setOpen(true);
   };
-  const save = () =>
-    startTransition(async () => {
+  const save = () => {
       const start = instant(startedAt);
       const end = instant(endedAt);
       if (!start || !end) {
@@ -161,7 +163,6 @@ export function ProjectTimeEntries({
         billable,
         clientReportingStatus: reporting,
       };
-      let response;
       if (editing) {
         const originalStart = picker(new Date(editing.startedAt));
         const originalEnd = picker(new Date(editing.endedAt));
@@ -182,17 +183,72 @@ export function ProjectTimeEntries({
           setOpen(false);
           return;
         }
-        response = await correctTimeEntryAction(correction);
+        const previous = editing;
+        const projected: TimeEntryView = {
+          ...editing,
+          taskId: normalizedTaskId,
+          taskTitle: normalizedTaskId ? tasks.find((task) => task.id === normalizedTaskId)?.title ?? "Unavailable task" : null,
+          startedAt: start,
+          endedAt: end,
+          durationSeconds: Math.max(0, Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 1000)),
+          note: normalizedNote,
+          billable,
+          clientReportingStatus: reporting,
+          correctionCount: editing.correctionCount + 1,
+        };
+        setOpen(false);
+        void mutations.run({
+          scope: `time-entry:${editing.id}`,
+          operation: "correct",
+          snapshot: () => previous,
+          optimistic: () => setEntryRows((current) => current.map((entry) => entry.id === previous.id ? projected : entry)),
+          request: async () => {
+            const response = await correctTimeEntryAction(correction);
+            if (!response.ok) throw new Error(correctionError(response.code));
+            return response.entry;
+          },
+          reconcile: (canonical) => setEntryRows((current) => current.map((entry) => entry.id === canonical.id ? canonical : entry)),
+          rollback: (snapshot) => { setEntryRows((current) => current.map((entry) => entry.id === snapshot.id ? snapshot : entry)); setEditing(snapshot); setOpen(true); },
+          errorMessage: (cause) => cause instanceof Error ? cause.message : "The time entry could not be saved.",
+          onError: setError,
+          retry: (cause) => cause instanceof Error && cause.message === "The time entry could not be saved.",
+        });
       } else {
-        response = await createManualTimeEntryAction(payload);
+        const temporaryId = `pending-${crypto.randomUUID()}`;
+        const projected: TimeEntryView = {
+          id: temporaryId,
+          taskId: normalizedTaskId,
+          taskTitle: normalizedTaskId ? tasks.find((task) => task.id === normalizedTaskId)?.title ?? "Unavailable task" : null,
+          userId: "pending",
+          source: "manual",
+          startedAt: start,
+          endedAt: end,
+          durationSeconds: Math.max(0, Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 1000)),
+          note: normalizedNote,
+          billable,
+          clientReportingStatus: reporting,
+          correctionCount: 0,
+          canCorrect: true,
+        };
+        setOpen(false);
+        void mutations.run({
+          scope: "time-entry:create",
+          operation: "create",
+          snapshot: () => null,
+          optimistic: () => setEntryRows((current) => [projected, ...current]),
+          request: async () => {
+            const response = await createManualTimeEntryAction(payload);
+            if (!response.ok) throw new Error(correctionError(response.code));
+            return response.entry;
+          },
+          reconcile: (canonical) => setEntryRows((current) => current.map((entry) => entry.id === temporaryId ? canonical : entry)),
+          rollback: () => { setEntryRows((current) => current.filter((entry) => entry.id !== temporaryId)); setOpen(true); },
+          errorMessage: (cause) => cause instanceof Error ? cause.message : "The time entry could not be saved.",
+          onError: setError,
+          retry: (cause) => cause instanceof Error && cause.message === "The time entry could not be saved.",
+        });
       }
-      if (!response.ok) {
-        setError(correctionError(response.code));
-        return;
-      }
-      setOpen(false);
-      router.refresh();
-    });
+  };
   return (
     <div className="space-y-6">
       <Card>
@@ -211,15 +267,16 @@ export function ProjectTimeEntries({
           </div>
         </CardHeader>
         <CardContent>
-          {entries.length === 0 ? (
+          {entryRows.length === 0 ? (
             <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
               No time has been recorded yet.
             </div>
           ) : (
             <div className="space-y-3">
-              {entries.map((entry) => (
+              {entryRows.map((entry) => (
                 <div
                   key={entry.id}
+                  aria-busy={entry.id.startsWith("pending-") || mutations.isPending(`time-entry:${entry.id}`)}
                   className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center"
                 >
                   <Clock3 className="size-4 text-muted-foreground" />
@@ -260,6 +317,9 @@ export function ProjectTimeEntries({
                       >
                         <Pencil />
                       </Button>
+                    )}
+                    {(entry.id.startsWith("pending-") || mutations.isPending(`time-entry:${entry.id}`)) && (
+                      <span className="text-xs text-muted-foreground">Saving…</span>
                     )}
                   </div>
                 </div>

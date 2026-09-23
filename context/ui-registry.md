@@ -364,12 +364,12 @@ Last updated: 2026-09-23
 | Shadow | Canonical control shadows; no additional row shadow |
 | Accent usage | Semantic status/priority/visibility badges and destructive archive confirmation |
 
-**Pattern notes:** Render tasks and subtasks as a single compact divided list, never as one card per record. Collapsed rows expose only the completion checkbox, title, saving feedback, and disclosure indicator. Opening a row reveals its readable description, badges, due/assignee metadata, and secondary actions; Edit is a separate state, and opening another row closes the previous one. Assignee choices identify eligible workspace members by resolved name with email as secondary context, save immutable user IDs, and render those names in task details. Saved subtasks use progressive indentation and a hierarchy icon. The default Active view hides completed tasks immediately; users can deliberately select the Done status filter to review or reopen them. Active children whose completed parent is hidden remain promoted into view rather than disappearing with the parent. Creation and completion are optimistic; each completion checkbox owns its pending state so unrelated tasks remain interactive and concurrent failures roll back only their own row. Timer-driven completion broadcasts into an open list before server refresh. Archive uses confirmation and moves records into an explicit Archived view with Restore. Client mode retains disclosure for client-safe details but omits every mutation control.
+**Pattern notes:** Render tasks and subtasks as a single compact divided list, never as one card per record. Collapsed rows expose only the completion checkbox, title, saving feedback, and disclosure indicator. Opening a row reveals its readable description, badges, due/assignee metadata, and secondary actions; Edit is a separate state, and opening another row closes the previous one. Assignee choices identify eligible workspace members by resolved name with email as secondary context, save immutable user IDs, and render those names in task details. Saved subtasks use progressive indentation and a hierarchy icon. The default Active view hides completed tasks immediately; users can deliberately select the Done status filter to review or reopen them. Active children whose completed parent is hidden remain promoted into view rather than disappearing with the parent. Create, edit, assignment, status, archive, and restore are optimistic and scoped per task; unrelated rows stay interactive, overlapping changes to one task are serialized, canonical IDs replace temporary IDs, and failures restore only the affected snapshot. Transient save failures offer Retry, while permission and validation failures require review. Timer-driven completion broadcasts into an open list before server refresh. Archive uses confirmation and moves records into an explicit Archived view with Restore. Client mode retains disclosure for client-safe details but omits every mutation control.
 
 ### Project workspace header
 
 File: `components/layout/app-header.tsx`
-Last updated: 2026-09-20
+Last updated: 2026-09-23
 
 | Property | Class |
 | --- | --- |
@@ -499,7 +499,11 @@ Last updated: 2026-09-23
 
 **Pattern notes:** The global timer remains compact, persistent, and centered above the bottom viewport edge at every breakpoint. Authenticated content reserves `pb-28` whenever the control is available so final rows and actions remain unobscured. An active state always shows project, task or project-level label, server start time, tracked active time, optional note, and a direct Pause or Resume action; paused time remains visually frozen and explicitly labeled. The launcher resolves defaults in this order: explicit Track time context, current `/projects/[projectId]` route, then the first accessible project. Within that project it recommends assigned work first, then in-progress status, earliest deadline, highest priority, and stable task order; selectors remain editable. Timer launch choices contain only unfinished, non-archived tasks; completed tasks are neither suggested nor accepted by the server. Supported secure browsers expose “Keep timer visible,” which opens a compact Document Picture-in-Picture surface using the same semantic tokens with Pause/Resume and Stop & save actions. Unsupported browsers retain the normal timer without a disabled control, and every active timer updates the tab title with state, elapsed active time, and task as the universal fallback. Launcher failures stay inline, network loss retains the last known timer with an Offline badge, and session expiry exposes a direct Sign in action. Task creation remains internal by default and is completed before starting the timer.
 
-**Synchronization note:** Timer start, stop, pause, and resume publish explicit cross-context invalidations through BroadcastChannel with a storage-event fallback. Picture-in-Picture closes on `timer-stopped`; other transitions reconcile the shared portal against server-authoritative state.
+**Synchronization note:** Timer start, stop, pause, and resume publish explicit cross-context invalidations through BroadcastChannel with a storage-event fallback. Picture-in-Picture closes on `timer-stopped`; other transitions reconcile the shared portal against server-authoritative state. Local Start/Pause/Resume intents are projected immediately and committed in order, so Pause remains responsive while Start is still saving; focus and polling reconciliation wait for that command queue to drain.
+
+**Inactivity note:** Supported secure browsers expose a labeled Activity icon for the one-time device-idle permission gesture. The fallback monitors only a visible Time Log document. After two inactive minutes, use a non-dismissible Dialog with a live 30-second countdown and explicit “Pause now” / “I’m still working” actions. An automatic inactivity pause opens a separate recovery Dialog with Resume timer, Stop timer, and Keep paused actions; never hide the excluded-time behavior.
+
+**Optimistic note:** Timer start, pause, and resume project their expected state immediately and reconcile against the canonical server timer. Pause/Resume stays interactive while earlier timer intents save, while Stop waits for the ordered timer queue to drain. Only the newest local intent may replace visible state with a canonical response. A failed command cancels dependent queued commands and reloads canonical timer state; permission and validation failures do not offer blind retry.
 
 ### Time entry stop, manual entry, and correction
 
@@ -514,11 +518,11 @@ Last updated: 2026-09-20
 | Text — primary | Entry task `font-medium`; canonical Card/Dialog titles |
 | Text — secondary | Entry metadata and policy guidance `text-sm text-muted-foreground` / `text-xs text-muted-foreground` |
 | Spacing | Entry list `space-y-3`; rows `gap-3 p-4`; forms `space-y-4` |
-| Interactive state | Stop/save actions disable with spinner and explicit pending text; correction uses labeled icon button |
+| Interactive state | Stop/save actions use explicit pending text; optimistic manual/correction rows use item-scoped `aria-busy` and muted `Saving…`; correction uses a labeled icon button |
 | Shadow | Canonical Card, Dialog, and control shadows |
 | Accent usage | Semantic billable/reporting badges; primary save/stop actions; destructive inline errors |
 
-**Pattern notes:** Stop confirmation preserves the running timer until the server atomically returns success. A linked-task timer includes an unchecked, inset completion choice naming the task; selecting it changes the primary label to “Stop, save & complete” and commits time plus task completion together. Project-level and Picture-in-Picture quick stops omit completion. Manual entry and correction share the same task, Shadcn date/time, note, billable, and reporting controls. Duration is display-only in the browser and always derived by the server. Corrections remain compact entry-row actions and explicitly explain audit preservation.
+**Pattern notes:** Stop confirmation removes the timer and closes Picture-in-Picture immediately, then shows a compact “Saving time…” state while the authoritative server transaction completes. This state synchronizes across tabs, prevents a new timer from starting, and restores the exact prior timer plus the stop dialog if saving fails. A linked-task timer includes an unchecked, inset completion choice naming the task; selecting it changes the primary label to “Stop, save & complete” and commits time plus task completion together. Project-level and Picture-in-Picture quick stops omit completion. Manual entry and correction share the same task, Shadcn date/time, note, billable, and reporting controls. Manual entries appear immediately with temporary IDs; corrections update only their row and close the dialog immediately. Both display muted `Saving…`, reconcile against the canonical server-derived duration and audit count, and restore the affected entry/dialog on failure. Corrections remain compact entry-row actions and explicitly explain audit preservation.
 
 ### Time views and client-safe reports
 
@@ -542,7 +546,7 @@ Last updated: 2026-09-20
 ### Admin console
 
 Files: `app/(app)/admin/page.tsx`, `components/admin/organization-settings-form.tsx`, `components/admin/member-admin-controls.tsx`, `components/people/membership-actions.tsx`
-Last updated: 2026-09-21
+Last updated: 2026-09-23
 
 | Property | Class |
 | --- | --- |
@@ -652,6 +656,8 @@ Last updated: 2026-09-21
 | Accent usage | Pinned state uses `text-primary`; visibility uses the shared semantic badge |
 
 **Pattern notes:** Publishing is one deliberate composer surface followed by durable post cards. Metadata stays compact, bodies preserve line breaks, comments are visually subordinate, and editing expands inline without opening a competing page. Announcement email is an administrator-only explicit checkbox and never inferred from pinning or visibility. Archived posts use a separate internal view with Restore.
+
+**Optimistic note:** Ordinary posts and comments appear immediately with temporary IDs and muted `Saving…` metadata. Editing, pinning, visibility, archive/restore, and comment archive affect only their record; unrelated posts and comments remain interactive. Failures restore only the affected snapshot and transient failures offer Retry. Email announcements are deliberately different: the post remains in a publishing state and is not shown as published until the server has durably created recipient notifications.
 
 ## Patterns to Retire
 

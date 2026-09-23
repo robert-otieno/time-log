@@ -15,6 +15,7 @@ import {
   createManualTimeEntry,
   getActiveTimer,
   pauseTimer,
+  pauseTimerForInactivity,
   resumeTimer,
   startTimer,
   stopTimer,
@@ -260,6 +261,20 @@ export async function resumeTimerAction() {
   }
 }
 
+const inactivityPauseSchema = z.object({ effectiveAt: z.string().datetime({ offset: true }) }).strict();
+
+export async function pauseTimerForInactivityAction(raw: unknown) {
+  const actor = await getSessionActor();
+  if (!actor) return { ok: false as const, code: "session_expired" as const };
+  try {
+    const input = inactivityPauseSchema.parse(raw);
+    return { ok: true as const, timer: await toTimerView(await pauseTimerForInactivity(actor, input.effectiveAt, createRequestCorrelation())) };
+  } catch (error) {
+    if (error instanceof AuditedCommandError) return { ok: false as const, code: error.reasonCode };
+    return { ok: false as const, code: "timer_inactivity_pause_failed" as const };
+  }
+}
+
 const quickTaskSchema = z
   .object({
     projectId: z.string().trim().min(1).max(128),
@@ -350,7 +365,11 @@ export async function createManualTimeEntryAction(raw: unknown) {
       command,
       createRequestCorrelation(),
     );
-    return { ok: true as const, entryId: entry.id };
+    const task = entry.taskId
+      ? await getAdminDb().doc(`organizations/${organizationId}/projects/${projectId}/tasks/${entry.taskId}`).get()
+      : null;
+    const taskTitle = typeof task?.data()?.title === "string" ? task.data()!.title : entry.taskId ? "Unavailable task" : null;
+    return { ok: true as const, entry: toEntryView(entry, taskTitle, true) };
   } catch (error) {
     if (error instanceof AuditedCommandError)
       return { ok: false as const, code: error.reasonCode };
@@ -381,7 +400,11 @@ export async function correctTimeEntryAction(raw: unknown) {
       command,
       createRequestCorrelation(),
     );
-    return { ok: true as const, entryId: entry.id };
+    const task = entry.taskId
+      ? await getAdminDb().doc(`organizations/${organizationId}/projects/${projectId}/tasks/${entry.taskId}`).get()
+      : null;
+    const taskTitle = typeof task?.data()?.title === "string" ? task.data()!.title : entry.taskId ? "Unavailable task" : null;
+    return { ok: true as const, entry: toEntryView(entry, taskTitle, true) };
   } catch (error) {
     if (error instanceof AuditedCommandError)
       return { ok: false as const, code: error.reasonCode };
