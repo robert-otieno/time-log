@@ -578,7 +578,7 @@ export function GlobalTimerControl({
               No active projects with Time tracking are available.
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="timer-project">Project</Label>
                 <Select
@@ -637,7 +637,7 @@ export function GlobalTimerControl({
               {selectedProject?.canCreateTask && (
                 <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
                   <Label htmlFor="timer-new-task">Create a task first</Label>
-                  <div className="flex gap-2">
+                  <div className="flex min-w-0 gap-2">
                     <Input
                       id="timer-new-task"
                       value={quickTaskTitle}

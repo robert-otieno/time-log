@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -60,18 +61,18 @@ export function TimeReportView({
   return (
     <Card>
       <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </div>
-        {exportHref && (
-          <Button asChild variant="outline">
-            <Link href={exportHref}>
-              <Download />
-              Export CSV
-            </Link>
-          </Button>
-        )}
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+        <CardAction>
+          {exportHref && (
+            <Button asChild variant="outline">
+              <Link href={exportHref}>
+                <Download />
+                Export CSV
+              </Link>
+            </Button>
+          )}
+        </CardAction>
       </CardHeader>
       <CardContent className="space-y-5">
         <TimeReportFilters
@@ -147,7 +148,13 @@ export function TimeReportView({
                           <StatusBadge tone="info">Billable</StatusBadge>
                         )}
                         {!clientSafe && (
-                          <StatusBadge tone={row.reportingStatus === "approved" ? "success" : "neutral"}>
+                          <StatusBadge
+                            tone={
+                              row.reportingStatus === "approved"
+                                ? "success"
+                                : "neutral"
+                            }
+                          >
                             {row.reportingStatus === "approved"
                               ? "Approved"
                               : "Internal"}

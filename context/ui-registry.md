@@ -461,10 +461,29 @@ Last updated: 2026-09-20
 
 **Pattern notes:** Every internal route transition must acknowledge the click immediately. Use the global top progress bar for links, nested route skeletons for server-rendered content, and a local spinner plus `aria-busy` for imperative navigation or server actions. Pending controls prevent duplicate actions; reduced-motion users receive a pulse instead of translated movement.
 
+### Shared select control
+
+File: `components/ui/select.tsx`
+Last updated: 2026-09-23
+
+| Property | Class |
+| --- | --- |
+| Background | Trigger `bg-input/30`; menu `bg-popover` |
+| Border | Trigger `border border-input`; menu `ring-1 ring-foreground/5` |
+| Border radius | Trigger `rounded-4xl`; menu `rounded-2xl`; options `rounded-xl` |
+| Text — primary | Trigger and options `text-sm`; selected value uses `text-left text-ellipsis` |
+| Text — secondary | Placeholder and chevron `text-muted-foreground` |
+| Spacing | Trigger `gap-1.5 px-3 py-2`; options `gap-2.5 py-2 pr-8 pl-3` |
+| Hover state | Canonical focus ring; options use `focus:bg-accent focus:text-accent-foreground` |
+| Shadow | Menu `shadow-2xl` |
+| Accent usage | Semantic focus ring and selected-option checkmark |
+
+**Pattern notes:** Select triggers must remain inside their parent surface. Selected values use a shrinkable flex child and single-line ellipsis; the chevron never shrinks. Menu content stays within the viewport, while long option labels wrap so users can read the full value.
+
 ### Global timer control and launcher
 
 Files: `components/time/global-timer-control.tsx`, `components/time/timer-start-button.tsx`, `app/(app)/projects/[projectId]/time/page.tsx`
-Last updated: 2026-09-21
+Last updated: 2026-09-23
 
 | Property | Class |
 | --- | --- |

@@ -5,6 +5,7 @@ import { TimeReportView } from "@/components/time/time-report-view";
 import { loadProjectTimeData } from "@/app/(app)/timer-actions";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -96,14 +97,14 @@ export default async function ProjectTimePage({
             Start work against a saved task. The active timer remains visible
             while you move through Time Log.
           </CardDescription>
+          <CardAction>
+            <TimerStartButton
+              projectId={projectId}
+              label="Start project timer"
+              variant="default"
+            />
+          </CardAction>
         </CardHeader>
-        <CardContent>
-          <TimerStartButton
-            projectId={projectId}
-            label="Start project timer"
-            variant="default"
-          />
-        </CardContent>
       </Card>
       <ProjectTimeEntries
         projectId={projectId}
