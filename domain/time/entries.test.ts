@@ -29,9 +29,25 @@ describe("time entries", () => {
     const environment = env({ "users/u1/runtime/activeTimer": { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: stamp }, "organizations/o1/projects/p1/activeTimers/u1": { userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: stamp, note: null } });
     const result = await stopTimer(actor, { note: "Done", billable: true, clientReportingStatus: "internal" }, correlation, { ...environment, now: () => new Timestamp(160, 0) });
     expect(result.entry.durationSeconds).toBe(60);
+    expect(result.entry.segments).toEqual([{ startedAt: stamp, endedAt: new Timestamp(160, 0) }]);
     expect(result.taskCompleted).toBe(false);
     expect(environment.writes.map(({ method, path }) => ({ method, path }))).toEqual([{ method: "create", path: "organizations/o1/projects/p1/timeEntries/entry-1" }, { method: "delete", path: "organizations/o1/projects/p1/activeTimers/u1" }, { method: "delete", path: "users/u1/runtime/activeTimer" }]);
     expect(environment.audits.map(({ action }) => action)).toEqual(["time.timer.stopped", "time.entry.created"]);
+  });
+
+  it("stops a paused timer without adding its paused interval", async () => {
+    const pausedAt = { seconds: 130, nanoseconds: 0 };
+    const environment = env({
+      "users/u1/runtime/activeTimer": { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: stamp },
+      "organizations/o1/projects/p1/activeTimers/u1": {
+        userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: stamp, note: null,
+        state: "paused", accumulatedSeconds: 30, currentSegmentStartedAt: null,
+        segments: [{ startedAt: stamp, endedAt: pausedAt }], pausedAt, pauseReason: "manual",
+      },
+    });
+    const result = await stopTimer(actor, { note: null, billable: false, clientReportingStatus: "internal" }, correlation, { ...environment, now: () => new Timestamp(300, 0) });
+    expect(result.entry.durationSeconds).toBe(30);
+    expect(result.entry.segments).toEqual([{ startedAt: stamp, endedAt: pausedAt }]);
   });
 
   it("atomically stops the timer and completes its task when requested", async () => {

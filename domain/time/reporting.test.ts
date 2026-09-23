@@ -4,7 +4,11 @@ import { clientSafeReportCsv, defaultWeekDates, filterTimeEntries, summarizeTime
 import type { TimeEntry } from "@/domain/time/schemas";
 
 const filters = timeReportFiltersSchema.parse({ startDate: "2026-09-14", endDate: "2026-09-20", billable: "all", reportingStatus: "all" });
-const entry = (overrides: Partial<TimeEntry> = {}): TimeEntry => ({ id: "e1", organizationId: "o1", projectId: "p1", taskId: "t1", userId: "u1", source: "timer", startedAt: Timestamp.fromDate(new Date("2026-09-20T16:00:00Z")), endedAt: Timestamp.fromDate(new Date("2026-09-20T17:00:00Z")), durationSeconds: 3600, note: null, billable: false, clientReportingStatus: "internal", correctionCount: 0, createdBy: "u1", createdAt: Timestamp.now(), updatedBy: "u1", updatedAt: Timestamp.now(), ...overrides });
+const entry = (overrides: Partial<TimeEntry> = {}): TimeEntry => {
+  const startedAt = Timestamp.fromDate(new Date("2026-09-20T16:00:00Z"));
+  const endedAt = Timestamp.fromDate(new Date("2026-09-20T17:00:00Z"));
+  return { id: "e1", organizationId: "o1", projectId: "p1", taskId: "t1", userId: "u1", source: "timer", startedAt, endedAt, durationSeconds: 3600, note: null, billable: false, clientReportingStatus: "internal", correctionCount: 0, createdBy: "u1", createdAt: Timestamp.now(), updatedBy: "u1", updatedAt: Timestamp.now(), ...overrides, segments: overrides.segments ?? [{ startedAt, endedAt }] };
+};
 
 describe("time reporting", () => {
   it("derives Monday-through-Sunday defaults in the selected timezone", () => {

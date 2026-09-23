@@ -246,6 +246,12 @@ type ActiveTimer = {
   taskId: string | null; // null only when actor was an admin at start
   startedAt: Timestamp;
   note: string | null;
+  state: "running" | "paused";
+  accumulatedSeconds: number;
+  currentSegmentStartedAt: Timestamp | null;
+  segments: Array<{ startedAt: Timestamp; endedAt: Timestamp }>;
+  pausedAt: Timestamp | null;
+  pauseReason: "manual" | "inactivity" | null;
 };
 
 type TimeEntry = {
@@ -258,6 +264,7 @@ type TimeEntry = {
   startedAt: Timestamp;
   endedAt: Timestamp;
   durationSeconds: number;
+  segments: Array<{ startedAt: Timestamp; endedAt: Timestamp }>;
   note: string | null;
   billable: boolean;
   clientReportingStatus: "internal" | "approved";
@@ -269,9 +276,11 @@ type TimeEntry = {
 };
 ```
 
-One-active-timer enforcement requires a transaction and a global pointer at `users/{uid}/runtime/activeTimer` referencing the project timer. The timer and pointer are server-owned, created atomically, and use one server-generated start timestamp captured for the command. Browser Firestore Rules deny direct reads and writes to both records. Do not rely on a UI check; concurrent tabs must not create two timers.
+One-active-timer enforcement requires a transaction and a global pointer at `users/{uid}/runtime/activeTimer` referencing the project timer. Running and paused both count as active: pausing does not release the pointer or permit a second timer. The timer and pointer are server-owned, created atomically, and use server-generated transition timestamps. Browser Firestore Rules deny direct reads and writes to both records. Do not rely on a UI check; concurrent tabs must not create two timers.
 
-The authenticated shell reads timer state through server actions. Browser tabs exchange invalidation signals through `BroadcastChannel`, refresh when focus or visibility returns, and poll conservatively while visible; every refresh re-reads the server-owned pointer. Browser time is used only to display elapsed time relative to the serialized server start instant. The interface retains its last known timer during network loss and never treats cross-tab messaging as authoritative state.
+Pause and resume are audited transactions. Pausing closes the current work segment, adds its integer seconds to `accumulatedSeconds`, and records a manual or inactivity reason; resuming opens a new segment on the same timer. Final duration is the sum of active segments only, so paused time is never billable or reported as worked time. Segment history is bounded at 100; a timer at the bound must be stopped before more work is tracked. Legacy timers normalize to one running segment, and legacy entries normalize to one completed segment, without requiring an eager migration.
+
+The authenticated shell reads timer state through server actions. Browser tabs exchange invalidation signals through `BroadcastChannel`, refresh when focus or visibility returns, and poll conservatively while visible; every refresh re-reads the server-owned pointer. Browser time advances only a running timer from the serialized server observation and never changes authoritative accumulated time. The interface retains its last known timer during network loss and never treats cross-tab messaging as authoritative state.
 
 Document Picture-in-Picture is a progressive enhancement for supported secure browsers and opens only from an explicit user gesture. Its always-on-top timer is a React portal over the same authenticated timer state, not a second source of truth. Closing it leaves the timer running; stopping from it invokes the normal audited server action and deliberately saves the existing note as internal, non-billable time. Unsupported browsers keep the in-page control, while all browsers receive a live elapsed-time and task browser-tab title during active tracking.
 

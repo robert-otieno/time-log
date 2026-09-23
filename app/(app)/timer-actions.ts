@@ -14,8 +14,11 @@ import {
   correctTimeEntry,
   createManualTimeEntry,
   getActiveTimer,
+  pauseTimer,
+  resumeTimer,
   startTimer,
   stopTimer,
+  trackedTimerSeconds,
 } from "@/domain/time/service";
 import type { ActiveTimer, TimeEntry } from "@/domain/time/schemas";
 import { TimeRepository } from "@/domain/time/repository";
@@ -33,6 +36,9 @@ export type TimerView = {
   note: string | null;
   startedAt: string;
   observedAt: string;
+  state: "running" | "paused";
+  elapsedSeconds: number;
+  pauseReason: "manual" | "inactivity" | null;
 };
 
 export type TimerLaunchProject = {
@@ -103,6 +109,9 @@ async function toTimerView(timer: ActiveTimer): Promise<TimerView> {
     note: timer.note,
     startedAt: timestampToIso(timer.startedAt),
     observedAt: new Date().toISOString(),
+    state: timer.state,
+    elapsedSeconds: trackedTimerSeconds(timer),
+    pauseReason: timer.pauseReason,
   };
 }
 
@@ -226,6 +235,28 @@ export async function startTimerAction(raw: unknown) {
         return { ok: false as const, code: "timer_denied" as const };
     }
     return { ok: false as const, code: "timer_unavailable" as const };
+  }
+}
+
+export async function pauseTimerAction() {
+  const actor = await getSessionActor();
+  if (!actor) return { ok: false as const, code: "session_expired" as const };
+  try {
+    return { ok: true as const, timer: await toTimerView(await pauseTimer(actor, createRequestCorrelation())) };
+  } catch (error) {
+    if (error instanceof AuditedCommandError) return { ok: false as const, code: error.reasonCode };
+    return { ok: false as const, code: "timer_pause_failed" as const };
+  }
+}
+
+export async function resumeTimerAction() {
+  const actor = await getSessionActor();
+  if (!actor) return { ok: false as const, code: "session_expired" as const };
+  try {
+    return { ok: true as const, timer: await toTimerView(await resumeTimer(actor, createRequestCorrelation())) };
+  } catch (error) {
+    if (error instanceof AuditedCommandError) return { ok: false as const, code: error.reasonCode };
+    return { ok: false as const, code: "timer_resume_failed" as const };
   }
 }
 

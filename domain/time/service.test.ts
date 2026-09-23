@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import type { AuditWriter } from "@/domain/audit/command";
 import type { AuditEventDraft } from "@/domain/audit/schemas";
-import { elapsedTimerSeconds, getActiveTimer, startTimer } from "@/domain/time/service";
+import { elapsedTimerSeconds, getActiveTimer, pauseTimer, resumeTimer, startTimer, trackedTimerSeconds } from "@/domain/time/service";
 
 const actor = { type: "user" as const, uid: "u1", email: null, emailVerified: true, displayName: "Casey" };
 const correlation = { requestId: "00000000-0000-4000-8000-000000000001", runId: null };
@@ -28,6 +28,7 @@ function environment(overrides: Record<string, Record<string, unknown>> = {}, ro
   const transaction = {
     get: vi.fn(async (ref: ReturnType<typeof reference>) => ({ exists: Boolean(records[ref.path]), id: ref.id, data: () => records[ref.path] })),
     create: vi.fn((ref: ReturnType<typeof reference>, data: Record<string, unknown>) => writes.push({ path: ref.path, data })),
+    update: vi.fn((ref: ReturnType<typeof reference>, data: Record<string, unknown>) => writes.push({ path: ref.path, data })),
   };
   const db = { doc: vi.fn(reference), runTransaction: vi.fn(async (callback: (value: Transaction) => Promise<unknown>) => callback(transaction as unknown as Transaction)) } as unknown as Firestore;
   const audits: AuditEventDraft[] = [];
@@ -88,8 +89,24 @@ describe("active timer service", () => {
     const pointer = { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: timestamp };
     const timer = { userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: timestamp, note: null };
     const env = environment({ "users/u1/runtime/activeTimer": pointer, "organizations/o1/projects/p1/activeTimers/u1": timer });
-    await expect(getActiveTimer(actor, env.db)).resolves.toEqual(timer);
+    await expect(getActiveTimer(actor, env.db)).resolves.toMatchObject(timer);
     expect(elapsedTimerSeconds(timestamp, new Date(4_900))).toBe(3);
     expect(elapsedTimerSeconds(timestamp, new Date(500))).toBe(0);
+  });
+
+  it("pauses and resumes the same timer without counting paused time", async () => {
+    const pointer = { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: timestamp };
+    const timer = { userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: timestamp, note: null };
+    const pausedEnv = environment({ "users/u1/runtime/activeTimer": pointer, "organizations/o1/projects/p1/activeTimers/u1": timer });
+    const paused = await pauseTimer(actor, correlation, { ...pausedEnv, now: () => new Timestamp(10, 0) });
+    expect(paused).toMatchObject({ state: "paused", accumulatedSeconds: 9, currentSegmentStartedAt: null, pauseReason: "manual" });
+    expect(trackedTimerSeconds(paused, new Date(60_000))).toBe(9);
+    expect(pausedEnv.audits).toMatchObject([{ action: "time.timer.paused", outcome: "succeeded" }]);
+
+    const resumedEnv = environment({ "users/u1/runtime/activeTimer": pointer, "organizations/o1/projects/p1/activeTimers/u1": paused });
+    const resumed = await resumeTimer(actor, correlation, { ...resumedEnv, now: () => new Timestamp(20, 0) });
+    expect(resumed).toMatchObject({ state: "running", accumulatedSeconds: 9, pauseReason: null });
+    expect(trackedTimerSeconds(resumed, new Date(25_000))).toBe(14);
+    expect(resumedEnv.audits).toMatchObject([{ action: "time.timer.resumed", outcome: "succeeded" }]);
   });
 });

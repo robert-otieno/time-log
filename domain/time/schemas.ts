@@ -6,14 +6,35 @@ const timestampSchema = z.custom<{ seconds: number; nanoseconds: number }>(
   "Expected a Firestore timestamp",
 );
 
-export const activeTimerSchema = z.object({
+export const timerSegmentSchema = z.object({
+  startedAt: timestampSchema,
+  endedAt: timestampSchema,
+}).strict();
+
+const activeTimerBaseSchema = z.object({
   userId: idSchema,
   organizationId: idSchema,
   projectId: idSchema,
   taskId: idSchema.nullable(),
   startedAt: timestampSchema,
   note: z.string().trim().max(2000).nullable(),
+  state: z.enum(["running", "paused"]).default("running"),
+  accumulatedSeconds: z.number().int().min(0).max(31_622_400).default(0),
+  currentSegmentStartedAt: timestampSchema.nullable().optional(),
+  segments: z.array(timerSegmentSchema).max(100).default([]),
+  pausedAt: timestampSchema.nullable().default(null),
+  pauseReason: z.enum(["manual", "inactivity"]).nullable().default(null),
 }).strict();
+
+export const activeTimerSchema = activeTimerBaseSchema.transform((timer) => ({
+  ...timer,
+  currentSegmentStartedAt:
+    timer.currentSegmentStartedAt === undefined
+      ? timer.state === "running"
+        ? timer.startedAt
+        : null
+      : timer.currentSegmentStartedAt,
+}));
 
 export const activeTimerPointerSchema = z.object({
   organizationId: idSchema,
@@ -39,6 +60,7 @@ export const timeEntrySchema = z.object({
   startedAt: timestampSchema,
   endedAt: timestampSchema,
   durationSeconds: z.number().int().positive().max(31_622_400),
+  segments: z.array(timerSegmentSchema).max(100).optional(),
   note: z.string().trim().max(2000).nullable(),
   billable: z.boolean(),
   clientReportingStatus: clientReportingStatusSchema,
@@ -47,7 +69,10 @@ export const timeEntrySchema = z.object({
   createdAt: timestampSchema,
   updatedBy: idSchema,
   updatedAt: timestampSchema,
-}).strict();
+}).strict().transform((entry) => ({
+  ...entry,
+  segments: entry.segments ?? [{ startedAt: entry.startedAt, endedAt: entry.endedAt }],
+}));
 
 const entryFields = {
   note: z.string().trim().max(2000).nullable().default(null),

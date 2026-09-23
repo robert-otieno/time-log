@@ -89,6 +89,12 @@ export async function startTimer(
         taskId: command.taskId,
         startedAt,
         note: command.note,
+        state: "running",
+        accumulatedSeconds: 0,
+        currentSegmentStartedAt: startedAt,
+        segments: [],
+        pausedAt: null,
+        pauseReason: null,
       });
       transaction.create(timerReference, timer);
       transaction.create(pointerReference, { organizationId, projectId, userId: actor.uid, startedAt });
@@ -104,6 +110,98 @@ export async function getActiveTimer(actor: AuthActor, db: Firestore = getAdminD
 export function elapsedTimerSeconds(startedAt: { seconds: number; nanoseconds: number }, now: Date = new Date()): number {
   const startedAtMilliseconds = startedAt.seconds * 1000 + startedAt.nanoseconds / 1_000_000;
   return Math.max(0, Math.floor((now.getTime() - startedAtMilliseconds) / 1000));
+}
+
+function timestampFromValue(value: { seconds: number; nanoseconds: number }) {
+  return new Timestamp(value.seconds, value.nanoseconds);
+}
+
+function segmentSeconds(startedAt: { seconds: number; nanoseconds: number }, endedAt: Timestamp) {
+  return Math.max(0, Math.floor((endedAt.toMillis() - timestampFromValue(startedAt).toMillis()) / 1000));
+}
+
+export function trackedTimerSeconds(timer: ActiveTimer, now: Date = new Date()): number {
+  if (timer.state === "paused" || !timer.currentSegmentStartedAt) return timer.accumulatedSeconds;
+  return timer.accumulatedSeconds + elapsedTimerSeconds(timer.currentSegmentStartedAt, now);
+}
+
+async function transitionTimer(
+  actor: AuthActor,
+  nextState: "running" | "paused",
+  reason: "manual" | "inactivity" | null,
+  correlation: AuditCorrelation,
+  dependencies: Dependencies = {},
+): Promise<ActiveTimer> {
+  const db = dependencies.db ?? getAdminDb();
+  const repository = new TimeRepository(db);
+  const pointer = await repository.getActiveTimerPointer(actor.uid);
+  if (!pointer) throw new AuditedCommandError("failed", "timer_not_active", "No timer is active");
+  const timerRef = repository.activeTimerReference(pointer.organizationId, pointer.projectId, actor.uid);
+  const pointerRef = repository.activeTimerPointerReference(actor.uid);
+  const changedAt = (dependencies.now ?? Timestamp.now)();
+  const action = nextState === "paused" ? "time.timer.paused" : "time.timer.resumed";
+
+  return executeAuditedCommand<ActiveTimer>({
+    db,
+    auditRepository: dependencies.auditRepository,
+    organizationId: pointer.organizationId,
+    projectId: pointer.projectId,
+    actor: { type: "user", id: actor.uid, role: null },
+    action,
+    target: { type: "timer", id: actor.uid },
+    correlation,
+    execute: async (transaction) => {
+      const [pointerDoc, timerDoc] = await Promise.all([
+        transaction.get(pointerRef),
+        transaction.get(timerRef),
+      ]);
+      if (!pointerDoc.exists || !timerDoc.exists) throw new AuditedCommandError("failed", "timer_not_active", "No timer is active");
+      const currentPointer = activeTimerPointerSchema.parse(pointerDoc.data());
+      const timer = activeTimerSchema.parse(timerDoc.data());
+      if (currentPointer.organizationId !== pointer.organizationId || currentPointer.projectId !== pointer.projectId || timer.userId !== actor.uid) {
+        throw new AuditedCommandError("failed", "timer_state_conflict", "Timer state changed");
+      }
+      if (timer.state === nextState) return timer;
+      if (nextState === "running" && timer.segments.length >= 100) {
+        throw new AuditedCommandError("failed", "timer_segment_limit_reached", "Stop and restart this timer before continuing");
+      }
+
+      const updated = nextState === "paused"
+        ? activeTimerSchema.parse({
+            ...timer,
+            state: "paused",
+            accumulatedSeconds: timer.accumulatedSeconds + segmentSeconds(timer.currentSegmentStartedAt!, changedAt),
+            currentSegmentStartedAt: null,
+            segments: [...timer.segments, { startedAt: timer.currentSegmentStartedAt!, endedAt: changedAt }],
+            pausedAt: changedAt,
+            pauseReason: reason ?? "manual",
+          })
+        : activeTimerSchema.parse({
+            ...timer,
+            state: "running",
+            currentSegmentStartedAt: changedAt,
+            pausedAt: null,
+            pauseReason: null,
+          });
+      transaction.update(timerRef, {
+        state: updated.state,
+        accumulatedSeconds: updated.accumulatedSeconds,
+        currentSegmentStartedAt: updated.currentSegmentStartedAt,
+        segments: updated.segments,
+        pausedAt: updated.pausedAt,
+        pauseReason: updated.pauseReason,
+      });
+      return updated;
+    },
+  });
+}
+
+export function pauseTimer(actor: AuthActor, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  return transitionTimer(actor, "paused", "manual", correlation, dependencies);
+}
+
+export function resumeTimer(actor: AuthActor, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  return transitionTimer(actor, "running", null, correlation, dependencies);
 }
 
 const MAX_ENTRY_SECONDS = 31_622_400;
@@ -180,9 +278,16 @@ export async function stopTimer(actor: AuthActor, raw: unknown, correlation: Aud
         if (task.archivedAt) throw new AuditedCommandError("denied", "task_archived", "Archived tasks are read-only");
         if (task.status !== "done") { transaction.update(taskRef, { status: "done", completedAt: FieldValue.serverTimestamp(), updatedBy: actor.uid, updatedAt: FieldValue.serverTimestamp() }); taskCompleted = true; }
       }
-      const duration = durationSeconds(Timestamp.fromMillis(timer.startedAt.seconds * 1000 + timer.startedAt.nanoseconds / 1_000_000), endedAt, endedAt);
+      const finalSegments = timer.state === "running" && timer.currentSegmentStartedAt
+        ? [...timer.segments, { startedAt: timer.currentSegmentStartedAt, endedAt }]
+        : timer.segments;
+      const duration = timer.state === "running" && timer.currentSegmentStartedAt
+        ? timer.accumulatedSeconds + segmentSeconds(timer.currentSegmentStartedAt, endedAt)
+        : timer.accumulatedSeconds;
+      if (duration < 1) throw new AuditedCommandError("failed", "time_range_invalid", "Tracked time must be at least one second");
+      if (duration > MAX_ENTRY_SECONDS) throw new AuditedCommandError("failed", "time_duration_unreasonable", "Time duration is unreasonable");
       const now = FieldValue.serverTimestamp();
-      const entry = timeEntrySchema.parse({ id: entryRef.id, organizationId: timer.organizationId, projectId: timer.projectId, taskId: timer.taskId, userId: actor.uid, source: "timer", startedAt: timer.startedAt, endedAt, durationSeconds: duration, note: command.note, billable: command.billable, clientReportingStatus: command.clientReportingStatus, correctionCount: 0, createdBy: actor.uid, createdAt: endedAt, updatedBy: actor.uid, updatedAt: endedAt });
+      const entry = timeEntrySchema.parse({ id: entryRef.id, organizationId: timer.organizationId, projectId: timer.projectId, taskId: timer.taskId, userId: actor.uid, source: "timer", startedAt: timer.startedAt, endedAt, durationSeconds: duration, segments: finalSegments, note: command.note, billable: command.billable, clientReportingStatus: command.clientReportingStatus, correctionCount: 0, createdBy: actor.uid, createdAt: endedAt, updatedBy: actor.uid, updatedAt: endedAt });
       const { id: _entryId, ...storedEntry } = entry; void _entryId;
       transaction.create(entryRef, { ...storedEntry, createdAt: now, updatedAt: now });
       transaction.delete(timerRef); transaction.delete(pointerRef);
@@ -213,9 +318,10 @@ export async function correctTimeEntry(actor: AuthActor, organizationId: string,
     const taskId = command.taskId === undefined ? existing.taskId : command.taskId; const member = await requireTimeWriter(transaction, db, organizationId, projectId, actor.uid, taskId);
     if (member.role !== "admin" && existing.userId !== actor.uid) throw new AuditedCommandError("denied", "time_entry_correction_denied", "Time entry correction denied");
     const startedAt = command.startedAt ? Timestamp.fromDate(new Date(command.startedAt)) : new Timestamp(existing.startedAt.seconds, existing.startedAt.nanoseconds); const endedAt = command.endedAt ? Timestamp.fromDate(new Date(command.endedAt)) : new Timestamp(existing.endedAt.seconds, existing.endedAt.nanoseconds); const duration = durationSeconds(startedAt, endedAt, now);
-    const updated = timeEntrySchema.parse({ ...existing, taskId, startedAt, endedAt, durationSeconds: duration, note: command.note === undefined ? existing.note : command.note, billable: command.billable ?? existing.billable, clientReportingStatus: command.clientReportingStatus ?? existing.clientReportingStatus, correctionCount: existing.correctionCount + 1, updatedBy: actor.uid, updatedAt: now });
+    const timeChanged = command.startedAt !== undefined || command.endedAt !== undefined;
+    const updated = timeEntrySchema.parse({ ...existing, taskId, startedAt, endedAt, durationSeconds: duration, segments: timeChanged ? [{ startedAt, endedAt }] : existing.segments, note: command.note === undefined ? existing.note : command.note, billable: command.billable ?? existing.billable, clientReportingStatus: command.clientReportingStatus ?? existing.clientReportingStatus, correctionCount: existing.correctionCount + 1, updatedBy: actor.uid, updatedAt: now });
     const patch: Record<string, unknown> = { correctionCount: updated.correctionCount, updatedBy: actor.uid, updatedAt: FieldValue.serverTimestamp() };
-    if (command.taskId !== undefined) patch.taskId = updated.taskId; if (command.startedAt !== undefined) patch.startedAt = startedAt; if (command.endedAt !== undefined) patch.endedAt = endedAt; if (command.startedAt !== undefined || command.endedAt !== undefined) patch.durationSeconds = duration; if (command.note !== undefined) patch.note = updated.note; if (command.billable !== undefined) patch.billable = updated.billable; if (command.clientReportingStatus !== undefined) patch.clientReportingStatus = updated.clientReportingStatus;
+    if (command.taskId !== undefined) patch.taskId = updated.taskId; if (command.startedAt !== undefined) patch.startedAt = startedAt; if (command.endedAt !== undefined) patch.endedAt = endedAt; if (timeChanged) { patch.durationSeconds = duration; patch.segments = updated.segments; } if (command.note !== undefined) patch.note = updated.note; if (command.billable !== undefined) patch.billable = updated.billable; if (command.clientReportingStatus !== undefined) patch.clientReportingStatus = updated.clientReportingStatus;
     transaction.update(entryRef, patch); return updated;
   }});
 }

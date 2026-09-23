@@ -4,13 +4,15 @@ Update this file after every completed feature. A new session should be able to 
 
 ## Current Status
 
-**Phase:** Phase 7 — Storage and Core Collaboration
+**Phase:** Phase 11 — Personal Work Intelligence
 
 **Last completed:** 25 Scheduled Notifications
 
-**Current:** 27 Message Board — browser verification pending
+**Current:** 43 Persisted Timer Pause and Resume — browser verification pending
 
-**Blockers:** Message attachments remain deferred because Feature 26 Firebase Storage requires a pricing-plan upgrade. The post, comment, visibility, moderation, pinning, and announcement workflows are otherwise available.
+**Blockers:** Message attachments remain deferred because Feature 26 Firebase Storage requires a pricing-plan upgrade. Closed-browser timer alarms remain deferred until server-side Web Push scheduling is available; initial reminder delivery will require an open browser.
+
+2026-09-23 — Feature 43 implementation — added server-authoritative running/paused timer states, bounded work segments, accumulated active duration, audited pause/resume transactions, legacy timer and entry normalization, paused-time exclusion at stop, global and Picture-in-Picture controls, browser-title state, and cross-tab invalidation — 211 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; verify pause/resume/stop across two tabs and Picture-in-Picture
 
 2026-09-23 — Picture-in-Picture timer synchronization — replaced generic refresh-only broadcasts with explicit start/stop events, added storage-event fallback, subscribed the detached PiP document directly, and immediately closes stale PiP state before server reconciliation when any open app instance stops the timer — 209 unit tests, typecheck, focused lint, and production build pass; run two-window PiP stop smoke
 
@@ -132,6 +134,13 @@ Existing checkmarks describe repository presence, not production readiness for t
 - [ ] 40 Performance and Observability
 - [ ] 41 Accessibility and Responsive QA
 - [ ] 42 Release and Migration
+
+### Phase 11 — Personal Work Intelligence
+
+- [ ] 43 Persisted Timer Pause and Resume (implemented; browser verification pending)
+- [ ] 44 Inactivity Detection and Recovery
+- [ ] 45 Tracked-Time Alarms
+- [ ] 46 My Work Dashboard and Targets
 
 ## Decisions Made
 

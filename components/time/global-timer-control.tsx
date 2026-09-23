@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Clock3,
   Loader2,
+  Pause,
   PictureInPicture2,
   Play,
   Plus,
@@ -16,6 +17,8 @@ import {
   createTimerTaskAction,
   loadTimerLaunchOptionsAction,
   loadTimerStateAction,
+  pauseTimerAction,
+  resumeTimerAction,
   startTimerAction,
   stopTimerAction,
   type TimerLaunchOptions,
@@ -42,7 +45,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatElapsedTimer } from "@/domain/time/display";
+import { formatDurationSeconds } from "@/domain/time/display";
 import { projectIdFromProjectPath } from "@/domain/time/launcher";
 import { toast } from "sonner";
 
@@ -66,6 +69,12 @@ type PictureInPictureApi = {
   window: Window | null;
 };
 
+function visibleTimerSeconds(timer: TimerView, now: number) {
+  return timer.elapsedSeconds + (timer.state === "running"
+    ? Math.max(0, Math.floor((now - new Date(timer.observedAt).getTime()) / 1000))
+    : 0);
+}
+
 function RunningTimer({ timer }: { timer: TimerView }) {
   const [now, setNow] = useState(() => new Date(timer.observedAt).getTime());
   useEffect(() => {
@@ -85,7 +94,7 @@ function RunningTimer({ timer }: { timer: TimerView }) {
       <div className="min-w-0">
         <p className="truncate text-xs text-muted-foreground">
           {timer.projectKey ? `${timer.projectKey} · ` : ""}
-          {timer.projectName} · Started{" "}
+          {timer.projectName} · {timer.state === "paused" ? "Paused" : "Started"}{" "}
           <time suppressHydrationWarning>{startLabel}</time>
         </p>
         <p className="truncate text-sm font-medium">
@@ -103,9 +112,9 @@ function RunningTimer({ timer }: { timer: TimerView }) {
       <Badge
         variant="secondary"
         className="font-mono tabular-nums"
-        aria-label={`Elapsed time ${formatElapsedTimer(timer.startedAt, now)}`}
+        aria-label={`Elapsed time ${formatDurationSeconds(visibleTimerSeconds(timer, now))}`}
       >
-        {formatElapsedTimer(timer.startedAt, now)}
+        {formatDurationSeconds(visibleTimerSeconds(timer, now))}
       </Badge>
     </div>
   );
@@ -114,9 +123,11 @@ function RunningTimer({ timer }: { timer: TimerView }) {
 function DetachedTimer({
   timer,
   onStop,
+  onTogglePause,
 }: {
   timer: TimerView;
   onStop(): Promise<string | null>;
+  onTogglePause(): Promise<string | null>;
 }) {
   const [now, setNow] = useState(() => new Date(timer.observedAt).getTime());
   const [pending, setPending] = useState(false);
@@ -129,6 +140,13 @@ function DetachedTimer({
     setPending(true);
     setError(null);
     const message = await onStop();
+    setPending(false);
+    if (message) setError(message);
+  };
+  const togglePause = async () => {
+    setPending(true);
+    setError(null);
+    const message = await onTogglePause();
     setPending(false);
     if (message) setError(message);
   };
@@ -150,8 +168,12 @@ function DetachedTimer({
       </div>
       <div className="flex items-center justify-between gap-3">
         <Badge variant="secondary" className="font-mono text-base tabular-nums">
-          {formatElapsedTimer(timer.startedAt, now)}
+          {formatDurationSeconds(visibleTimerSeconds(timer, now))}
         </Badge>
+        <Button size="sm" variant="outline" disabled={pending} onClick={() => void togglePause()}>
+          {pending ? <Loader2 className="animate-spin" /> : timer.state === "running" ? <Pause /> : <Play />}
+          {timer.state === "running" ? "Pause" : "Resume"}
+        </Button>
         <Button
           size="sm"
           variant="destructive"
@@ -205,6 +227,7 @@ export function GlobalTimerControl({
   >("internal");
   const [completeTask, setCompleteTask] = useState(false);
   const [stopping, startStopping] = useTransition();
+  const [changingState, startChangingState] = useTransition();
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [pipSupported, setPipSupported] = useState(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -359,7 +382,7 @@ export function GlobalTimerControl({
     if (!timer) return;
     const originalTitle = document.title;
     const updateTitle = () => {
-      document.title = `${formatElapsedTimer(timer.startedAt, Date.now())} · ${timer.taskTitle ?? timer.projectName}`;
+      document.title = `${timer.state === "paused" ? "Paused · " : ""}${formatDurationSeconds(visibleTimerSeconds(timer, Date.now()))} · ${timer.taskTitle ?? timer.projectName}`;
     };
     updateTitle();
     const interval = window.setInterval(updateTitle, 1000);
@@ -459,6 +482,37 @@ export function GlobalTimerControl({
     setCompleteTask(false);
     setError(null);
     setStopOpen(true);
+  };
+  const togglePause = () =>
+    startChangingState(async () => {
+      setError(null);
+      try {
+        const response = timer?.state === "running" ? await pauseTimerAction() : await resumeTimerAction();
+        if (!response.ok) {
+          const message = response.code === "session_expired" ? "Your session expired. Sign in again to continue." : "The timer state could not be changed. Try again.";
+          setError(message);
+          toast.error(message);
+          return;
+        }
+        setTimer(response.timer);
+        publishTimerSync("timer-changed");
+      } catch {
+        const message = "The timer state could not be changed. Check your connection and try again.";
+        setError(message);
+        toast.error(message);
+      }
+    });
+
+  const togglePauseFromDetachedWindow = async () => {
+    try {
+      const response = timer?.state === "running" ? await pauseTimerAction() : await resumeTimerAction();
+      if (!response.ok) return response.code === "session_expired" ? "Your session expired. Sign in from Time Log to continue." : "The timer state could not be changed.";
+      setTimer(response.timer);
+      publishTimerSync("timer-changed");
+      return null;
+    } catch {
+      return "The timer state could not be changed. Check your connection and try again.";
+    }
   };
   const finishTimer = () =>
     startStopping(async () => {
@@ -623,10 +677,22 @@ export function GlobalTimerControl({
               ) : syncIssue === "network" ? (
                 <Badge variant="outline">Offline</Badge>
               ) : (
-                <Button size="sm" variant="outline" onClick={openStop}>
-                  <Square />
-                  Stop
-                </Button>
+                <>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    disabled={changingState}
+                    aria-label={timer.state === "running" ? "Pause timer" : "Resume timer"}
+                    title={timer.state === "running" ? "Pause timer" : "Resume timer"}
+                    onClick={togglePause}
+                  >
+                    {changingState ? <Loader2 className="animate-spin" /> : timer.state === "running" ? <Pause /> : <Play />}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={openStop}>
+                    <Square />
+                    Stop
+                  </Button>
+                </>
               )}
             </div>
           </>
@@ -909,7 +975,7 @@ export function GlobalTimerControl({
       {pipWindow &&
         timer &&
         createPortal(
-          <DetachedTimer timer={timer} onStop={stopFromDetachedWindow} />,
+          <DetachedTimer timer={timer} onStop={stopFromDetachedWindow} onTogglePause={togglePauseFromDetachedWindow} />,
           pipWindow.document.body,
         )}
     </>
