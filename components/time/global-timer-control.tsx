@@ -47,11 +47,16 @@ import { projectIdFromProjectPath } from "@/domain/time/launcher";
 import { toast } from "sonner";
 
 const TIMER_CHANNEL = "time-log-active-timer";
+const TIMER_SYNC_STORAGE_KEY = "time-log:active-timer-sync";
 const START_TIMER_EVENT = "time-log:start-timer";
 const TASK_COMPLETED_EVENT = "time-log:task-completed";
 const PROJECT_LEVEL = "__project_level__";
 
 type TimerPrefill = { projectId?: string; taskId?: string };
+type TimerSyncMessage = {
+  type: "timer-started" | "timer-stopped" | "timer-changed";
+  sentAt: number;
+};
 type PictureInPictureApi = {
   requestWindow(options?: {
     width?: number;
@@ -203,19 +208,57 @@ export function GlobalTimerControl({
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [pipSupported, setPipSupported] = useState(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
+  const pipWindowRef = useRef<Window | null>(null);
+  const pipSyncCleanupRef = useRef<() => void>(() => undefined);
+
+  const closePictureInPicture = useCallback(() => {
+    const detached = pipWindowRef.current;
+    pipSyncCleanupRef.current();
+    pipSyncCleanupRef.current = () => undefined;
+    pipWindowRef.current = null;
+    if (detached && !detached.closed) detached.close();
+    setPipWindow(null);
+  }, []);
 
   const refreshTimer = useCallback(async () => {
     try {
       const response = await loadTimerStateAction();
       if (response.ok) {
         setTimer(response.timer);
+        if (!response.timer) closePictureInPicture();
         setSyncIssue(null);
       } else if (response.code === "session_expired") setSyncIssue("session");
       else setSyncIssue("network");
     } catch {
       setSyncIssue("network");
     }
-  }, []);
+  }, [closePictureInPicture]);
+
+  const handleTimerSync = useCallback(
+    (message: TimerSyncMessage) => {
+      if (message.type === "timer-stopped") {
+        setTimer(null);
+        setStopOpen(false);
+        closePictureInPicture();
+      }
+      void refreshTimer();
+    },
+    [closePictureInPicture, refreshTimer],
+  );
+
+  const publishTimerSync = useCallback(
+    (type: TimerSyncMessage["type"]) => {
+      const message: TimerSyncMessage = { type, sentAt: Date.now() };
+      if (type === "timer-stopped") closePictureInPicture();
+      channelRef.current?.postMessage(message);
+      try {
+        window.localStorage.setItem(TIMER_SYNC_STORAGE_KEY, JSON.stringify(message));
+      } catch {
+        // BroadcastChannel remains the primary synchronization path.
+      }
+    },
+    [closePictureInPicture],
+  );
 
   const openLauncher = useCallback(async (prefill: TimerPrefill = {}) => {
     setOpen(true);
@@ -261,7 +304,19 @@ export function GlobalTimerControl({
         ? null
         : new BroadcastChannel(TIMER_CHANNEL);
     channelRef.current = channel;
-    channel?.addEventListener("message", refreshTimer);
+    const onChannelMessage = (event: MessageEvent<TimerSyncMessage>) => {
+      if (event.data?.type) handleTimerSync(event.data);
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== TIMER_SYNC_STORAGE_KEY || !event.newValue) return;
+      try {
+        const message = JSON.parse(event.newValue) as TimerSyncMessage;
+        if (message?.type) handleTimerSync(message);
+      } catch {
+        void refreshTimer();
+      }
+    };
+    channel?.addEventListener("message", onChannelMessage);
     const onFocus = () => void refreshTimer();
     const onVisibility = () => {
       if (document.visibilityState === "visible") void refreshTimer();
@@ -269,6 +324,7 @@ export function GlobalTimerControl({
     const onStart = (event: Event) =>
       void openLauncher((event as CustomEvent<TimerPrefill>).detail);
     window.addEventListener("focus", onFocus);
+    window.addEventListener("storage", onStorage);
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener(START_TIMER_EVENT, onStart);
     const interval = window.setInterval(() => {
@@ -278,11 +334,12 @@ export function GlobalTimerControl({
       channel?.close();
       channelRef.current = null;
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("storage", onStorage);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener(START_TIMER_EVENT, onStart);
       window.clearInterval(interval);
     };
-  }, [openLauncher, refreshTimer]);
+  }, [handleTimerSync, openLauncher, refreshTimer]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -293,15 +350,9 @@ export function GlobalTimerControl({
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  useEffect(() => {
-    if (!timer && pipWindow && !pipWindow.closed) pipWindow.close();
-  }, [pipWindow, timer]);
-
   useEffect(
-    () => () => {
-      if (pipWindow && !pipWindow.closed) pipWindow.close();
-    },
-    [pipWindow],
+    () => () => closePictureInPicture(),
+    [closePictureInPicture],
   );
 
   useEffect(() => {
@@ -377,7 +428,7 @@ export function GlobalTimerControl({
         if (response.ok) {
           setTimer(response.timer);
           setOpen(false);
-          channelRef.current?.postMessage({ type: "timer-changed" });
+          publishTimerSync("timer-started");
           return;
         }
         if (response.code === "timer_already_active") {
@@ -434,7 +485,7 @@ export function GlobalTimerControl({
         if (response.taskCompleted && timer?.taskId) window.dispatchEvent(new CustomEvent(TASK_COMPLETED_EVENT, { detail: { taskId: timer.taskId } }));
         setTimer(null);
         setStopOpen(false);
-        channelRef.current?.postMessage({ type: "timer-changed" });
+        publishTimerSync("timer-stopped");
         router.refresh();
       } catch {
         setError(
@@ -459,7 +510,7 @@ export function GlobalTimerControl({
             : "The timer could not be stopped. Try again.";
       }
       setTimer(null);
-      channelRef.current?.postMessage({ type: "timer-changed" });
+      publishTimerSync("timer-stopped");
       router.refresh();
       return null;
     } catch {
@@ -490,9 +541,52 @@ export function GlobalTimerControl({
         document.documentElement.className;
       detached.document.body.className = "bg-background text-foreground";
       detached.document.title = "Active timer · Time Log";
-      detached.addEventListener("pagehide", () => setPipWindow(null), {
-        once: true,
-      });
+      const DetachedBroadcastChannel = (
+        detached as Window & { BroadcastChannel?: typeof BroadcastChannel }
+      ).BroadcastChannel;
+      const detachedChannel = DetachedBroadcastChannel
+        ? new DetachedBroadcastChannel(TIMER_CHANNEL)
+        : null;
+      const closeOnStopped = (message: TimerSyncMessage) => {
+        if (message.type === "timer-stopped" && !detached.closed)
+          detached.close();
+      };
+      const onDetachedMessage = (event: MessageEvent<TimerSyncMessage>) => {
+        if (event.data?.type) closeOnStopped(event.data);
+      };
+      const onDetachedStorage = (event: StorageEvent) => {
+        if (event.key !== TIMER_SYNC_STORAGE_KEY || !event.newValue) return;
+        try {
+          closeOnStopped(JSON.parse(event.newValue) as TimerSyncMessage);
+        } catch {
+          // The opener still reconciles state with the server.
+        }
+      };
+      let detachedSyncCleaned = false;
+      const cleanupDetachedSync = () => {
+        if (detachedSyncCleaned) return;
+        detachedSyncCleaned = true;
+        detachedChannel?.removeEventListener("message", onDetachedMessage);
+        detachedChannel?.close();
+        detached.removeEventListener("storage", onDetachedStorage);
+      };
+      detachedChannel?.addEventListener("message", onDetachedMessage);
+      detached.addEventListener("storage", onDetachedStorage);
+      pipSyncCleanupRef.current();
+      pipSyncCleanupRef.current = cleanupDetachedSync;
+      pipWindowRef.current = detached;
+      detached.addEventListener(
+        "pagehide",
+        () => {
+          cleanupDetachedSync();
+          if (pipWindowRef.current === detached) {
+            pipWindowRef.current = null;
+            pipSyncCleanupRef.current = () => undefined;
+            setPipWindow(null);
+          }
+        },
+        { once: true },
+      );
       setPipWindow(detached);
     } catch {
       toast.error(
