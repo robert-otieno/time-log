@@ -298,6 +298,7 @@ export async function stopTimerAction(raw: unknown) {
 }
 
 const manualActionSchema = entrySettingsSchema
+  .omit({ completeTask: true })
   .extend({
     projectId: z.string().min(1).max(128),
     taskId: z.string().min(1).max(128).nullable(),
@@ -309,13 +310,13 @@ export async function createManualTimeEntryAction(raw: unknown) {
   const actor = await getSessionActor();
   if (!actor) return { ok: false as const, code: "session_expired" as const };
   try {
-    const input = manualActionSchema.parse(raw);
+    const { projectId, ...command } = manualActionSchema.parse(raw);
     const organizationId = await getActiveOrganizationId(actor);
     const entry = await createManualTimeEntry(
       actor,
       organizationId,
-      input.projectId,
-      input,
+      projectId,
+      command,
       createRequestCorrelation(),
     );
     return { ok: true as const, entryId: entry.id };
@@ -340,13 +341,13 @@ export async function correctTimeEntryAction(raw: unknown) {
   const actor = await getSessionActor();
   if (!actor) return { ok: false as const, code: "session_expired" as const };
   try {
-    const input = correctionActionSchema.parse(raw);
+    const { projectId, ...command } = correctionActionSchema.parse(raw);
     const organizationId = await getActiveOrganizationId(actor);
     const entry = await correctTimeEntry(
       actor,
       organizationId,
-      input.projectId,
-      input,
+      projectId,
+      command,
       createRequestCorrelation(),
     );
     return { ok: true as const, entryId: entry.id };
