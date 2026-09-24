@@ -12,7 +12,7 @@ Update this file after every completed feature. A new session should be able to 
 
 **Blockers:** Message attachments remain deferred because Feature 26 Firebase Storage requires a pricing-plan upgrade. Closed-browser timer alarms remain deferred until server-side Web Push scheduling is available; initial reminder delivery will require an open browser.
 
-2026-09-23 — Active to-do status affordance — added a compact semantic “In progress” badge to every collapsed active to-do row while keeping completed and archived lifecycle presentation unchanged
+2026-09-23 — Active timer task affordance — added a compact semantic “In progress” badge only to the task referenced by the currently running timer; paused, stopped, project-level, and unrelated tasks do not receive the badge, and the state reconciles through the existing cross-tab timer channel plus window-focus refresh
 
 2026-09-23 — To-do lifecycle accordions — retained active to-dos as the primary always-visible list and replaced the competing Active/Archived mode switch with independent collapsed Completed and Archived sections; added filter-aware counts, hierarchy preservation, accessible disclosure controls, optimistic movement between lifecycle sections, completed reopen/edit/archive actions, archived Restore, and client-safe omission of archived work — 222 unit tests, typecheck, focused lint, full lint (0 errors; 29 pre-existing warnings), and production build pass; verify completion/reopen, archive/restore, independent disclosure state, filters, subtasks, and client read-only behavior in browser
 

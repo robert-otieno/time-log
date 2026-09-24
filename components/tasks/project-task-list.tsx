@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Archive,
   CheckCircle2,
@@ -12,6 +12,7 @@ import {
   Plus,
   RotateCcw,
 } from "lucide-react";
+import { loadTimerStateAction } from "@/app/(app)/timer-actions";
 import {
   archiveTaskAction,
   changeTaskStatusAction,
@@ -80,6 +81,7 @@ const blank = (parentTaskId = "none"): Draft => ({
 });
 
 const TASK_COMPLETED_EVENT = "time-log:task-completed";
+const TIMER_CHANNEL = "time-log-active-timer";
 
 function localParts(dueDate: string | null, dueAt: string | null) {
   if (!dueAt) return { dueDate: dueDate ?? "", dueTime: "09:00" };
@@ -155,6 +157,7 @@ export function ProjectTaskList({
   const [error, setError] = useState<string | null>(null);
   const [completedOpen, setCompletedOpen] = useState(false);
   const [archivedOpen, setArchivedOpen] = useState(false);
+  const [runningTimerTaskId, setRunningTimerTaskId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
@@ -168,6 +171,35 @@ export function ProjectTaskList({
     window.addEventListener(TASK_COMPLETED_EVENT, onCompleted);
     return () => window.removeEventListener(TASK_COMPLETED_EVENT, onCompleted);
   }, []);
+
+  const syncRunningTimer = useCallback(async () => {
+    const result = await loadTimerStateAction();
+    setRunningTimerTaskId(
+      result.ok && result.timer?.state === "running" && result.timer.projectId === projectId
+        ? result.timer.taskId
+        : null,
+    );
+  }, [projectId]);
+
+  useEffect(() => {
+    queueMicrotask(() => void syncRunningTimer());
+    const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(TIMER_CHANNEL);
+    const onTimerMessage = (event: MessageEvent<{ type?: string }>) => {
+      if (event.data?.type === "timer-stopping" || event.data?.type === "timer-stopped") {
+        setRunningTimerTaskId(null);
+        return;
+      }
+      void syncRunningTimer();
+    };
+    const onFocus = () => void syncRunningTimer();
+    channel?.addEventListener("message", onTimerMessage);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      channel?.removeEventListener("message", onTimerMessage);
+      channel?.close();
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [syncRunningTimer]);
 
   const filteredTasks = useMemo(() => tasks.filter((task) =>
     (statusFilter === "all" || task.status === statusFilter) &&
@@ -309,6 +341,7 @@ export function ProjectTaskList({
           allTasks={tasks.filter((candidate) => !candidate.archivedAt)}
           readOnly={readOnly}
           archived={archived}
+          timerRunning={runningTimerTaskId === task.id}
           expanded={expanded === task.id}
           pending={mutations.isPending(`task:${task.id}`)}
           statusPending={mutations.isPending(`task:${task.id}`)}
@@ -558,6 +591,7 @@ function TaskRow({
   allTasks,
   readOnly,
   archived,
+  timerRunning,
   expanded,
   pending,
   statusPending,
@@ -574,6 +608,7 @@ function TaskRow({
   allTasks: ViewTask[];
   readOnly: boolean;
   archived: boolean;
+  timerRunning: boolean;
   expanded: boolean;
   pending: boolean;
   statusPending: boolean;
@@ -655,7 +690,7 @@ function TaskRow({
               <Loader2 className="size-3 animate-spin" /> Saving…
             </span>
           )}
-          {!archived && task.status !== "done" && (
+          {!archived && timerRunning && (
             <StatusBadge tone={statusTone("in_progress")}>In progress</StatusBadge>
           )}
           <ChevronDown
