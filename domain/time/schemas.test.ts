@@ -5,7 +5,7 @@ const timestamp = { seconds: 10, nanoseconds: 0 };
 
 describe("active timer schemas", () => {
   it("accepts a task timer and normalizes omitted optional input", () => {
-    expect(startTimerCommandSchema.parse({})).toEqual({ taskId: null, note: null });
+    expect(startTimerCommandSchema.parse({})).toEqual({ taskId: null, note: null, alarmDurationSeconds: null });
     expect(activeTimerSchema.parse({ userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: timestamp, note: null })).toMatchObject({ taskId: "t1" });
   });
 

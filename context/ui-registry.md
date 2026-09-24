@@ -505,6 +505,8 @@ Last updated: 2026-09-23
 
 **Optimistic note:** Timer start, pause, and resume project their expected state immediately and reconcile against the canonical server timer. Pause/Resume stays interactive while earlier timer intents save, while Stop waits for the ordered timer queue to drain. Only the newest local intent may replace visible state with a canonical response. A failed command cancels dependent queued commands and reloads canonical timer state; permission and validation failures do not offer blind retry.
 
+**Tracked-time reminder note:** The active control uses a canonical ghost Bell icon, switching to the primary variant only while an alarm is due. Start-time configuration uses the existing full-width Select plus a canonical numeric Input for custom minutes. Active configuration and due acknowledgement use canonical Dialog surfaces; reminder guidance uses `text-xs text-muted-foreground`, while the due explanation uses an inset `rounded-lg border bg-muted/30 p-4` status surface. Dismiss is the primary action and explicitly leaves the timer running; 5/10/15-minute snoozes remain outline actions. Notification permission is requested through a labeled outline button and blocked permission is stated honestly. All reminder surfaces disclose that active tracked time excludes pauses and initial delivery requires an open browser.
+
 ### Time entry stop, manual entry, and correction
 
 Files: `components/time/global-timer-control.tsx`, `components/time/project-time-entries.tsx`, `app/(app)/projects/[projectId]/time/page.tsx`
@@ -658,6 +660,25 @@ Last updated: 2026-09-21
 **Pattern notes:** Publishing is one deliberate composer surface followed by durable post cards. Metadata stays compact, bodies preserve line breaks, comments are visually subordinate, and editing expands inline without opening a competing page. Announcement email is an administrator-only explicit checkbox and never inferred from pinning or visibility. Archived posts use a separate internal view with Restore.
 
 **Optimistic note:** Ordinary posts and comments appear immediately with temporary IDs and muted `Saving…` metadata. Editing, pinning, visibility, archive/restore, and comment archive affect only their record; unrelated posts and comments remain interactive. Failures restore only the affected snapshot and transient failures offer Retry. Email announcements are deliberately different: the post remains in a publishing state and is not shown as published until the server has durably created recipient notifications.
+
+### My Work dashboard
+
+File: `components/work-dashboard/work-dashboard.tsx`
+Last updated: 2026-09-23
+
+| Property | Class |
+| --- | --- |
+| Background | Canonical Card; live-focus and empty states `bg-muted/50` |
+| Border | Canonical Card ring; timeline uses semantic `border-l` |
+| Border radius | Cards `rounded-2xl`; live-focus panels `rounded-xl` |
+| Text — primary | Metric values `text-xl font-semibold tabular-nums`; timer `font-mono text-2xl font-semibold tabular-nums` |
+| Text — secondary | Labels `text-xs text-muted-foreground`; supporting copy `text-sm text-muted-foreground` |
+| Spacing | Dashboard `space-y-4`; summary grid `gap-3`; primary panels `space-y-5`; compact rows `py-3` |
+| Hover state | Canonical Tabs, Button, Dialog, Input, and Checkbox states |
+| Shadow | Canonical Card and control treatments only |
+| Accent usage | Metric icons and timeline markers `text-primary` / `bg-primary`; running and paused dots use semantic emerald/amber |
+
+**Pattern notes:** Present the highest-frequency work signals as compact summary cards, then pair current focus with recent logs. Use tabular numerals for all changing durations and counts. Timeline segments are subordinate and vertically compact; pauses are represented as gaps rather than fabricated activity. Target editing stays in a focused dialog and never competes with the timer controls.
 
 ## Patterns to Retire
 

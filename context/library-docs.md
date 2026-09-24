@@ -393,6 +393,23 @@ Do not add a hard-coded model name to context or production code until the provi
 The initial Vitest configuration uses the Node environment and `@/` alias. Add DOM/browser dependencies only when the first component test requires them.
 
 The initial Playwright authentication suite covers signed-out protected redirects, hostile return-path containment, and current-browser cookie expiration. Google popup authentication remains a manual smoke test until a dedicated Firebase test environment is available; never place production credentials or captured session state in test fixtures.
+# Browser timer notifications
+
+Official references:
+
+- MDN Notifications API: https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API
+- MDN `Notification.requestPermission()`: https://developer.mozilla.org/en-US/docs/Web/API/Notification/requestPermission_static
+- MDN `ServiceWorkerRegistration.showNotification()`: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/showNotification
+- MDN Service Worker registration: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register
+
+Project pattern:
+
+- Request notification permission only from an explicit user action; timer alarms still provide an in-app dialog when permission is unavailable or denied.
+- Register `/timer-alarm-sw.js` from the authenticated timer control and use `registration.showNotification`, not a page-owned `new Notification`, for background-tab delivery.
+- Use a stable tag derived from the timer start instant so concurrent tabs replace the same operating-system notification.
+- Keep scheduling and due state server-authoritative on the active timer. The service worker displays and focuses the app; it does not calculate elapsed time or mutate timer state.
+- Browser notifications require a secure context in production. Initial reminders require an open browser; Web Push scheduling remains deferred.
+
 # Browser inactivity detection
 
 - The Idle Detection API is a progressive enhancement, not a baseline dependency. Detect support with `"IdleDetector" in window`, require a secure top-level context, and request the dedicated permission only from an explicit user gesture.

@@ -62,4 +62,16 @@ export class TimeRepository {
       truncated: snapshot.size > TIME_REPORT_ENTRY_LIMIT,
     };
   }
+
+  async listEntriesOverlapping(organizationId: string, projectId: string, start: Date, endExclusive: Date) {
+    const snapshot = await this.timeEntriesCollection(organizationId, projectId)
+      .where("endedAt", ">", Timestamp.fromDate(start))
+      .orderBy("endedAt", "desc")
+      .limit(TIME_REPORT_ENTRY_LIMIT + 1)
+      .get();
+    const entries = snapshot.docs
+      .map((document) => timeEntrySchema.parse({ id: document.id, ...document.data() }))
+      .filter((entry) => entry.startedAt.seconds + entry.startedAt.nanoseconds / 1e9 < endExclusive.getTime() / 1000);
+    return { entries: entries.slice(0, TIME_REPORT_ENTRY_LIMIT), truncated: snapshot.size > TIME_REPORT_ENTRY_LIMIT };
+  }
 }

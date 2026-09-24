@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import type { AuditWriter } from "@/domain/audit/command";
 import type { AuditEventDraft } from "@/domain/audit/schemas";
-import { elapsedTimerSeconds, getActiveTimer, pauseTimer, pauseTimerForInactivity, resumeTimer, startTimer, trackedTimerSeconds } from "@/domain/time/service";
+import { claimDueTimerAlarm, configureTimerAlarm, dismissTimerAlarm, elapsedTimerSeconds, getActiveTimer, pauseTimer, pauseTimerForInactivity, resumeTimer, snoozeTimerAlarm, startTimer, trackedTimerSeconds } from "@/domain/time/service";
 
 const actor = { type: "user" as const, uid: "u1", email: null, emailVerified: true, displayName: "Casey" };
 const correlation = { requestId: "00000000-0000-4000-8000-000000000001", runId: null };
@@ -121,5 +121,29 @@ describe("active timer service", () => {
     await expect(pauseTimerForInactivity(actor, "1969-12-31T23:59:59.000Z", correlation, { ...invalidEnv, now: () => new Timestamp(10, 0) })).rejects.toThrow("outside the running segment");
     expect(invalidEnv.writes).toHaveLength(0);
     expect(invalidEnv.audits).toMatchObject([{ action: "time.timer.paused", outcome: "failed", reasonCode: "timer_inactivity_time_invalid" }]);
+  });
+
+  it("configures and transactionally claims an alarm using tracked time", async () => {
+    const pointer = { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: timestamp };
+    const timer = { userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: timestamp, note: null };
+    const configuredEnv = environment({ "users/u1/runtime/activeTimer": pointer, "organizations/o1/projects/p1/activeTimers/u1": timer });
+    const configured = await configureTimerAlarm(actor, { durationSeconds: 300 }, correlation, { ...configuredEnv, now: () => new Timestamp(10, 0) });
+    expect(configured.timer.alarm).toMatchObject({ status: "armed", durationSeconds: 300, dueAtTrackedSeconds: 309 });
+
+    const dueTimer = { ...configured.timer, accumulatedSeconds: 309, state: "paused", currentSegmentStartedAt: null };
+    const claimEnv = environment({ "users/u1/runtime/activeTimer": pointer, "organizations/o1/projects/p1/activeTimers/u1": dueTimer });
+    const claimed = await claimDueTimerAlarm(actor, correlation, { ...claimEnv, now: () => new Timestamp(400, 0) });
+    expect(claimed).toMatchObject({ changed: true, timer: { alarm: { status: "due" } } });
+    expect(claimEnv.audits).toMatchObject([{ action: "time.timer.alarm.triggered", outcome: "succeeded" }]);
+  });
+
+  it("dismisses or snoozes a due alarm without changing timer state", async () => {
+    const pointer = { organizationId: "o1", projectId: "p1", userId: "u1", startedAt: timestamp };
+    const timer = { userId: "u1", organizationId: "o1", projectId: "p1", taskId: "t1", startedAt: timestamp, note: null, state: "paused", accumulatedSeconds: 300, currentSegmentStartedAt: null, alarm: { durationSeconds: 300, dueAtTrackedSeconds: 300, status: "due", triggeredAt: timestamp, acknowledgedAt: null, snoozeCount: 0 } };
+    const dismissEnv = environment({ "users/u1/runtime/activeTimer": pointer, "organizations/o1/projects/p1/activeTimers/u1": timer });
+    await expect(dismissTimerAlarm(actor, correlation, { ...dismissEnv, now: () => new Timestamp(400, 0) })).resolves.toMatchObject({ timer: { state: "paused", alarm: { status: "acknowledged" } } });
+
+    const snoozeEnv = environment({ "users/u1/runtime/activeTimer": pointer, "organizations/o1/projects/p1/activeTimers/u1": timer });
+    await expect(snoozeTimerAlarm(actor, { durationSeconds: 600 }, correlation, { ...snoozeEnv, now: () => new Timestamp(400, 0) })).resolves.toMatchObject({ timer: { state: "paused", alarm: { status: "armed", dueAtTrackedSeconds: 900, snoozeCount: 1 } } });
   });
 });

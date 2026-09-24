@@ -6,6 +6,15 @@ const timestampSchema = z.custom<{ seconds: number; nanoseconds: number }>(
   "Expected a Firestore timestamp",
 );
 
+export const timerAlarmSchema = z.object({
+  durationSeconds: z.number().int().min(60).max(28_800),
+  dueAtTrackedSeconds: z.number().int().min(60).max(31_622_400),
+  status: z.enum(["armed", "due", "acknowledged"]),
+  triggeredAt: timestampSchema.nullable(),
+  acknowledgedAt: timestampSchema.nullable(),
+  snoozeCount: z.number().int().min(0).max(100),
+}).strict();
+
 export const timerSegmentSchema = z.object({
   startedAt: timestampSchema,
   endedAt: timestampSchema,
@@ -24,6 +33,7 @@ const activeTimerBaseSchema = z.object({
   segments: z.array(timerSegmentSchema).max(100).default([]),
   pausedAt: timestampSchema.nullable().default(null),
   pauseReason: z.enum(["manual", "inactivity"]).nullable().default(null),
+  alarm: timerAlarmSchema.nullable().default(null),
 }).strict();
 
 export const activeTimerSchema = activeTimerBaseSchema.transform((timer) => ({
@@ -46,7 +56,11 @@ export const activeTimerPointerSchema = z.object({
 export const startTimerCommandSchema = z.object({
   taskId: idSchema.nullable().default(null),
   note: z.string().trim().max(2000).nullable().default(null),
+  alarmDurationSeconds: z.number().int().min(60).max(28_800).nullable().default(null),
 }).strict();
+
+export const configureTimerAlarmCommandSchema = z.object({ durationSeconds: z.number().int().min(60).max(28_800).nullable() }).strict();
+export const snoozeTimerAlarmCommandSchema = z.object({ durationSeconds: z.number().int().min(300).max(900) }).strict();
 
 export const clientReportingStatusSchema = z.enum(["internal", "approved"]);
 

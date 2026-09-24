@@ -85,6 +85,7 @@ const safeFieldValueSchemas = {
   timezoneChanged: z.boolean(),
   exportFormat: z.enum(["csv", "json"]),
   notificationPreferencesChanged: z.boolean(),
+  workTargetChanged: z.boolean(),
   webhookOutcome: z.enum(["applied", "stale", "duplicate"]),
 } satisfies Record<SafeAuditField, z.ZodType>;
 

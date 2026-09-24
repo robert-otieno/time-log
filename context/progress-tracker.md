@@ -6,11 +6,19 @@ Update this file after every completed feature. A new session should be able to 
 
 **Phase:** Phase 11 — Personal Work Intelligence
 
-**Last completed:** 43 Persisted Timer Pause and Resume
+**Last completed:** 45 Tracked-Time Alarms
 
-**Current:** 47 Optimistic Application Mutations — complete automated verification; browser acceptance pending
+**Current:** 46 My Work Dashboard and Targets — browser verification
 
 **Blockers:** Message attachments remain deferred because Feature 26 Firebase Storage requires a pricing-plan upgrade. Closed-browser timer alarms remain deferred until server-side Web Push scheduling is available; initial reminder delivery will require an open browser.
+
+2026-09-23 — Feature 46 implementation — redesigned My Work with private Today / This Week / This Month summaries, live current-focus state, tracked/completed/in-progress/session/inactive metrics, derived personal work targets, recent logs, and a segment-based activity timeline; added audited personal target preferences initialized from onboarding hours, overlap-aware time aggregation, timer-channel/focus/visible polling reconciliation, DST boundary tests, and responsive dashboard patterns — 222 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; verify period switching, target editing, live pause/resume/stop reconciliation, task completion counts, mobile layout, and self-only access in browser
+
+2026-09-23 — Feature 45 completed — browser verification accepted for tracked-time alarm configuration, pause-safe timing, in-app and permission-gated browser notification behavior, cross-tab deduplication, snooze, dismiss, and continued timer operation — begin Feature 46 My Work Dashboard and Targets architecture review
+
+2026-09-23 — Feature 45 implementation — added one persisted tracked-time alarm per active timer, start-time and active-timer configuration with preset/custom durations, active-seconds-only thresholds, transactional cross-tab due claiming, audited configure/trigger/dismiss/snooze commands, synchronized non-stopping alarm dialog, 5/10/15-minute active-time snooze, explicit notification permission, and stable-tag service-worker notifications with open-browser disclosure — 219 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; verify pause-frozen countdown, one cross-tab notification, dismiss, snooze, denied permission, and browser-background delivery
+
+2026-09-23 — Feature 47 completed — browser acceptance confirmed immediate Pause after Start, concurrent task/message mutations, immediate manual time creation/correction, and affected-record rollback on failure; all five slices are accepted with 217 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build passing — begin Feature 45 Tracked-Time Alarms architecture review
 
 2026-09-23 — Feature 47 Slice 5 final responsiveness audit — removed redundant `revalidatePath` calls from task and message actions now fully reconciled by client-owned optimistic state; retained required refreshes for authentication, onboarding, timer-derived dashboards/reports, project context, and filter navigation, and left the disabled Storage reload untouched until that feature is enabled and testable — 217 unit tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; run final browser acceptance across task, timer, message/comment, and time-entry success/rollback paths
 
@@ -155,9 +163,9 @@ Existing checkmarks describe repository presence, not production readiness for t
 
 - [x] 43 Persisted Timer Pause and Resume
 - [ ] 44 Inactivity Detection and Recovery
-- [ ] 45 Tracked-Time Alarms
+- [x] 45 Tracked-Time Alarms
 - [ ] 46 My Work Dashboard and Targets
-- [ ] 47 Optimistic Application Mutations (Slice 1 implemented; browser verification pending)
+- [x] 47 Optimistic Application Mutations
 
 ## Decisions Made
 

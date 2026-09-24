@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
+  BellRing,
   Clock3,
   Loader2,
   Pause,
@@ -16,11 +17,15 @@ import {
 } from "lucide-react";
 import {
   createTimerTaskAction,
+  claimDueTimerAlarmAction,
+  configureTimerAlarmAction,
+  dismissTimerAlarmAction,
   loadTimerLaunchOptionsAction,
   loadTimerStateAction,
   pauseTimerAction,
   pauseTimerForInactivityAction,
   resumeTimerAction,
+  snoozeTimerAlarmAction,
   startTimerAction,
   stopTimerAction,
   type TimerLaunchOptions,
@@ -239,6 +244,8 @@ export function GlobalTimerControl({
   const [projectId, setProjectId] = useState("");
   const [taskId, setTaskId] = useState("");
   const [note, setNote] = useState("");
+  const [reminderMinutes, setReminderMinutes] = useState("none");
+  const [customReminderMinutes, setCustomReminderMinutes] = useState("90");
   const [quickTaskTitle, setQuickTaskTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [syncIssue, setSyncIssue] = useState<"session" | "network" | null>(
@@ -266,6 +273,9 @@ export function GlobalTimerControl({
   const [autoPausing, setAutoPausing] = useState(false);
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [pipSupported, setPipSupported] = useState(false);
+  const [alarmOpen, setAlarmOpen] = useState(false);
+  const [alarmSaving, setAlarmSaving] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const pipWindowRef = useRef<Window | null>(null);
   const pipSyncCleanupRef = useRef<() => void>(() => undefined);
@@ -277,6 +287,7 @@ export function GlobalTimerControl({
   const timerCommandTailRef = useRef<Promise<boolean>>(Promise.resolve(true));
   const timerCommandPendingRef = useRef(0);
   const timerCommandSequenceRef = useRef(0);
+  const alarmClaimingRef = useRef(false);
   const [timerCommandPending, setTimerCommandPending] = useState(0);
   const changingState = timerCommandPending > 0;
   const starting = changingState && timer?.organizationId === "pending";
@@ -406,6 +417,11 @@ export function GlobalTimerControl({
         .catch(() => setIdlePermission("prompt"));
     });
     return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.register("/timer-alarm-sw.js").catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -592,10 +608,10 @@ export function GlobalTimerControl({
   );
   const canStart = Boolean(
     projectId &&
-      (options?.role === "admin" || (taskId && taskId !== PROJECT_LEVEL)),
+      (options?.role === "admin" || (taskId && taskId !== PROJECT_LEVEL)) &&
+      (reminderMinutes !== "custom" || (Number(customReminderMinutes) >= 1 && Number(customReminderMinutes) <= 480)),
   );
 
-  if (!timer && !canTrack) return null;
   const savingTimer = stopSaving || remoteStopPending;
 
   const createQuickTask = () =>
@@ -654,6 +670,10 @@ export function GlobalTimerControl({
       state: "running",
       elapsedSeconds: 0,
       pauseReason: null,
+      alarm: (() => {
+        const minutes = reminderMinutes === "custom" ? Number(customReminderMinutes) : reminderMinutes === "none" ? 0 : Number(reminderMinutes);
+        return Number.isInteger(minutes) && minutes >= 1 && minutes <= 480 ? { durationSeconds: minutes * 60, dueAtTrackedSeconds: minutes * 60, status: "armed", triggeredAt: null, acknowledgedAt: null, snoozeCount: 0 } : null;
+      })(),
     };
     setError(null);
     setOpen(false);
@@ -664,6 +684,7 @@ export function GlobalTimerControl({
           projectId,
           taskId: taskId === PROJECT_LEVEL ? null : taskId || null,
           note: note.trim() || null,
+          reminderMinutes: optimisticTimer.alarm ? optimisticTimer.alarm.durationSeconds / 60 : null,
         });
         if (response.ok) return response.timer;
         if (response.code === "timer_already_active") {
@@ -785,6 +806,67 @@ export function GlobalTimerControl({
     } catch {
       return "The timer state could not be changed. Check your connection and try again.";
     }
+  };
+
+  const publishAlarmNotification = useCallback(async (active: TimerView) => {
+    if (!("serviceWorker" in navigator) || !("Notification" in window) || Notification.permission !== "granted") return;
+    const registration = await navigator.serviceWorker.ready;
+    await registration.showNotification("Time reminder", {
+      body: `${active.taskTitle ?? active.projectName} has reached its tracked-time reminder.`,
+      tag: `time-log-timer-alarm-${active.startedAt}`,
+      data: { url: window.location.href },
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!timer?.alarm || timer.alarm.status !== "armed" || timer.state !== "running") return;
+    const check = async () => {
+      if (alarmClaimingRef.current || visibleTimerSeconds(timer, Date.now()) < timer.alarm!.dueAtTrackedSeconds) return;
+      alarmClaimingRef.current = true;
+      try {
+        const response = await claimDueTimerAlarmAction();
+        if (response.ok) {
+          setTimer(response.timer);
+          publishTimerSync("timer-changed");
+          if (response.changed) await publishAlarmNotification(response.timer);
+        }
+      } finally {
+        alarmClaimingRef.current = false;
+      }
+    };
+    void check();
+    const interval = window.setInterval(() => void check(), 1000);
+    return () => window.clearInterval(interval);
+  }, [publishAlarmNotification, publishTimerSync, timer]);
+
+  const requestAlarmNotifications = async () => {
+    if (!("Notification" in window)) return;
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+  };
+
+  const saveAlarm = async (minutes: number | null) => {
+    setAlarmSaving(true);
+    try {
+      const response = await configureTimerAlarmAction({ minutes });
+      if (!response.ok) throw new Error("The reminder could not be saved.");
+      setTimer(response.timer); setAlarmOpen(false); publishTimerSync("timer-changed");
+    } catch (cause) { toast.error(cause instanceof Error ? cause.message : "The reminder could not be saved."); }
+    finally { setAlarmSaving(false); }
+  };
+
+  const dismissAlarm = async () => {
+    setAlarmSaving(true);
+    try { const response = await dismissTimerAlarmAction(); if (!response.ok) throw new Error("The reminder could not be dismissed."); setTimer(response.timer); publishTimerSync("timer-changed"); }
+    catch (cause) { toast.error(cause instanceof Error ? cause.message : "The reminder could not be dismissed."); }
+    finally { setAlarmSaving(false); }
+  };
+
+  const snoozeAlarm = async (minutes: 5 | 10 | 15) => {
+    setAlarmSaving(true);
+    try { const response = await snoozeTimerAlarmAction({ minutes }); if (!response.ok) throw new Error("The reminder could not be snoozed."); setTimer(response.timer); publishTimerSync("timer-changed"); }
+    catch (cause) { toast.error(cause instanceof Error ? cause.message : "The reminder could not be snoozed."); }
+    finally { setAlarmSaving(false); }
   };
   const finishTimer = () => {
     const stoppingTimer = timer;
@@ -951,6 +1033,7 @@ export function GlobalTimerControl({
     }
   };
 
+  if (!timer && !canTrack) return null;
   return (
     <>
       <aside
@@ -961,6 +1044,15 @@ export function GlobalTimerControl({
           <>
             <RunningTimer timer={timer} />
             <div className="flex shrink-0 items-center gap-1">
+              <Button
+                size="icon"
+                variant={timer.alarm?.status === "due" ? "default" : "ghost"}
+                aria-label="Timer reminder"
+                title="Timer reminder"
+                onClick={() => setAlarmOpen(true)}
+              >
+                <BellRing />
+              </Button>
               {pipSupported && (
                 <Button
                   size="icon"
@@ -1159,6 +1251,22 @@ export function GlobalTimerControl({
                   disabled={starting}
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Tracked-time reminder</Label>
+                <Select value={reminderMinutes} onValueChange={setReminderMinutes}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No reminder</SelectItem>
+                    <SelectItem value="15">15 minutes</SelectItem>
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="45">45 minutes</SelectItem>
+                    <SelectItem value="60">60 minutes</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+                {reminderMinutes === "custom" && <Input type="number" min={1} max={480} value={customReminderMinutes} onChange={(event) => setCustomReminderMinutes(event.target.value)} aria-label="Custom reminder minutes" />}
+                <p className="text-xs text-muted-foreground">Counts active tracked time only. The browser must remain open.</p>
+              </div>
             </div>
           )}
           {error && (
@@ -1186,6 +1294,38 @@ export function GlobalTimerControl({
               {starting ? <Loader2 className="animate-spin" /> : <Play />}
               {starting ? "Starting…" : "Start timer"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={alarmOpen} onOpenChange={(next) => !alarmSaving && setAlarmOpen(next)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Timer reminder</DialogTitle>
+            <DialogDescription>Reminders count active tracked time only. Paused time does not count, and the browser must remain open.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[15, 30, 45, 60].map((minutes) => <Button key={minutes} variant="outline" disabled={alarmSaving} onClick={() => void saveAlarm(minutes)}>{minutes} min</Button>)}
+          </div>
+          <div className="flex gap-2">
+            <Input type="number" min={1} max={480} value={customReminderMinutes} onChange={(event) => setCustomReminderMinutes(event.target.value)} aria-label="Custom timer reminder minutes" />
+            <Button disabled={alarmSaving || Number(customReminderMinutes) < 1 || Number(customReminderMinutes) > 480} onClick={() => void saveAlarm(Number(customReminderMinutes))}>Set</Button>
+          </div>
+          {notificationPermission !== "granted" && notificationPermission !== "unsupported" && <Button variant="outline" disabled={alarmSaving || notificationPermission === "denied"} onClick={() => void requestAlarmNotifications()}><BellRing />{notificationPermission === "denied" ? "Notifications blocked" : "Enable browser notifications"}</Button>}
+          {timer?.alarm && <Button variant="ghost" disabled={alarmSaving} onClick={() => void saveAlarm(null)}>Remove reminder</Button>}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={timer?.alarm?.status === "due"} onOpenChange={() => undefined}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Tracked-time reminder</DialogTitle>
+            <DialogDescription>{timer?.taskTitle ?? timer?.projectName ?? "Your timer"} has reached its reminder. Dismissing this alarm will not stop the timer.</DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border bg-muted/30 p-4"><p className="text-sm font-medium">Timer is still running</p><p className="mt-1 text-sm text-muted-foreground">Snooze adds more active tracked time.</p></div>
+          <DialogFooter>
+            <Button variant="outline" disabled={alarmSaving} onClick={() => void snoozeAlarm(5)}>Snooze 5 min</Button>
+            <Button variant="outline" disabled={alarmSaving} onClick={() => void snoozeAlarm(10)}>10 min</Button>
+            <Button variant="outline" disabled={alarmSaving} onClick={() => void snoozeAlarm(15)}>15 min</Button>
+            <Button disabled={alarmSaving} onClick={() => void dismissAlarm()}>{alarmSaving && <Loader2 className="animate-spin" />}Dismiss</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

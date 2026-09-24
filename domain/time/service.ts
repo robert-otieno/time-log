@@ -6,7 +6,7 @@ import { AuditedCommandError, executeAuditedCommand, type AuditWriter } from "@/
 import { canAccessProject, hasCapability } from "@/domain/organizations/policy";
 import { organizationMemberSchema, projectAssignmentSchema, projectSchema } from "@/domain/organizations/schemas";
 import { projectTaskSchema } from "@/domain/tasks/schemas";
-import { activeTimerPointerSchema, activeTimerSchema, correctTimeEntryCommandSchema, createManualEntryCommandSchema, startTimerCommandSchema, stopTimerCommandSchema, timeEntrySchema, type ActiveTimer, type TimeEntry } from "@/domain/time/schemas";
+import { activeTimerPointerSchema, activeTimerSchema, configureTimerAlarmCommandSchema, correctTimeEntryCommandSchema, createManualEntryCommandSchema, snoozeTimerAlarmCommandSchema, startTimerCommandSchema, stopTimerCommandSchema, timeEntrySchema, type ActiveTimer, type TimeEntry } from "@/domain/time/schemas";
 import { TimeRepository } from "@/domain/time/repository";
 import type { AuthActor } from "@/lib/auth-server";
 import { getAdminDb } from "@/lib/firebase-admin";
@@ -95,6 +95,7 @@ export async function startTimer(
         segments: [],
         pausedAt: null,
         pauseReason: null,
+        alarm: command.alarmDurationSeconds ? { durationSeconds: command.alarmDurationSeconds, dueAtTrackedSeconds: command.alarmDurationSeconds, status: "armed", triggeredAt: null, acknowledgedAt: null, snoozeCount: 0 } : null,
       });
       transaction.create(timerReference, timer);
       transaction.create(pointerReference, { organizationId, projectId, userId: actor.uid, startedAt });
@@ -216,6 +217,60 @@ export function pauseTimerForInactivity(actor: AuthActor, effectiveAt: string, c
   const parsed = new Date(effectiveAt);
   if (Number.isNaN(parsed.getTime())) throw new AuditedCommandError("failed", "timer_inactivity_time_invalid", "The inactivity time is invalid");
   return transitionTimer(actor, "paused", "inactivity", correlation, dependencies, Timestamp.fromDate(parsed));
+}
+
+async function changeTimerAlarm(actor: AuthActor, action: "time.timer.alarm.configured" | "time.timer.alarm.triggered" | "time.timer.alarm.dismissed" | "time.timer.alarm.snoozed", update: (timer: ActiveTimer, now: Timestamp) => { timer: ActiveTimer; changed: boolean }, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  const db = dependencies.db ?? getAdminDb();
+  const repository = new TimeRepository(db);
+  const pointer = await repository.getActiveTimerPointer(actor.uid);
+  if (!pointer) throw new AuditedCommandError("failed", "timer_not_active", "No timer is active");
+  const timerRef = repository.activeTimerReference(pointer.organizationId, pointer.projectId, actor.uid);
+  const now = (dependencies.now ?? Timestamp.now)();
+  return executeAuditedCommand<{ timer: ActiveTimer; changed: boolean }>({
+    db, auditRepository: dependencies.auditRepository, organizationId: pointer.organizationId, projectId: pointer.projectId,
+    actor: { type: "user", id: actor.uid, role: null }, action, target: { type: "timer", id: actor.uid }, correlation,
+    execute: async (transaction) => {
+      const snapshot = await transaction.get(timerRef);
+      if (!snapshot.exists) throw new AuditedCommandError("failed", "timer_not_active", "No timer is active");
+      const timer = activeTimerSchema.parse(snapshot.data());
+      if (timer.userId !== actor.uid) throw new AuditedCommandError("denied", "timer_alarm_denied", "Timer alarm denied");
+      const result = update(timer, now);
+      if (result.changed) transaction.update(timerRef, { alarm: result.timer.alarm });
+      return result;
+    },
+  });
+}
+
+export function configureTimerAlarm(actor: AuthActor, raw: unknown, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  const command = configureTimerAlarmCommandSchema.parse(raw);
+  return changeTimerAlarm(actor, "time.timer.alarm.configured", (timer, now) => {
+    const elapsed = trackedTimerSeconds(timer, now.toDate());
+    const alarm = command.durationSeconds === null ? null : { durationSeconds: command.durationSeconds, dueAtTrackedSeconds: elapsed + command.durationSeconds, status: "armed" as const, triggeredAt: null, acknowledgedAt: null, snoozeCount: 0 };
+    return { timer: activeTimerSchema.parse({ ...timer, alarm }), changed: true };
+  }, correlation, dependencies);
+}
+
+export function claimDueTimerAlarm(actor: AuthActor, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  return changeTimerAlarm(actor, "time.timer.alarm.triggered", (timer, now) => {
+    if (!timer.alarm || timer.alarm.status !== "armed" || trackedTimerSeconds(timer, now.toDate()) < timer.alarm.dueAtTrackedSeconds) return { timer, changed: false };
+    return { timer: activeTimerSchema.parse({ ...timer, alarm: { ...timer.alarm, status: "due", triggeredAt: now } }), changed: true };
+  }, correlation, dependencies);
+}
+
+export function dismissTimerAlarm(actor: AuthActor, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  return changeTimerAlarm(actor, "time.timer.alarm.dismissed", (timer, now) => {
+    if (!timer.alarm || timer.alarm.status !== "due") return { timer, changed: false };
+    return { timer: activeTimerSchema.parse({ ...timer, alarm: { ...timer.alarm, status: "acknowledged", acknowledgedAt: now } }), changed: true };
+  }, correlation, dependencies);
+}
+
+export function snoozeTimerAlarm(actor: AuthActor, raw: unknown, correlation: AuditCorrelation, dependencies: Dependencies = {}) {
+  const command = snoozeTimerAlarmCommandSchema.parse(raw);
+  return changeTimerAlarm(actor, "time.timer.alarm.snoozed", (timer, now) => {
+    if (!timer.alarm || timer.alarm.status !== "due") throw new AuditedCommandError("failed", "timer_alarm_not_due", "Timer alarm is not due");
+    const elapsed = trackedTimerSeconds(timer, now.toDate());
+    return { timer: activeTimerSchema.parse({ ...timer, alarm: { ...timer.alarm, durationSeconds: command.durationSeconds, dueAtTrackedSeconds: elapsed + command.durationSeconds, status: "armed", triggeredAt: null, acknowledgedAt: null, snoozeCount: timer.alarm.snoozeCount + 1 } }), changed: true };
+  }, correlation, dependencies);
 }
 
 const MAX_ENTRY_SECONDS = 31_622_400;

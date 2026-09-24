@@ -315,19 +315,19 @@ Do not build all project tools in parallel. Complete and verify each numbered fe
 - Warn after two minutes of confirmed inactivity, count down for 30 seconds, then auto-pause from the inactivity threshold.
 - On return, offer resume, stop, or an audited inactive-time adjustment.
 
-### 45 Tracked-Time Alarms
+### 45 Tracked-Time Alarms ✅
 
 - Add persisted reminder duration, due state, acknowledgement, and snooze based on active tracked seconds rather than wall time.
 - Deduplicate alarms across tabs and show both in-app and service-worker notifications when permission is granted.
 - Clearly disclose that initial-release reminders require the browser to remain open; defer closed-browser delivery until Web Push scheduling is available.
 
-### 46 My Work Dashboard and Targets
+### 46 My Work Dashboard and Targets 🚧
 
 - Add private Today, This Week, and This Month work summaries, recent logs, task counts, sessions, inactive time, and an activity timeline.
 - Add configurable personal work-hour targets and near-real-time reconciliation after timer and task transitions.
 - Keep My Work self-only; broader team activity belongs in a separately authorized administration surface.
 
-### 47 Optimistic Application Mutations
+### 47 Optimistic Application Mutations ✅
 
 - Add a shared per-record coordinator for snapshots, synchronous projection, duplicate prevention, canonical reconciliation, rollback, and transient retry.
 - Slice 1: tasks and timers.

@@ -12,12 +12,16 @@ import { createTask } from "@/domain/tasks/service";
 import { TaskRepository } from "@/domain/tasks/repository";
 import {
   correctTimeEntry,
+  claimDueTimerAlarm,
+  configureTimerAlarm,
   createManualTimeEntry,
   getActiveTimer,
   pauseTimer,
   pauseTimerForInactivity,
+  dismissTimerAlarm,
   resumeTimer,
   startTimer,
+  snoozeTimerAlarm,
   stopTimer,
   trackedTimerSeconds,
 } from "@/domain/time/service";
@@ -40,6 +44,14 @@ export type TimerView = {
   state: "running" | "paused";
   elapsedSeconds: number;
   pauseReason: "manual" | "inactivity" | null;
+  alarm: null | {
+    durationSeconds: number;
+    dueAtTrackedSeconds: number;
+    status: "armed" | "due" | "acknowledged";
+    triggeredAt: string | null;
+    acknowledgedAt: string | null;
+    snoozeCount: number;
+  };
 };
 
 export type TimerLaunchProject = {
@@ -113,6 +125,11 @@ async function toTimerView(timer: ActiveTimer): Promise<TimerView> {
     state: timer.state,
     elapsedSeconds: trackedTimerSeconds(timer),
     pauseReason: timer.pauseReason,
+    alarm: timer.alarm ? {
+      ...timer.alarm,
+      triggeredAt: timer.alarm.triggeredAt ? timestampToIso(timer.alarm.triggeredAt) : null,
+      acknowledgedAt: timer.alarm.acknowledgedAt ? timestampToIso(timer.alarm.acknowledgedAt) : null,
+    } : null,
   };
 }
 
@@ -209,6 +226,7 @@ const startInputSchema = z
     projectId: z.string().trim().min(1).max(128),
     taskId: z.string().trim().min(1).max(128).nullable(),
     note: z.string().trim().max(2000).nullable(),
+    reminderMinutes: z.number().int().min(1).max(480).nullable().default(null),
   })
   .strict();
 
@@ -222,7 +240,7 @@ export async function startTimerAction(raw: unknown) {
       actor,
       organizationId,
       input.projectId,
-      { taskId: input.taskId, note: input.note },
+      { taskId: input.taskId, note: input.note, alarmDurationSeconds: input.reminderMinutes ? input.reminderMinutes * 60 : null },
       createRequestCorrelation(),
     );
     return { ok: true as const, timer: await toTimerView(timer) };
@@ -237,6 +255,39 @@ export async function startTimerAction(raw: unknown) {
     }
     return { ok: false as const, code: "timer_unavailable" as const };
   }
+}
+
+const alarmDurationSchema = z.object({ minutes: z.number().int().min(1).max(480).nullable() }).strict();
+const alarmSnoozeSchema = z.object({ minutes: z.union([z.literal(5), z.literal(10), z.literal(15)]) }).strict();
+
+async function runAlarmAction(operation: (actor: NonNullable<Awaited<ReturnType<typeof getSessionActor>>>) => Promise<{ timer: ActiveTimer; changed: boolean }>) {
+  const actor = await getSessionActor();
+  if (!actor) return { ok: false as const, code: "session_expired" as const };
+  try {
+    const result = await operation(actor);
+    return { ok: true as const, timer: await toTimerView(result.timer), changed: result.changed };
+  } catch (error) {
+    if (error instanceof AuditedCommandError) return { ok: false as const, code: error.reasonCode };
+    return { ok: false as const, code: "timer_alarm_failed" as const };
+  }
+}
+
+export async function configureTimerAlarmAction(raw: unknown) {
+  const input = alarmDurationSchema.parse(raw);
+  return runAlarmAction((actor) => configureTimerAlarm(actor, { durationSeconds: input.minutes ? input.minutes * 60 : null }, createRequestCorrelation()));
+}
+
+export async function claimDueTimerAlarmAction() {
+  return runAlarmAction((actor) => claimDueTimerAlarm(actor, createRequestCorrelation()));
+}
+
+export async function dismissTimerAlarmAction() {
+  return runAlarmAction((actor) => dismissTimerAlarm(actor, createRequestCorrelation()));
+}
+
+export async function snoozeTimerAlarmAction(raw: unknown) {
+  const input = alarmSnoozeSchema.parse(raw);
+  return runAlarmAction((actor) => snoozeTimerAlarm(actor, { durationSeconds: input.minutes * 60 }, createRequestCorrelation()));
 }
 
 export async function pauseTimerAction() {
