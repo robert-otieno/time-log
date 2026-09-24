@@ -354,17 +354,17 @@ Last updated: 2026-09-23
 
 | Property | Class |
 | --- | --- |
-| Background | List `bg-card`; expanded details `bg-muted/20`; quick-create `bg-card`; assignee options `bg-background` |
-| Border | One outer `border`; task wrappers use `border-b`; expanded details use `border-t`; assignee options use semantic `border` |
-| Border radius | `rounded-lg` list, empty states, and assignee options; task rows do not introduce nested radii |
+| Background | Lists and lifecycle accordions `bg-card`; expanded details `bg-muted/20`; disclosure hover `bg-muted/40`; assignee options `bg-background` |
+| Border | Lists and lifecycle accordions use semantic `border`; task wrappers use `border-b`; expanded details and accordion content use `border-t` |
+| Border radius | `rounded-lg` lists, lifecycle accordions, empty states, and assignee options; task rows do not introduce nested radii |
 | Text — primary | Collapsed title `font-medium`; description `text-sm`; page `text-xl font-semibold` |
 | Text — secondary | Detail labels and metadata use `text-muted-foreground`; completed title adds `line-through` |
-| Spacing | Collapsed rows `px-3 py-2`; expanded details `px-4 py-4`; assignee options `gap-2 px-3 py-2`; subtasks add `1.5rem` indentation per level |
-| Hover state | Row disclosure uses `hover:text-foreground` and a visible keyboard focus ring; canonical control states |
+| Spacing | Collapsed rows `px-3 py-2`; lifecycle triggers `px-4 py-3`; accordion content `p-3`; expanded details `px-4 py-4`; subtasks add `1.5rem` indentation per level |
+| Hover state | Row disclosure uses `hover:text-foreground`; lifecycle triggers use `hover:bg-muted/40`; both retain visible keyboard focus rings |
 | Shadow | Canonical control shadows; no additional row shadow |
 | Accent usage | Semantic status/priority/visibility badges and destructive archive confirmation |
 
-**Pattern notes:** Render tasks and subtasks as a single compact divided list, never as one card per record. Collapsed rows expose only the completion checkbox, title, saving feedback, and disclosure indicator. Opening a row reveals its readable description, badges, due/assignee metadata, and secondary actions; Edit is a separate state, and opening another row closes the previous one. Assignee choices identify eligible workspace members by resolved name with email as secondary context, save immutable user IDs, and render those names in task details. Saved subtasks use progressive indentation and a hierarchy icon. The default Active view hides completed tasks immediately; users can deliberately select the Done status filter to review or reopen them. Active children whose completed parent is hidden remain promoted into view rather than disappearing with the parent. Create, edit, assignment, status, archive, and restore are optimistic and scoped per task; unrelated rows stay interactive, overlapping changes to one task are serialized, canonical IDs replace temporary IDs, and failures restore only the affected snapshot. Transient save failures offer Retry, while permission and validation failures require review. Timer-driven completion broadcasts into an open list before server refresh. Archive uses confirmation and moves records into an explicit Archived view with Restore. Client mode retains disclosure for client-safe details but omits every mutation control.
+**Pattern notes:** Render tasks and subtasks as compact divided lists, never as one card per record. Active work is always the primary visible section. Completed and Archived are separate, collapsed-by-default lifecycle accordions beneath it; each has an independent open state, filter-aware count, rotating chevron, and keyboard-visible trigger. Completing, reopening, archiving, and restoring move only the affected optimistic row between sections without refreshing or disturbing disclosure state. Completed rows retain reopen, edit, and archive actions. Archived rows remain read-only except for Restore. Clients receive only authorized active/completed records and never receive an Archived section or count. Collapsed task rows expose only completion, title, saving feedback, and disclosure; opening a row reveals description, badges, due/assignee metadata, and secondary actions. Saved subtasks retain progressive indentation and promote to the section root when their parent belongs to another lifecycle. Assignee choices identify eligible workspace members by resolved name with email as secondary context and persist immutable user IDs. Failures restore only the affected snapshot; timer-driven completion broadcasts into an open list before server refresh.
 
 ### Project workspace header
 

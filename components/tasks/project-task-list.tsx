@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Archive,
+  CheckCircle2,
   ChevronDown,
   CornerDownRight,
   ListPlus,
@@ -21,6 +22,11 @@ import {
 import { StatusBadge, priorityTone, statusTone } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
   Dialog,
@@ -147,7 +153,8 @@ export function ProjectTaskList({
   const [expanded, setExpanded] = useState<string | null>(null);
   const [archiveId, setArchiveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
+  const [completedOpen, setCompletedOpen] = useState(false);
+  const [archivedOpen, setArchivedOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
@@ -162,37 +169,30 @@ export function ProjectTaskList({
     return () => window.removeEventListener(TASK_COMPLETED_EVENT, onCompleted);
   }, []);
 
-  const scoped = useMemo(
-    () => tasks.filter((task) => Boolean(task.archivedAt) === showArchived),
-    [tasks, showArchived],
+  const filteredTasks = useMemo(() => tasks.filter((task) =>
+    (statusFilter === "all" || task.status === statusFilter) &&
+    (priorityFilter === "all" || task.priority === priorityFilter) &&
+    (assigneeFilter === "all" || task.assigneeIds.includes(assigneeFilter)) &&
+    (visibilityFilter === "all" || task.visibility === visibilityFilter)
+  ), [tasks, statusFilter, priorityFilter, assigneeFilter, visibilityFilter]);
+  const activeTasks = useMemo(
+    () => filteredTasks.filter((task) => !task.archivedAt && task.status !== "done"),
+    [filteredTasks],
   );
-  const visible = useMemo(
-    () =>
-      scoped.filter(
-        (task) =>
-          (statusFilter === "all"
-            ? showArchived || task.status !== "done"
-            : task.status === statusFilter) &&
-          (priorityFilter === "all" || task.priority === priorityFilter) &&
-          (assigneeFilter === "all" ||
-            task.assigneeIds.includes(assigneeFilter)) &&
-          (visibilityFilter === "all" || task.visibility === visibilityFilter),
-      ),
-    [scoped, showArchived, statusFilter, priorityFilter, assigneeFilter, visibilityFilter],
+  const completedTasks = useMemo(
+    () => filteredTasks.filter((task) => !task.archivedAt && task.status === "done"),
+    [filteredTasks],
   );
-  const top = visible.filter(
-    (task) =>
-      !task.parentTaskId ||
-      !visible.some((parent) => parent.id === task.parentTaskId),
+  const archivedTasks = useMemo(
+    () => filteredTasks.filter((task) => Boolean(task.archivedAt)),
+    [filteredTasks],
   );
-  const archivedCount = tasks.filter((task) => task.archivedAt).length;
 
   const create = (values: Draft, reset: () => void) => {
     if (!values.title.trim()) return;
     const optimisticId = `pending-${crypto.randomUUID()}`;
     const sortOrder = tasks.length;
     setError(null);
-    setShowArchived(false);
     setStatusFilter("all");
     setPriorityFilter("all");
     setAssigneeFilter("all");
@@ -289,17 +289,18 @@ export function ProjectTaskList({
     });
   };
 
-  const orderedTasks: { task: ViewTask; depth: number }[] = [];
-  const appendTask = (task: ViewTask, depth = 0) => {
-    orderedTasks.push({ task, depth });
-    const children = visible.filter(
-      (candidate) => candidate.parentTaskId === task.id,
-    );
-    children.forEach((child) => appendTask(child, depth + 1));
+  const orderTasks = (items: ViewTask[]) => {
+    const ordered: { task: ViewTask; depth: number }[] = [];
+    const top = items.filter((task) => !task.parentTaskId || !items.some((parent) => parent.id === task.parentTaskId));
+    const appendTask = (task: ViewTask, depth = 0) => {
+      ordered.push({ task, depth });
+      items.filter((candidate) => candidate.parentTaskId === task.id).forEach((child) => appendTask(child, depth + 1));
+    };
+    top.forEach((task) => appendTask(task));
+    return ordered;
   };
-  top.forEach((task) => appendTask(task));
 
-  const renderTask = (task: ViewTask, depth: number): ReactNode => (
+  const renderTask = (task: ViewTask, depth: number, archived: boolean): ReactNode => (
     <div key={task.id} className="border-b last:border-b-0">
       <TaskRow
           task={task}
@@ -307,7 +308,7 @@ export function ProjectTaskList({
           assignees={assignees}
           allTasks={tasks.filter((candidate) => !candidate.archivedAt)}
           readOnly={readOnly}
-          archived={showArchived}
+          archived={archived}
           expanded={expanded === task.id}
           pending={mutations.isPending(`task:${task.id}`)}
           statusPending={mutations.isPending(`task:${task.id}`)}
@@ -318,7 +319,7 @@ export function ProjectTaskList({
           onArchive={() => setArchiveId(task.id)}
           onRestore={() => restore(task.id)}
       />
-      {subtaskParentId === task.id && !showArchived && (
+      {subtaskParentId === task.id && !archived && (
         <InlineSubtask
             draft={subtaskDraft}
             setDraft={setSubtaskDraft}
@@ -337,9 +338,20 @@ export function ProjectTaskList({
     </div>
   );
 
+  const renderList = (items: ViewTask[], archived: boolean, empty: string) => {
+    const ordered = orderTasks(items);
+    return ordered.length === 0 ? (
+      <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">{empty}</div>
+    ) : (
+      <div className="overflow-hidden rounded-lg border bg-card">
+        {ordered.map(({ task, depth }) => renderTask(task, depth, archived))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-5">
-      {!readOnly && !showArchived && (
+      {!readOnly && (
         <div className="rounded-lg border bg-card p-4">
           <div className="flex gap-2">
             <Input
@@ -373,28 +385,6 @@ export function ProjectTaskList({
               tasks={tasks.filter((task) => !task.archivedAt)}
             />
           </details>
-        </div>
-      )}
-      {!clientView && (
-        <div
-          className="flex flex-wrap gap-2"
-          role="group"
-          aria-label="Task lifecycle view"
-        >
-          <Button
-            size="sm"
-            variant={showArchived ? "outline" : "default"}
-            onClick={() => setShowArchived(false)}
-          >
-            Active
-          </Button>
-          <Button
-            size="sm"
-            variant={showArchived ? "default" : "outline"}
-            onClick={() => setShowArchived(true)}
-          >
-            Archived ({archivedCount})
-          </Button>
         </div>
       )}
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
@@ -438,18 +428,36 @@ export function ProjectTaskList({
           {error}
         </p>
       )}
-      {top.length === 0 ? (
-        <div className="rounded-lg border bg-card p-10 text-center text-sm text-muted-foreground">
-          {scoped.length === 0
-            ? showArchived
-              ? "No archived tasks."
-              : "No active tasks."
-            : "No tasks match these filters."}
+      <section className="space-y-2" aria-labelledby="active-tasks-heading">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="active-tasks-heading" className="font-medium">Active to-dos</h2>
+          <span className="text-xs tabular-nums text-muted-foreground">{activeTasks.length}</span>
         </div>
-      ) : (
-        <div className="overflow-hidden rounded-lg border bg-card">
-          {orderedTasks.map(({ task, depth }) => renderTask(task, depth))}
-        </div>
+        {renderList(activeTasks, false, tasks.some((task) => !task.archivedAt && task.status !== "done") ? "No active to-dos match these filters." : "No active to-dos.")}
+      </section>
+
+      <Collapsible open={completedOpen} onOpenChange={setCompletedOpen} className="rounded-lg border bg-card">
+        <CollapsibleTrigger className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+          <CheckCircle2 className="size-4 text-muted-foreground" />
+          <span className="flex-1 font-medium">Completed ({completedTasks.length})</span>
+          <ChevronDown className={`size-4 text-muted-foreground transition-transform ${completedOpen ? "rotate-180" : ""}`} />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="border-t p-3 data-[state=closed]:animate-out data-[state=open]:animate-in">
+          {renderList(completedTasks, false, tasks.some((task) => !task.archivedAt && task.status === "done") ? "No completed to-dos match these filters." : "No completed to-dos yet.")}
+        </CollapsibleContent>
+      </Collapsible>
+
+      {!clientView && (
+        <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen} className="rounded-lg border bg-card">
+          <CollapsibleTrigger className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+            <Archive className="size-4 text-muted-foreground" />
+            <span className="flex-1 font-medium">Archived ({archivedTasks.length})</span>
+            <ChevronDown className={`size-4 text-muted-foreground transition-transform ${archivedOpen ? "rotate-180" : ""}`} />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="border-t p-3 data-[state=closed]:animate-out data-[state=open]:animate-in">
+            {renderList(archivedTasks, true, tasks.some((task) => task.archivedAt) ? "No archived to-dos match these filters." : "No archived to-dos.")}
+          </CollapsibleContent>
+        </Collapsible>
       )}
       <Dialog
         open={archiveId !== null}

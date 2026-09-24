@@ -127,6 +127,7 @@ Do not build all project tools in parallel. Complete and verify each numbered fe
 ### 14 To-Do List UI
 
 - Add create, inline edit, complete/reopen, archive, filters, empty/loading/error states, and optimistic updates with rollback.
+- Keep active work primary while retaining completed and archived work in independent, collapsed lifecycle sections with filtered counts.
 - Reuse accessible shadcn primitives and existing keyboard conventions where appropriate.
 - Ensure visibility and assignment are clear without making rows noisy.
 
