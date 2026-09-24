@@ -655,6 +655,9 @@ function TaskRow({
               <Loader2 className="size-3 animate-spin" /> Saving…
             </span>
           )}
+          {!archived && task.status !== "done" && (
+            <StatusBadge tone={statusTone("in_progress")}>In progress</StatusBadge>
+          )}
           <ChevronDown
             aria-hidden="true"
             className={`size-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
