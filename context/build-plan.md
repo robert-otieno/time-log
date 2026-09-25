@@ -337,6 +337,13 @@ Do not build all project tools in parallel. Complete and verify each numbered fe
 - Slice 4: people, project access, organization settings, and notification preferences.
 - Finish with an audit of broad pending locks, `window.location.reload()`, and unnecessary `router.refresh()` calls. Keep external delivery, uploads, security operations, migrations, exports, and consequential AI/connector execution on explicit progress states.
 
+### 48 Task Comments and Replies 🚧
+
+- Add lazy-loaded task discussions with commenter identity, timestamps, edit state, one-level replies, and audited soft deletion.
+- Enforce project-team, task-assignee, selected-person, private, and client-visible audiences on the server; replies inherit the root audience.
+- Notify eligible reply authors and explicitly selected mentioned members through the existing Resend outbox with delivery-time access revalidation.
+- Apply item-scoped optimistic create/edit/delete behavior and cross-tab reconciliation without refreshing the task page.
+
 ## Definition of Done for Every Feature
 
 - Acceptance behavior and failure states are implemented.

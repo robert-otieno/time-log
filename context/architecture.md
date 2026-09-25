@@ -131,6 +131,7 @@ organizations/{organizationId}/clients/{clientId}
 organizations/{organizationId}/projects/{projectId}
 organizations/{organizationId}/projects/{projectId}/projectMembers/{uid}
 organizations/{organizationId}/projects/{projectId}/tasks/{taskId}
+organizations/{organizationId}/projects/{projectId}/tasks/{taskId}/comments/{commentId}
 organizations/{organizationId}/projects/{projectId}/timeEntries/{entryId}
 organizations/{organizationId}/projects/{projectId}/activeTimers/{uid}
 organizations/{organizationId}/projects/{projectId}/messages/{messageId}
@@ -251,6 +252,10 @@ type ProjectTask = {
 ```
 
 Subtasks use the same collection and schema through `parentTaskId`. Parent references must remain inside the project; writes reject missing parents, self-parenting, and ancestry cycles. Visibility is independent at every level. `dueDate` preserves the calendar date without timezone conversion; `dueAt` is populated only when `dueTimeSet` records an intentional clock time. `archivedAt` is separate from workflow status so completed tasks may be archived without losing their `done` state, and restoring clears only `archivedAt`.
+
+Task comments are server-only project records beneath their task. An audience is one of `project_team`, `assignees`, `selected`, `private`, or `client_visible`; client-visible comments require a client-visible parent task, and clients may create only that audience. Root comments retain an immutable audience owner. Replies inherit the root audience and audience members, remain visually one level deep, and cannot widen access. Authors may edit or soft-delete their comments, while organization and project admins may moderate. Soft deletion clears content but retains a tombstone and thread relationships. Server reads filter every comment independently and never disclose hidden counts or metadata to clients.
+
+Reply authors and explicitly selected mentioned project members may receive a `mention` notification. Recipient membership, project assignment, task state, comment deletion state, and audience access are revalidated again at delivery time. Comment content is not copied into notification or audit records. The client lazy-loads discussions only when task details open, applies record-scoped optimistic updates, and uses a BroadcastChannel invalidation message to reconcile other tabs against canonical server data.
 
 #### Active Timer and Time Entry
 

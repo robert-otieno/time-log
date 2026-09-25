@@ -50,6 +50,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { VisibilityBadge } from "@/components/visibility/visibility-badge";
 import { VisibilityControl } from "@/components/visibility/visibility-control";
+import { TaskComments } from "@/components/tasks/task-comments";
 import type { TaskListItem } from "@/domain/tasks/form-data";
 import type { TaskAssigneeOption } from "@/domain/tasks/read";
 import type { Visibility } from "@/domain/visibility/schemas";
@@ -140,12 +141,14 @@ export function ProjectTaskList({
   assignees,
   readOnly,
   clientView,
+  discussionWritable,
 }: {
   projectId: string;
   initialTasks: TaskListItem[];
   assignees: TaskAssigneeOption[];
   readOnly: boolean;
   clientView: boolean;
+  discussionWritable: boolean;
 }) {
   const mutations = useOptimisticMutations();
   const [tasks, setTasks] = useState<ViewTask[]>(initialTasks);
@@ -336,10 +339,13 @@ export function ProjectTaskList({
     <div key={task.id} className="border-b last:border-b-0">
       <TaskRow
           task={task}
+          projectId={projectId}
           depth={depth}
           assignees={assignees}
           allTasks={tasks.filter((candidate) => !candidate.archivedAt)}
           readOnly={readOnly}
+          clientView={clientView}
+          discussionWritable={discussionWritable}
           archived={archived}
           timerRunning={runningTimerTaskId === task.id}
           expanded={expanded === task.id}
@@ -586,10 +592,13 @@ function InlineSubtask({
 
 function TaskRow({
   task,
+  projectId,
   depth,
   assignees,
   allTasks,
   readOnly,
+  clientView,
+  discussionWritable,
   archived,
   timerRunning,
   expanded,
@@ -603,10 +612,13 @@ function TaskRow({
   onRestore,
 }: {
   task: ViewTask;
+  projectId: string;
   depth: number;
   assignees: TaskAssigneeOption[];
   allTasks: ViewTask[];
   readOnly: boolean;
+  clientView: boolean;
+  discussionWritable: boolean;
   archived: boolean;
   timerRunning: boolean;
   expanded: boolean;
@@ -786,6 +798,18 @@ function TaskRow({
                 </div>
               )}
             </div>
+          )}
+          {!editing && (
+            <TaskComments
+              projectId={projectId}
+              taskId={task.id}
+              taskVisibility={task.visibility}
+              participants={assignees}
+              readOnly={readOnly}
+              archived={archived}
+              clientView={clientView}
+              discussionWritable={discussionWritable}
+            />
           )}
         </div>
       )}

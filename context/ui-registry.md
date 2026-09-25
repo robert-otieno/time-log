@@ -661,6 +661,25 @@ Last updated: 2026-09-21
 
 **Optimistic note:** Ordinary posts and comments appear immediately with temporary IDs and muted `Saving…` metadata. Editing, pinning, visibility, archive/restore, and comment archive affect only their record; unrelated posts and comments remain interactive. Failures restore only the affected snapshot and transient failures offer Retry. Email announcements are deliberately different: the post remains in a publishing state and is not shown as published until the server has durably created recipient notifications.
 
+### Task discussions
+
+File: `components/tasks/task-comments.tsx`
+Last updated: 2026-09-24
+
+| Property | Class |
+| --- | --- |
+| Background | Composer `bg-background`; audience chips and avatar fallback `bg-muted`; discussion inherits expanded task `bg-muted/20` |
+| Border | Discussion begins with `border-t`; replies use `border-l`; composer and people rows use semantic `border` |
+| Border radius | Composer and people rows `rounded-lg`; audience chips `rounded-full`; avatar `rounded-full` |
+| Text — primary | Author and section title `text-sm font-medium` / `font-medium`; body `text-sm` |
+| Text — secondary | Timestamp, edited/saving state, audience chip, and tombstone use `text-xs text-muted-foreground` / `text-sm text-muted-foreground` |
+| Spacing | Discussion `mt-5 pt-4`; comments `gap-3 py-3`; replies `ml-7 pl-4`; composer `space-y-3 p-3` |
+| Hover state | Canonical ghost reply/edit/delete actions, Select, Checkbox, Textarea, Dialog, and Button states |
+| Shadow | Canonical controls only |
+| Accent usage | Semantic primary submit action; destructive deletion confirmation; no audience-specific hardcoded colors |
+
+**Pattern notes:** Task discussion is lazy-loaded inside expanded task details. Use a small initials avatar, compact author/timestamp line, plain readable body, and a restrained audience chip. Replies remain one visual level deep under a semantic left border. Root composers expose audience selection; replies state and inherit the root audience. Selected visibility and notifications use explicit member checkboxes. Create, edit, and delete are item-scoped optimistic mutations; deletion renders an italic tombstone so replies retain context. Cross-tab messages invalidate local data but canonical server reads remain authoritative.
+
 ### My Work dashboard
 
 File: `components/work-dashboard/work-dashboard.tsx`

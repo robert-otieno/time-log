@@ -58,6 +58,7 @@ export default async function ProjectTodosPage({
         assignees={assignees}
         readOnly={readOnly}
         clientView={access.role === "client"}
+        discussionWritable={access.project.status === "active"}
       />
     </section>
   );

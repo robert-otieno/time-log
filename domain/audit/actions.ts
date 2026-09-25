@@ -34,6 +34,9 @@ export const AUDIT_ACTIONS = [
   "task.record.archived",
   "task.record.restored",
   "task.legacymigration.executed",
+  "task.comment.created",
+  "task.comment.updated",
+  "task.comment.deleted",
   "time.timer.started",
   "time.timer.paused",
   "time.timer.resumed",
@@ -104,6 +107,7 @@ export const SAFE_AUDIT_FIELDS = [
   "exportFormat",
   "notificationPreferencesChanged",
   "workTargetChanged",
+  "commentAudience",
   "webhookOutcome",
 ] as const;
 
@@ -148,6 +152,9 @@ export const AUDIT_CHANGE_ALLOWLIST = {
   "task.record.archived": STATUS,
   "task.record.restored": STATUS,
   "task.legacymigration.executed": STATUS,
+  "task.comment.created": ["commentAudience"] as const,
+  "task.comment.updated": NONE,
+  "task.comment.deleted": STATUS,
   "time.timer.started": NONE,
   "time.timer.paused": NONE,
   "time.timer.resumed": NONE,

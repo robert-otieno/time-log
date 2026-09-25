@@ -8,9 +8,11 @@ Update this file after every completed feature. A new session should be able to 
 
 **Last completed:** 45 Tracked-Time Alarms
 
-**Current:** 46 My Work Dashboard and Targets — browser verification
+**Current:** 48 Task Comments and Replies — browser verification
 
 **Blockers:** Message attachments remain deferred because Feature 26 Firebase Storage requires a pricing-plan upgrade. Closed-browser timer alarms remain deferred until server-side Web Push scheduling is available; initial reminder delivery will require an open browser.
+
+2026-09-24 — Feature 48 implementation — added lazy-loaded task discussions with initial avatars, timestamps, edited state, one-level replies, audience labels, project-team/assignee/selected/private/client-visible policy, author and moderator edit/delete permissions, audited deletion tombstones, optimistic item-scoped mutations, cross-tab reconciliation, and reply/selected-recipient Resend notifications with delivery-time access revalidation — 228 unit tests, 22 Firestore rules tests, typecheck, lint (0 errors; 29 pre-existing warnings), and production build pass; verify internal, client, selected, private, reply, email, rollback, and multi-tab behavior in browser
 
 2026-09-23 — Active timer task affordance — added a compact semantic “In progress” badge only to the task referenced by the currently running timer; paused, stopped, project-level, and unrelated tasks do not receive the badge, and the state reconciles through the existing cross-tab timer channel plus window-focus refresh
 
@@ -170,6 +172,7 @@ Existing checkmarks describe repository presence, not production readiness for t
 - [x] 45 Tracked-Time Alarms
 - [ ] 46 My Work Dashboard and Targets
 - [x] 47 Optimistic Application Mutations
+- [ ] 48 Task Comments and Replies
 
 ## Decisions Made
 

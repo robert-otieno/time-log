@@ -38,6 +38,7 @@ beforeEach(async () => {
       setDoc(doc(db, "organizations/org-a/projects/project-1/projectMembers/client-user"), { userId: "client-user", projectRole: "member", status: "active" }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/internal-task"), { title: "Internal", visibility: "internal", archivedAt: null }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/shared-task"), { title: "Shared", visibility: "client-visible", archivedAt: null }),
+      setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/shared-task/comments/comment-1"), { body: "Server only", audience: "client_visible", deletedAt: null }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/tasks/archived-shared-task"), { title: "Archived", visibility: "client-visible", archivedAt: { seconds: 1 } }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/messages/internal-message"), { title: "Internal", visibility: "internal", archivedAt: null, createdAt: { seconds: 1, nanoseconds: 0 } }),
       setDoc(doc(db, "organizations/org-a/projects/project-1/messages/shared-message"), { title: "Shared", visibility: "client-visible", archivedAt: null, createdAt: { seconds: 2, nanoseconds: 0 } }),
@@ -86,6 +87,14 @@ describe("organization Firestore rules", () => {
     await assertSucceeds(getDoc(doc(dbFor("client-user"), `${base}/shared-message`)));
     await assertSucceeds(getDoc(doc(dbFor("client-user"), `${base}/shared-message/comments/shared-comment`)));
     await assertFails(setDoc(doc(dbFor("member"), `${base}/browser-message`), { visibility: "internal" }));
+  });
+
+  it("keeps audience-scoped task comments behind server authorization", async () => {
+    const path = "organizations/org-a/projects/project-1/tasks/shared-task/comments/comment-1";
+    await assertFails(getDoc(doc(dbFor("admin"), path)));
+    await assertFails(getDoc(doc(dbFor("member"), path)));
+    await assertFails(getDoc(doc(dbFor("client-user"), path)));
+    await assertFails(setDoc(doc(dbFor("member"), `${path}-browser`), { body: "No" }));
   });
 
   it("allows explicitly assigned members and clients", async () => {

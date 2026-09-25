@@ -92,6 +92,7 @@ Only routes for enabled tools appear in a project. A compact project switcher an
 - Filter My Work by assignment, due date, status, and project.
 - Reorder or move tasks when the project uses a card table.
 - Complete, reopen, archive, and audit meaningful changes.
+- Discuss tasks in one-level comment threads with project-team, assignee, selected-person, private, or client-visible audiences; replies inherit the root audience and deletions preserve audited thread continuity.
 - Existing daily tasks, subtasks, weekly priorities, goals, and habits are legacy functionality. Reuse concepts deliberately; do not silently mix legacy user collections with collaborative project data.
 
 ### Live Time Tracking

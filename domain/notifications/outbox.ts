@@ -8,7 +8,10 @@ import { invitationSchema, organizationMemberSchema, projectAssignmentSchema } f
 import { notificationSchema, type Notification } from "@/domain/notifications/schemas";
 import { categoryEnabled, getEffectiveNotificationPreferences } from "@/domain/notifications/preferences";
 import { projectTaskSchema } from "@/domain/tasks/schemas";
+import { canAccessProject } from "@/domain/organizations/policy";
 import { messagePostSchema } from "@/domain/messages/schemas";
+import { taskCommentSchema } from "@/domain/task-comments/schemas";
+import { canReadTaskComment } from "@/domain/task-comments/policy";
 import { renderNotification } from "@/emails/templates";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getResendClient } from "@/lib/resend";
@@ -47,6 +50,21 @@ async function resolveRecipient(db: Firestore, organizationId: string, notificat
     if (!memberSnapshot.exists || !assignmentSnapshot.exists || !messageSnapshot.exists) return null;
     const member = organizationMemberSchema.parse(memberSnapshot.data()); const assignment = projectAssignmentSchema.parse(assignmentSnapshot.data()); const message = messagePostSchema.parse({ id: messageSnapshot.id, ...messageSnapshot.data() });
     if (member.status !== "active" || !member.email || assignment.status !== "active" || message.archivedAt || (member.role === "client" && message.visibility !== "client-visible")) return null;
+    return member.email;
+  }
+  if (notification.type === "mention" && notification.taskId && notification.commentId) {
+    const [memberSnapshot, assignmentSnapshot, taskSnapshot, commentSnapshot] = await Promise.all([
+      db.doc(`organizations/${organizationId}/members/${notification.recipientUserId}`).get(),
+      db.doc(`organizations/${organizationId}/projects/${notification.projectId}/projectMembers/${notification.recipientUserId}`).get(),
+      db.doc(`organizations/${organizationId}/projects/${notification.projectId}/tasks/${notification.taskId}`).get(),
+      db.doc(`organizations/${organizationId}/projects/${notification.projectId}/tasks/${notification.taskId}/comments/${notification.commentId}`).get(),
+    ]);
+    if (!memberSnapshot.exists || !taskSnapshot.exists || !commentSnapshot.exists) return null;
+    const member = organizationMemberSchema.parse(memberSnapshot.data());
+    const assignment = assignmentSnapshot.exists ? projectAssignmentSchema.parse(assignmentSnapshot.data()) : null;
+    const task = projectTaskSchema.parse({ id: taskSnapshot.id, ...taskSnapshot.data() });
+    const comment = taskCommentSchema.parse({ id: commentSnapshot.id, ...commentSnapshot.data() });
+    if (member.status !== "active" || !member.email || !canAccessProject(member, assignment) || task.archivedAt || comment.deletedAt || !canReadTaskComment(comment, task, member, assignment)) return null;
     return member.email;
   }
   if (notification.type !== "assignment" && notification.type !== "reminder") return notification.recipientEmail;

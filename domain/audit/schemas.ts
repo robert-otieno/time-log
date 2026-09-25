@@ -64,7 +64,7 @@ export const safeAuditValueSchema = z.union([
 
 const safeFieldValueSchemas = {
   role: z.enum(["admin", "member", "client"]),
-  status: z.enum(["invited", "active", "ready", "suspended", "pending", "accepted", "expired", "revoked", "completed", "completed_with_issues", "archived", "removed", "failed", "backlog", "todo", "in_progress", "blocked", "done"]),
+  status: z.enum(["invited", "active", "ready", "suspended", "pending", "accepted", "expired", "revoked", "completed", "completed_with_issues", "archived", "deleted", "removed", "failed", "backlog", "todo", "in_progress", "blocked", "done"]),
   visibility: z.enum(["internal", "client-visible"]),
   billable: z.boolean(),
   enabled: z.boolean(),
@@ -86,6 +86,7 @@ const safeFieldValueSchemas = {
   exportFormat: z.enum(["csv", "json"]),
   notificationPreferencesChanged: z.boolean(),
   workTargetChanged: z.boolean(),
+  commentAudience: z.enum(["project_team", "assignees", "selected", "private", "client_visible"]),
   webhookOutcome: z.enum(["applied", "stale", "duplicate"]),
 } satisfies Record<SafeAuditField, z.ZodType>;
 

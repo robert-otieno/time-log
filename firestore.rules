@@ -106,6 +106,10 @@ service cloud.firestore {
             && (activeInternalMember(organizationId)
               || (resource.data.visibility == 'client-visible' && resource.data.archivedAt == null));
           allow write: if false;
+
+          match /comments/{commentId} {
+            allow read, write: if false;
+          }
         }
 
         match /files/{fileId} {
